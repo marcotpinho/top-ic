@@ -31,18 +31,19 @@ class Evaluator:
         for solution in solutions:
             paths = solution.get_solution_paths()
             paths_flat = np.concatenate(paths)
-            
+
             total_reward = maximize_reward(paths_flat, self.map.rvalues)
-            
+
             max_len = get_paths_max_length(paths, self.map.distmx)
 
-            interesting_times, timestamps = get_time_to_rewards(paths, speeds, self.map.distmx)
             coordinates = [self.map.rpositions[path] for path in paths]
-
             all_coordinates.append(coordinates)
-            all_timestamps.append(timestamps)
 
             if not self.predict_distances:
+                # Only calculate timestamps when using exact RSSI (surrogate doesn't need them)
+                interesting_times, timestamps = get_time_to_rewards(paths, speeds, self.map.distmx)
+                all_timestamps.append(timestamps)
+
                 interpolated_positions = self.interpolate_positions(paths, speeds, interesting_times)
                 max_distance = calculate_max_distance(interpolated_positions)
                 max_distances.append(max_distance)
@@ -55,13 +56,15 @@ class Evaluator:
             })
         
         if self.predict_distances:
-            max_distances = predict_max_distance_batch(all_coordinates, all_timestamps, self.map)
+            # RankNet model doesn't use timestamps, pass list of empty lists (one per solution)
+            empty_timestamps = [[] for _ in all_coordinates]
+            max_distances = predict_max_distance_batch(all_coordinates, empty_timestamps, speeds, self.map)
 
         for i, (max_distance, result) in enumerate(zip(max_distances, solution_results)):
             min_rssi = calculate_rssi(max_distance, noise=False)
             
-            if self.should_save_to_db and np.random.random() < 0.05:
-                save_to_db(result['paths'], speeds, self.map.rpositions, max_distance)
+            # if self.should_save_to_db and np.random.random() < 0.05:
+            #     save_to_db(result['paths'], speeds, self.map.rpositions, max_distance)
 
             solutions[i].score = (result['total_reward'], min_rssi, -result['max_len'])
 

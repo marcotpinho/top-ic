@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from config import CONFIG
+from src.config import CONFIG
 
 
 MAX_FILE_SIZE = 25 * 1024 * 1024 * 1024  # 25 GB in bytes

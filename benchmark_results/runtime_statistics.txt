@@ -1,7 +1,0 @@
-Benchmark Results (50 successful runs out of 50)
-Parameters: maps/1.txt, time=600, iterations=300, algorithm=unique_vis
-
-Mean Runtime: 23.0271 ± 0.5967 seconds
-Median Runtime: 22.8932 seconds
-Min Runtime: 22.0823 seconds
-Max Runtime: 24.7448 seconds

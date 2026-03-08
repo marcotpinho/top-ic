@@ -69,6 +69,8 @@ def run_movns(
     log, elapsed_time = runner.run()
 
     print(f"Finished running in {elapsed_time:.2f} seconds.")
+    evaluator.predict_distances = False
+    evaluator.evaluate(archive.front)
 
     return archive.front + archive.dominated, archive.front, log
 
@@ -80,7 +82,8 @@ def save_results_to_files(
     map_name: str, 
     max_speed: float
 ) -> None:
-    results_dir = f"{CONFIG.out_dir}/{map_name}/{max_speed}"
+    mode = "exact" if CONFIG.predict_distances == False else "surrogate"
+    results_dir = f"{CONFIG.out_dir}/{map_name}/{max_speed}/{mode}"
     results_dir = Path(results_dir)
     results_dir.mkdir(parents=True, exist_ok=True)
 

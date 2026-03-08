@@ -242,7 +242,9 @@ def plot_animated_paths(
     side_by_side (bool): Whether to display the plots side by side.
     """
     n_agents = len(paths)
-    colors = ["#003f5c", "#ff6361", "#ffa600"]
+    # Extended color palette to support more agents
+    base_colors = ["#003f5c", "#ff6361", "#ffa600", "#bc5090", "#58508d", "#003f5c", "#7a5195"]
+    colors = base_colors[:n_agents] if n_agents <= len(base_colors) else base_colors
     background_color = "#ffffff"
 
     # Interpolate the paths.
