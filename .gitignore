@@ -16,3 +16,9 @@ calc_dist_opt.py
 \data
 \data\*
 \maps
+\timing_results_mainpy
+\timing_results_mainpy\*
+\benchmarks_results_mainpy
+\benchmarks_results_mainpy\*
+\benchmarks_results
+\benchmarks_results\*
