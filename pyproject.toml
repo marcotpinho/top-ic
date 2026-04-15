@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "topcc"
+version = "0.1.0"
+description = "Team Orienteering Problem with Communication Constraints"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy",
+    "scipy",
+    "numba",
+    "matplotlib",
+    "tqdm",
+    "scikit-learn",
+]
+
+[project.optional-dependencies]
+surrogate = ["torch"]
+
+[project.scripts]
+topcc = "topcc.main:main"
