@@ -112,3 +112,5 @@ $\Delta$ is not an objective, crowding coordinate, or archive level. An exact ca
 ## Implementation status
 
 See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
+
+Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team and communication operators remain later-stage functionality on this branch.

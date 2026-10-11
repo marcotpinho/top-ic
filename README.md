@@ -11,4 +11,4 @@ uv pip install --python .venv/bin/python -e '.[test]'
 .venv/bin/topcc
 ```
 
-The current stage constructs and validates trajectories; search arrives in step 2. Input JSON requires `schema_version: 1`, `budget_unit: "seconds"`, task IDs/positions/rewards, explicit start/end, and per-agent budget and axis motion limits.
+The current stage runs single-agent MOVNS-KOP and a matched LNS baseline. Use `--max-seconds`, `--max-evaluations`, `--disable`, and `--output` to control and record runs. Input JSON requires `schema_version: 1`, `budget_unit: "seconds"`, task IDs/positions/rewards, explicit start/end, and per-agent budget and axis motion limits.
