@@ -36,9 +36,9 @@ Branch: `implementation/step3-team-kop`, copied from step 2. The evaluator and r
 
 The sixth neighborhood, `assignment`, enumerates cross-agent transfer, two-task exchange with destination velocity-state enumeration, and tail exchange with stopped-state reconstruction. Existing insert/remove/replace/reorder/velocity neighborhoods operate on all agents. Compound shaking can edit multiple routes. No identity symmetry canonicalization is used yet, so heterogeneous agents are never incorrectly exchanged.
 
-Validation: 21 tests pass. New tests cover the M=1 reduction, shared reward, mean versus maximum completion, individual budget violation, empty agent expenditure, terminal presence, heterogeneous transfers, co-location, agent permutations, and a tiny exhaustive assignment/order front. All exported fixture-front trajectories pass independent integration/bound validation. Team LNS is not advertised; the KOP-inspired LNS comparison is single-agent only. Communication/FREE visits are explicitly rejected pending step 4.
+Validation: 27 tests pass, including epsilon-archive and accelerated plot checks. New tests cover the M=1 reduction, shared reward, mean versus maximum completion, individual budget violation, empty agent expenditure, terminal presence, heterogeneous transfers, co-location, agent permutations, and a tiny exhaustive assignment/order front. All exported fixture-front trajectories pass independent integration/bound validation. Team LNS is not advertised; the KOP-inspired LNS comparison is single-agent only. Communication/FREE visits are explicitly rejected pending step 4.
 
-Example: `topcc --mode team_kop --max-seconds 60 --max-evaluations 4000 --output results/team.json`; `--disable assignment` removes all cross-agent assignment moves, including shaking. Plot and benchmark results are recorded separately after the parallel experiments.
+Example: `topcc --mode team_kop --max-seconds 60 --max-evaluations 4000 --output results/team.json`; `--disable assignment` removes all cross-agent assignment moves, including shaking. The archive uses epsilon-box dominance (default reward width 1, time width 0.1 seconds), with logged deterministic coarsening rather than crowding. See [team experiment report](experiments-team.md) for bounded full/ablation runs, independently checked saved trajectories, and plots.
 
 ## Archive policy update
 
