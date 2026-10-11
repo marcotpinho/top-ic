@@ -56,6 +56,6 @@ Enable FREE visits only in the communication stage. Recommended default: positio
 
 At least one coordinated move must insert/move a pair of rendezvous visits and adjust both agents' motion states/timing together. Stationary planned meetings are a constructive mechanism; all valid moving contacts still count.
 
-## Archive policy decision
+## Confirmed archive policy
 
-Confirmed during implementation: use epsilon-box dominance for reward and mean completion time, not crowding-distance filtering. Positive configurable epsilon widths and any deterministic capacity-driven coarsening are recorded in run metadata. Delta remains outside the archive coordinates.
+Use epsilon-box dominance, not crowding distance. Positive widths apply to minimization coordinates `(-reward, mean_completion_time)` in reward units and seconds. Retain one deterministic representative per nondominated box; log any capacity-driven coarsening and report an approximate epsilon front. Initial widths are 1 reward unit and 0.1 seconds. Delta does not enter archive boxes.

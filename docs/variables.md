@@ -99,20 +99,3 @@ Keep handshake $\delta$ and staleness $\Delta$ distinct in code. Effective initi
 | $f_1=-Q$ | Reward objective in minimization form | `objectives[0]` |
 | $f_2=\bar c$ | Expenditure objective | `objectives[1]` |
 | — | Feasible epsilon-box nondominated front in two objectives | `archive` |
-| — | Bounded communication-infeasible exploration seeds | `working_pool` |
-| — | Structurally distinct objective-equal exploration seeds | `alternative_seeds` |
-| — | Seeded random generator | `rng` |
-| — | Shaking intensity | `shake_strength` |
-| $\varepsilon_Q,\varepsilon_c$ | Positive epsilon-dominance archive box sizes | `eps_reward`, `eps_time` |
-| — | Full decision-state identity with connector/problem version | `solution_hash` |
-| — | Full-reference propagation state for incremental restart | `checkpoint` |
-
-$\Delta$ is not an objective, crowding coordinate, or archive level. An exact cache key includes all motion/timing/free-position decisions that affect a trajectory. RSSI, binary arc variables, MTZ labels, and time big-$M$ constants are not part of this metaheuristic formulation.
-
-## Implementation status
-
-See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
-
-Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication remains later-stage functionality.
-
-Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints, communication, and FREE visits are not enabled.

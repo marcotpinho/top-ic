@@ -24,6 +24,12 @@ Example: `topcc --mode single_kop --max-seconds 60 --max-evaluations 4000 --outp
 
 Limitations: visit velocity is discretized (default four headings, speed fractions 0/0.5/1); no global continuous-state optimality claim; neighborhood traversal can depend on enumeration and practical wall-time stopping. Unit tests use fixed evaluation budgets for repeatability.
 
+### Epsilon archive and experimental artifacts
+
+The confirmed archive policy is epsilon-box dominance with positive reward/time widths (defaults 1 reward unit and 0.1 seconds), nearest-corner representatives, and logged deterministic coarsening for capacity. Results are approximate epsilon fronts, not a claim of the complete exact Pareto front. Four archive-specific tests cover box dominance, representative ties, epsilon validation, and coarsening. See [step 2 experiments](experiments-step2.md) for copied benchmark provenance, complete saved trajectories, singleton neighborhood ablations, plots, and the bounded run ledger.
+
+Final step 2 verification: 21 tests passed in 1.32 seconds. The campaign used exactly 10 optimizer starts: 2 superseded completed runs, 1 steering-terminated run, and 7 completed epsilon runs (full MOVNS, each of five singleton neighborhood ablations, and matched LNS). Maximum completed subprocess wall time was 45.256 seconds. All 92 final archived solutions (2,164 motion pieces) passed independent saved-trajectory checks; maximum residual was 6.89e-8 against a 2e-6 validation tolerance. No broad performance conclusion is supported by this single-instance, single-seed final suite.
+
 ## Step 3 — multi-agent KOP
 
 Branch: `implementation/step3-team-kop`, copied from step 2. The evaluator and runner support multiple agents with individual seconds budgets, global reached-task union, deterministic first-visitor diagnostics, and mean final arrival as the expenditure objective. Identical agents may cross/co-locate; there are no collision checks. Early agents remain stationary through later query times without increasing expenditure.
