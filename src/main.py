@@ -20,13 +20,26 @@ def main():
     parser.add_argument("--headings",type=int,default=4)
     parser.add_argument("--speed-fractions",type=float,nargs="+",default=[0,.5,1])
     parser.add_argument("--disable",nargs="*",default=[])
+    parser.add_argument("--comm-range",type=float,default=2.)
+    parser.add_argument("--handshake-time",type=float,default=.5)
+    parser.add_argument("--recurrence-bound",type=float,default=5.)
+    parser.add_argument("--working-pool-size",type=int,default=40)
+    parser.add_argument("--max-free-waypoints",type=int,default=3)
+    parser.add_argument("--waypoint-workspace",type=float,nargs=4)
+    parser.add_argument("--waypoint-steps",type=float,nargs="+",default=[1.,.25])
+    parser.add_argument("--wait-steps",type=float,nargs="+",default=[.25,1.])
+    parser.add_argument("--neighborhood-candidates",type=int,default=120)
     parser.add_argument("--output")
     args=parser.parse_args()
     try:
         config=Config(mode=args.mode,seed=args.seed,max_seconds=args.max_seconds,max_evaluations=args.max_evaluations,
                       max_iterations=args.max_iterations,eps_reward=args.eps_reward,eps_time=args.eps_time,headings=args.headings,speed_fractions=tuple(args.speed_fractions),
-                      disabled=tuple(args.disable),algorithm=args.algorithm)
-        problem=load_problem_instance(args.instance) if args.instance else smoke_problem(2 if args.mode=="team_kop" else 1)
+                      disabled=tuple(args.disable),algorithm=args.algorithm,
+                      comm_range=args.comm_range,handshake_time=args.handshake_time,recurrence_bound=args.recurrence_bound,
+                      working_pool_size=args.working_pool_size,max_free_waypoints=args.max_free_waypoints,
+                      waypoint_workspace=tuple(args.waypoint_workspace) if args.waypoint_workspace else None,
+                      waypoint_steps=tuple(args.waypoint_steps),wait_steps=tuple(args.wait_steps),neighborhood_candidates=args.neighborhood_candidates)
+        problem=load_problem_instance(args.instance) if args.instance else smoke_problem(2 if args.mode in ("team_kop","team_kop_icc") else 1)
         result=run_optimization(problem,config)
         if args.output:save_result(result,args.output)
         print(json.dumps({"status":result.status,"elapsed_seconds":result.elapsed_seconds,"evaluations":result.statistics.get("evaluated",0),

@@ -88,6 +88,16 @@ class Config:
     speed_fractions: tuple[float, ...] = (0.0, 0.5, 1.0)
     disabled: tuple[str, ...] = ()
     algorithm: str = "movns"
+    comm_range: float = 2.0
+    handshake_time: float = 0.5
+    recurrence_bound: float = 5.0
+    working_pool_size: int = 40
+    max_free_waypoints: int = 3
+    waypoint_workspace: tuple[float,float,float,float] | None = None
+    waypoint_steps: tuple[float,...] = (1.0,0.25)
+    wait_steps: tuple[float,...] = (0.25,1.0)
+    candidate_bank_size: int = 80
+    neighborhood_candidates: int = 120
 
     def __post_init__(self):
         if self.mode not in ("single_kop", "team_kop", "team_kop_icc"):
@@ -96,10 +106,19 @@ class Config:
             raise ValueError("Unknown search algorithm")
         if not isfinite(self.max_seconds) or not 0 < self.max_seconds <= 600:
             raise ValueError("Runtime limit must be in (0,600] seconds")
-        if min(self.max_evaluations, self.max_iterations, self.archive_size, self.headings) <= 0:
+        if min(self.max_evaluations, self.max_iterations, self.archive_size, self.headings,self.neighborhood_candidates) <= 0:
             raise ValueError("Search counts must be positive")
         if not all(isfinite(e) and e>0 for e in (self.eps_reward,self.eps_time)):
             raise ValueError("Epsilon widths must be positive and finite")
+        if not isfinite(self.comm_range) or self.comm_range<=0 or not isfinite(self.handshake_time) or self.handshake_time<0 or not isfinite(self.recurrence_bound) or self.recurrence_bound<=0:
+            raise ValueError("Communication range/window must be positive, handshake nonnegative")
+        if min(self.working_pool_size,self.max_free_waypoints,self.candidate_bank_size)<0:
+            raise ValueError("Pool and waypoint limits must be nonnegative")
+        if not all(isfinite(s) and s>0 for s in self.waypoint_steps+self.wait_steps):
+            raise ValueError("Neighborhood step sizes must be positive")
+        if self.waypoint_workspace is not None:
+            if len(self.waypoint_workspace)!=4 or not all(isfinite(x) for x in self.waypoint_workspace) or not (self.waypoint_workspace[0]<self.waypoint_workspace[1] and self.waypoint_workspace[2]<self.waypoint_workspace[3]):
+                raise ValueError("Workspace must be xmin,xmax,ymin,ymax")
         if not self.speed_fractions or any(not isfinite(f) or not 0 <= f <= 1 for f in self.speed_fractions):
             raise ValueError("Speed fractions must be in [0,1]")
 

@@ -55,8 +55,18 @@ A general nonlinear inner optimizer is optional refinement, not a mandatory part
 
 ## Implementation status
 
-See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
+See [implementation milestones](implementation.md) for supported stages, validation, and commands. The step 4 branch now implements continuous communication and free rendezvous waypoints; see the milestone record for supported numerical policies and limits.
 
-Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication remains later-stage functionality.
+Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication is implemented on the step 4 branch.
 
-Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints, communication, and FREE visits are not enabled.
+Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints remain ignored. Communication and FREE visits are enabled only in `team_kop_icc` mode.
+
+## Step 4 implementation
+
+`team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
+
+Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Four new operator families are `wait`, `meeting`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
+
+The reported epsilon archive still has only reward and mean completion time. A separate bounded pool retains motion/budget-feasible communication-infeasible candidates; lower violation guides repair, and lower delta can prefer objective-equal representatives/search seeds. Neither is a third archive coordinate. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
+
+Saved results use schema version 2 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, bottlenecks, candidate bank, working pool, and feasibility flags. ICC VND examines at most 120 candidates per family per pass by default, while shaking samples bounded neighborhoods. These are search restrictions, not completeness guarantees.

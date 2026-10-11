@@ -30,4 +30,4 @@ Regenerate plots without running optimization:
 .venv/bin/python scripts/plot_results.py experiments/team/full.json /tmp/kop-team-plots
 ```
 
-Communication and free waypoints are planned for the next stage and currently rejected.
+Communication and free waypoints are now available on `implementation/step4-intermittent-communication` via `--mode team_kop_icc`. Collisions remain ignored.

@@ -9,7 +9,7 @@ from topcc.solution import direct_solution
 
 def scored(objectives):
     s=Evaluator(smoke_problem()).evaluate(direct_solution(smoke_problem()))
-    return replace(s,routes=(s.routes[0][:-1]+(replace(s.routes[0][-1],id=repr(objectives)),),),evaluation=replace(s.evaluation,objectives=objectives))
+    return replace(s,routes=((replace(s.routes[0][0],wait=abs(objectives[0])+objectives[1]),)+s.routes[0][1:],),evaluation=replace(s.evaluation,objectives=objectives))
 
 
 def test_epsilon_same_box_representative_and_negative_floor():

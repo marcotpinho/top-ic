@@ -1,6 +1,6 @@
 # Implementation specification: MOVNS → team KOP → intermittent communication
 
-Drafted 2026-10-11. Status: implementation plan with steps 1–3 now implemented; see [milestone status](../docs/implementation.md). Communication/free waypoints remain pending.
+Drafted 2026-10-11. Status: implementation plan with steps 1–3 now implemented; see [milestone status](../docs/implementation.md). Stage 4 core is implemented; the bounded sweep/ablation campaign is recorded in the milestone status.
 
 ## Purpose and agreed scope
 
@@ -16,7 +16,7 @@ Confirmed decisions:
 - Free waypoints are introduced during the intermittent-communication stage.
 - Use MOVNS. KOP's analytical motion-generation ideas are the reference; a full uniform time-expanded workspace graph and a mandatory nonlinear optimization for every candidate are not the baseline architecture.
 
-Implementation defaults that have not been explicitly selected by the user are identified in [model contract](00-model-contract.md). They can be changed without changing the confirmed decisions. This specification describes the target model; the `docs/` files now describe the acceleration-aware target and identify implemented stages. The foundation, single-agent, and team implementations are complete; communication remains a later extension.
+Implementation defaults that have not been explicitly selected by the user are identified in [model contract](00-model-contract.md). They can be changed without changing the confirmed decisions. This specification describes the target model; the `docs/` files now describe the acceleration-aware target and identify implemented stages. The foundation, single-agent, and team implementations are complete; communication and free waypoint support are now implemented on the stage-4 branch.
 
 ## Reading and execution order
 

@@ -27,7 +27,8 @@ class Archive:
     def representative_key(self,solution):
         box=self.box(solution)
         distance=sum((f/e-b)**2 for f,e,b in zip(solution.objectives,self.epsilon,box))
-        return (distance,solution.objectives,repr(solution.key))
+        delta=solution.evaluation.peak_staleness
+        return (distance,solution.objectives,float("inf") if delta is None else delta,repr(solution.key))
 
     def _filter(self,solutions):
         representatives={}

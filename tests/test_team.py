@@ -83,7 +83,7 @@ def test_identical_permutation_and_crossing_allowed():
 
 def test_stage_gates_and_team_run():
     with pytest.raises(ValueError):run_optimization(team_problem(),Config())
-    with pytest.raises(ValueError):run_optimization(team_problem(),Config(mode='team_kop_icc'))
+    with pytest.raises(ValueError):run_optimization(team_problem(),Config(mode='team_kop_icc',algorithm='lns'))
     with pytest.raises(ValueError):run_optimization(team_problem(),Config(mode='team_kop',algorithm='lns'))
     r=run_optimization(team_problem(),Config(mode='team_kop',max_evaluations=300,max_seconds=10,max_iterations=10))
     assert r.front and all(s.evaluation.valid for s in r.front)
