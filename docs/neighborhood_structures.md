@@ -101,4 +101,6 @@ Expected improvements from each family are hypotheses to test. Incidental reward
 
 See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
 
-Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team and communication operators remain later-stage functionality on this branch.
+Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication remains later-stage functionality.
+
+Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints, communication, and FREE visits are not enabled.

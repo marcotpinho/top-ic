@@ -53,3 +53,33 @@ def neighbors(solution,problem,config,family):
             for k,v in enumerate(route[:-1]):
                 if v.wait>0:
                     yield edited(solution,m,route[:k]+(replace(v,wait=0.),)+route[k+1:])
+        elif family=="assignment":
+            for n,other in enumerate(solution.routes):
+                if n==m:continue
+                target_menu=velocity_menu(problem.limits[n],config)
+                for k in range(1,len(route)-1):
+                    for j in range(1,len(other)):
+                        for velocity in target_menu:
+                            routes=list(solution.routes)
+                            routes[m]=route[:k]+route[k+1:]
+                            routes[n]=other[:j]+(replace(route[k],velocity=velocity,wait=0.),)+other[j:]
+                            yield normalize(routes)
+                    if m<n:
+                        for j in range(1,len(other)-1):
+                            # Enumerate both new states, not old velocities that
+                            # may violate another agent's limits.
+                            for vm in menu:
+                                for vn in target_menu:
+                                    routes=list(solution.routes)
+                                    routes[m]=route[:k]+(replace(other[j],velocity=vm,wait=0.),)+route[k+1:]
+                                    routes[n]=other[:j]+(replace(route[k],velocity=vn,wait=0.),)+other[j+1:]
+                                    yield normalize(routes)
+                if m<n:
+                    for i in range(1,len(route)):
+                        for j in range(1,len(other)):
+                            # Tail exchange includes task-state reset to avoid
+                            # importing incompatible heterogeneous velocities.
+                            routes=list(solution.routes)
+                            routes[m]=route[:i]+tuple(replace(v,velocity=(0.,0.),wait=0.) for v in other[j:-1])+(route[-1],)
+                            routes[n]=other[:j]+tuple(replace(v,velocity=(0.,0.),wait=0.) for v in route[i:-1])+(other[-1],)
+                            yield normalize(routes)

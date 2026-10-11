@@ -6,7 +6,7 @@ import random
 from .archive import Archive
 from .evaluator import Evaluator
 from .solution import direct_solution
-from .operators import neighbors, normalize, SINGLE_NEIGHBORHOODS
+from .operators import neighbors, normalize, SINGLE_NEIGHBORHOODS, TEAM_NEIGHBORHOODS
 
 
 @dataclass
@@ -27,7 +27,8 @@ class Runner:
         self.rng=random.Random(config.seed)
         self.counts=defaultdict(int);self.operator_counts=defaultdict(lambda:defaultdict(int))
         self.seen=set();self.started=0.;self.iterations=0
-        self.families=tuple(n for n in SINGLE_NEIGHBORHOODS if n not in config.disabled)
+        families=TEAM_NEIGHBORHOODS if allow_team else SINGLE_NEIGHBORHOODS
+        self.families=tuple(n for n in families if n not in config.disabled)
         self.log=[]
 
     def exhausted(self):

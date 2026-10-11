@@ -29,6 +29,9 @@ class Solution:
     routes: tuple[tuple[Visit,...],...]
     evaluation: object = field(default=None,compare=False,repr=False)
 
+    def __post_init__(self):
+        object.__setattr__(self,"routes",tuple(tuple(r) for r in self.routes))
+
     @property
     def key(self):
         return self.routes

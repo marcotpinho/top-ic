@@ -24,7 +24,7 @@ def main():
         config=Config(mode=args.mode,seed=args.seed,max_seconds=args.max_seconds,max_evaluations=args.max_evaluations,
                       max_iterations=args.max_iterations,headings=args.headings,speed_fractions=tuple(args.speed_fractions),
                       disabled=tuple(args.disable),algorithm=args.algorithm)
-        problem=load_problem_instance(args.instance) if args.instance else smoke_problem()
+        problem=load_problem_instance(args.instance) if args.instance else smoke_problem(2 if args.mode=="team_kop" else 1)
         result=run_optimization(problem,config)
         if args.output:save_result(result,args.output)
         print(json.dumps({"status":result.status,"elapsed_seconds":result.elapsed_seconds,"evaluations":result.statistics.get("evaluated",0),

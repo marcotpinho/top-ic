@@ -23,3 +23,13 @@ Validation: 14 tests pass, including exact finite-menu front comparison on a two
 Example: `topcc --mode single_kop --max-seconds 60 --max-evaluations 4000 --output results/single.json`. Use `--disable insert` (or another family) for one-neighborhood ablation. Experiments and visualizations are added separately on this branch after this core milestone.
 
 Limitations: visit velocity is discretized (default four headings, speed fractions 0/0.5/1); no global continuous-state optimality claim; neighborhood traversal can depend on enumeration and practical wall-time stopping. Unit tests use fixed evaluation budgets for repeatability.
+
+## Step 3 — multi-agent KOP
+
+Branch: `implementation/step3-team-kop`, copied from step 2. The evaluator and runner support multiple agents with individual seconds budgets, global reached-task union, deterministic first-visitor diagnostics, and mean final arrival as the expenditure objective. Identical agents may cross/co-locate; there are no collision checks. Early agents remain stationary through later query times without increasing expenditure.
+
+The sixth neighborhood, `assignment`, enumerates cross-agent transfer, two-task exchange with destination velocity-state enumeration, and tail exchange with stopped-state reconstruction. Existing insert/remove/replace/reorder/velocity neighborhoods operate on all agents. Compound shaking can edit multiple routes. No identity symmetry canonicalization is used yet, so heterogeneous agents are never incorrectly exchanged.
+
+Validation: 21 tests pass. New tests cover the M=1 reduction, shared reward, mean versus maximum completion, individual budget violation, empty agent expenditure, terminal presence, heterogeneous transfers, co-location, agent permutations, and a tiny exhaustive assignment/order front. All exported fixture-front trajectories pass independent integration/bound validation. Team LNS is not advertised; the KOP-inspired LNS comparison is single-agent only. Communication/FREE visits are explicitly rejected pending step 4.
+
+Example: `topcc --mode team_kop --max-seconds 60 --max-evaluations 4000 --output results/team.json`; `--disable assignment` removes all cross-agent assignment moves, including shaking. Plot and benchmark results are recorded separately after the parallel experiments.
