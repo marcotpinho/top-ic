@@ -38,7 +38,7 @@ N8/N9 may require changing several agents at once. FREE visits have no intrinsic
 
 ## 3. Objectives and acceptance
 
-The feasible archive uses only $(-Q,\bar c)$. Strict dominance means no worse values in both coordinates and a strict improvement in at least one. Equal objective vectors do not dominate each other; deduplication is a separate policy.
+The feasible epsilon archive uses only $(-Q,\bar c)$. Strict dominance means no worse values in both coordinates and a strict improvement in at least one. Equal objective vectors do not dominate each other; deduplication is a separate policy.
 
 Reject malformed motion, individual budget violations, and unresolved numerical validity from the feasible front. Maintain a bounded separate working pool for otherwise valid communication-infeasible candidates, prioritizing $\max(0,\Delta-T_c)$ and preserving objective/structural diversity. Feasible solutions can use lower $\Delta$ as a tie-break or seed-selection preference; it is never a third crowding coordinate or archive level.
 
@@ -104,3 +104,9 @@ See [implementation milestones](implementation.md) for supported stages, validat
 Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication remains later-stage functionality.
 
 Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints, communication, and FREE visits are not enabled.
+
+## Epsilon-dominance archive policy
+
+Archive filtering uses epsilon-box dominance, never crowding distance. With minimization objectives $f=(-Q,\bar c)$ and positive widths $\varepsilon_Q,\varepsilon_c$, define $b_i=\lfloor f_i/\varepsilon_i\rfloor$. Retain nondominated boxes and one representative per box, chosen by minimum squared normalized distance to its lower corner; objective values and full decision keys break ties deterministically. Flooring also applies to negative reward coordinates.
+
+Defaults are `eps_reward=1.0` reward unit and `eps_time=0.1` second, configurable with `--eps-reward` and `--eps-time`. If the configured capacity is exceeded, double both widths deterministically and re-filter until the front fits. Saved statistics record effective widths and coarsening count. This is an approximate epsilon front, not a promise to retain every exact Pareto point. Communication staleness is not an epsilon coordinate.

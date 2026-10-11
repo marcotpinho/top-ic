@@ -33,3 +33,7 @@ The sixth neighborhood, `assignment`, enumerates cross-agent transfer, two-task 
 Validation: 21 tests pass. New tests cover the M=1 reduction, shared reward, mean versus maximum completion, individual budget violation, empty agent expenditure, terminal presence, heterogeneous transfers, co-location, agent permutations, and a tiny exhaustive assignment/order front. All exported fixture-front trajectories pass independent integration/bound validation. Team LNS is not advertised; the KOP-inspired LNS comparison is single-agent only. Communication/FREE visits are explicitly rejected pending step 4.
 
 Example: `topcc --mode team_kop --max-seconds 60 --max-evaluations 4000 --output results/team.json`; `--disable assignment` removes all cross-agent assignment moves, including shaking. Plot and benchmark results are recorded separately after the parallel experiments.
+
+## Archive policy update
+
+Following the user's instruction, both search branches filter with epsilon-box dominance rather than crowding distance. Configurable defaults: reward width 1.0, time width 0.1 seconds. Capacity handling coarsens both widths deterministically; output records effective epsilon and coarsening count. Four additional tests verify negative-coordinate flooring, same-box representative replacement, box dominance, and capacity coarsening; 25 core tests pass on the team branch. Pre-update benchmark invocations are retained as superseded in the experimental run ledger, not reported as epsilon runs.

@@ -98,12 +98,12 @@ Keep handshake $\delta$ and staleness $\Delta$ distinct in code. Effective initi
 |---|---|---|
 | $f_1=-Q$ | Reward objective in minimization form | `objectives[0]` |
 | $f_2=\bar c$ | Expenditure objective | `objectives[1]` |
-| — | Feasible nondominated front in two objectives | `archive` |
+| — | Feasible epsilon-box nondominated front in two objectives | `archive` |
 | — | Bounded communication-infeasible exploration seeds | `working_pool` |
 | — | Structurally distinct objective-equal exploration seeds | `alternative_seeds` |
 | — | Seeded random generator | `rng` |
 | — | Shaking intensity | `shake_strength` |
-| $\varepsilon_Q,\varepsilon_c$ | Optional two-objective archive box sizes | `eps_reward`, `eps_time` |
+| $\varepsilon_Q,\varepsilon_c$ | Positive epsilon-dominance archive box sizes | `eps_reward`, `eps_time` |
 | — | Full decision-state identity with connector/problem version | `solution_hash` |
 | — | Full-reference propagation state for incremental restart | `checkpoint` |
 

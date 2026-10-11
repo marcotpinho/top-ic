@@ -23,7 +23,7 @@ class Runner:
     def __init__(self,problem,config,allow_team=False):
         self.problem=problem;self.config=config
         self.evaluator=Evaluator(problem,allow_team=allow_team)
-        self.archive=Archive(config.archive_size)
+        self.archive=Archive(config.archive_size,config.eps_reward,config.eps_time)
         self.rng=random.Random(config.seed)
         self.counts=defaultdict(int);self.operator_counts=defaultdict(lambda:defaultdict(int))
         self.seen=set();self.started=0.;self.iterations=0
@@ -129,4 +129,5 @@ class Runner:
         from .trajectory import connect
         return RunResult(self.problem,self.config,list(self.archive.front),
                          {**dict(self.counts),"iterations":self.iterations,"operators":{k:dict(v) for k,v in self.operator_counts.items()},"log":self.log,
+                          "archive_policy":"epsilon_box_dominance","effective_epsilon":self.archive.epsilon,"epsilon_coarsenings":self.archive.coarsenings,
                           "connector_cache":connect.cache_info()._asdict()},perf_counter()-self.started,status)
