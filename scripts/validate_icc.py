@@ -57,7 +57,14 @@ def validate_motion(data):
         residual([reward,-reward,sum(arrivals)/len(arrivals)],[solution['reward'],*solution['objectives']])
         owners={task:min((v[task],m) for m,v in enumerate(reached) if task in v) for task in union}
         assert set(owners)=={x[0] for x in solution['first_visitors']}
-        for task,m,t in solution['first_visitors']:assert owners[task][1]==m;residual([owners[task][0]],[t])
+        for task,m,t in solution['first_visitors']:
+            assert task in reached[m]
+            residual([reached[m][task]],[t])
+            # Independent root methods can reverse sub-tolerance arrival order.
+            # Attribution is diagnostic: require the reported owner to be an
+            # earliest visitor within the documented time/residual tolerance.
+            assert reached[m][task]-owners[task][0]<tolerance
+
     for i,a in enumerate(data['front']):
         for j,b in enumerate(data['front']):
             if i!=j:assert not(all(x<=y for x,y in zip(a['objectives'],b['objectives'])) and any(x<y for x,y in zip(a['objectives'],b['objectives'])))

@@ -1,0 +1,2509 @@
+{
+  "schema_version": 2,
+  "problem": {
+    "schema_version": 1,
+    "budget_unit": "seconds",
+    "name": "controlled-free-rendezvous",
+    "start": [
+      0.0,
+      0.0
+    ],
+    "end": [
+      8.0,
+      0.0
+    ],
+    "tasks": [
+      {
+        "id": "a",
+        "position": [
+          2.0,
+          3.0
+        ],
+        "reward": 10
+      },
+      {
+        "id": "b",
+        "position": [
+          6.0,
+          -3.0
+        ],
+        "reward": 10
+      }
+    ],
+    "agents": [
+      {
+        "time_budget": 20.0,
+        "velocity_axis_limit": [
+          3.0,
+          3.0
+        ],
+        "acceleration_axis_limit": [
+          1.5,
+          1.5
+        ],
+        "initial_velocity": [
+          0.0,
+          0.0
+        ]
+      },
+      {
+        "time_budget": 20.0,
+        "velocity_axis_limit": [
+          3.0,
+          3.0
+        ],
+        "acceleration_axis_limit": [
+          1.5,
+          1.5
+        ],
+        "initial_velocity": [
+          0.0,
+          0.0
+        ]
+      }
+    ]
+  },
+  "config": {
+    "mode": "team_kop_icc",
+    "seed": 42,
+    "max_seconds": 30.0,
+    "max_evaluations": 2000,
+    "max_iterations": 100,
+    "archive_size": 40,
+    "headings": 4,
+    "eps_reward": 1.0,
+    "eps_time": 0.1,
+    "speed_fractions": [
+      0.0,
+      0.5,
+      1.0
+    ],
+    "disabled": [],
+    "algorithm": "movns",
+    "comm_range": 1,
+    "handshake_time": 0.25,
+    "recurrence_bound": 5.05,
+    "working_pool_size": 40,
+    "max_free_waypoints": 3,
+    "waypoint_workspace": [
+      -1,
+      9,
+      -4,
+      4
+    ],
+    "waypoint_steps": [
+      1.0,
+      0.25
+    ],
+    "wait_steps": [
+      0.25,
+      1.0
+    ],
+    "candidate_bank_size": 80,
+    "neighborhood_candidates": 120
+  },
+  "statistics": {},
+  "front": [],
+  "method": "fixed states/order/assignment, spatial meeting alternatives only; no optimizer runs",
+  "variants": {
+    "no_meeting": {
+      "objectives": [
+        -20,
+        6.82842712474619
+      ],
+      "reward": 20,
+      "feasible": false,
+      "motion_budget_valid": true,
+      "validation_status": "valid",
+      "reason": "Communication recurrence bound exceeded",
+      "peak_staleness": 5.215395368415,
+      "comm_violation": 0.16539536841500002,
+      "completion_times": [
+        6.82842712474619,
+        6.82842712474619
+      ],
+      "visit_times": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.82842712474619,
+            2.82842712474619
+          ],
+          [
+            6.82842712474619,
+            6.82842712474619
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.0,
+            4.0
+          ],
+          [
+            6.82842712474619,
+            6.82842712474619
+          ]
+        ]
+      ],
+      "reached_tasks": [
+        [
+          "a"
+        ],
+        [
+          "b"
+        ]
+      ],
+      "first_visitors": [
+        [
+          "a",
+          0,
+          2.82842712474619
+        ],
+        [
+          "b",
+          1,
+          3.999999986622065
+        ]
+      ],
+      "routes": [
+        [
+          {
+            "id": "0:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task0",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "0:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ],
+        [
+          {
+            "id": "1:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task1",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "1:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ]
+      ],
+      "meetings": [],
+      "trajectories": [
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                0.3431457505076198,
+                0.5147186257614293
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 0.8284271247461898
+            },
+            {
+              "position": [
+                1.0000000000000004,
+                1.4999999999999996
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 1.414213562373095
+            },
+            {
+              "position": [
+                1.656854249492381,
+                2.48528137423857
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 2.82842712474619
+            },
+            {
+              "position": [
+                5.0,
+                1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 4.82842712474619
+            }
+          ],
+          "completion_time": 6.82842712474619,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                3.0,
+                -1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 4.0
+            },
+            {
+              "position": [
+                6.343145750507619,
+                -2.4852813742385704
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 4.82842712474619
+            },
+            {
+              "position": [
+                7.0,
+                -1.5000000000000002
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 5.414213562373095
+            },
+            {
+              "position": [
+                7.656854249492381,
+                -0.51471862576143
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 6.0
+            }
+          ],
+          "completion_time": 6.82842712474619,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      ],
+      "communication": {
+        "peak_staleness": 5.215395368415,
+        "contacts": [
+          {
+            "agents": [
+              0,
+              1
+            ],
+            "raw": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                5.896911246580595,
+                6.82842712474619
+              ]
+            ],
+            "effective": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                6.146911246580595,
+                6.82842712474619
+              ]
+            ]
+          }
+        ],
+        "history": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.9315158781655951,
+            0.0,
+            0.0
+          ],
+          [
+            6.146911246580595,
+            5.215395368415,
+            0.0
+          ],
+          [
+            6.82842712474619,
+            0.0,
+            0.0
+          ]
+        ],
+        "final_clock": [
+          [
+            6.82842712474619,
+            6.82842712474619
+          ],
+          [
+            6.82842712474619,
+            6.82842712474619
+          ]
+        ],
+        "bottleneck": [
+          1,
+          0,
+          6.146911246580595,
+          "left"
+        ],
+        "numerical_status": "resolved"
+      }
+    },
+    "free": {
+      "objectives": [
+        -20,
+        9.90685424949238
+      ],
+      "reward": 20,
+      "feasible": true,
+      "motion_budget_valid": true,
+      "validation_status": "valid",
+      "reason": "",
+      "peak_staleness": 5.022228596199897,
+      "comm_violation": 0.0,
+      "completion_times": [
+        9.90685424949238,
+        9.90685424949238
+      ],
+      "visit_times": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.82842712474619,
+            2.82842712474619
+          ],
+          [
+            5.65685424949238,
+            7.07842712474619
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.0,
+            4.0
+          ],
+          [
+            6.82842712474619,
+            7.07842712474619
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ]
+      ],
+      "reached_tasks": [
+        [
+          "a"
+        ],
+        [
+          "b"
+        ]
+      ],
+      "first_visitors": [
+        [
+          "a",
+          0,
+          2.82842712474619
+        ],
+        [
+          "b",
+          1,
+          3.999999986622065
+        ]
+      ],
+      "routes": [
+        [
+          {
+            "id": "0:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task0",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "meet0",
+            "kind": "FREE",
+            "position": [
+              5.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "0:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ],
+        [
+          {
+            "id": "1:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task1",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "meet1",
+            "kind": "FREE",
+            "position": [
+              5.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "1:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ]
+      ],
+      "meetings": [
+        {
+          "left": "meet0",
+          "right": "meet1"
+        }
+      ],
+      "trajectories": [
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                0.3431457505076198,
+                0.5147186257614293
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 0.8284271247461898
+            },
+            {
+              "position": [
+                1.0000000000000004,
+                1.4999999999999996
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 1.414213562373095
+            },
+            {
+              "position": [
+                1.656854249492381,
+                2.48528137423857
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.4999999999999998,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 2.82842712474619
+            },
+            {
+              "position": [
+                2.5147186257614296,
+                2.4852813742385704
+              ],
+              "velocity": [
+                1.2426406871192845,
+                -1.2426406871192845
+              ],
+              "acceleration": [
+                1.5000000000000004,
+                -1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 3.6568542494923797
+            },
+            {
+              "position": [
+                3.5,
+                1.5000000000000002
+              ],
+              "velocity": [
+                2.1213203435596424,
+                -2.1213203435596424
+              ],
+              "acceleration": [
+                -1.5,
+                1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 4.242640687119285
+            },
+            {
+              "position": [
+                4.48528137423857,
+                0.51471862576143
+              ],
+              "velocity": [
+                1.2426406871192848,
+                -1.2426406871192848
+              ],
+              "acceleration": [
+                -1.4999999999999998,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 4.82842712474619
+            },
+            {
+              "position": [
+                5.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 1.4215728752538102,
+              "start_time": 5.65685424949238
+            },
+            {
+              "position": [
+                5.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.4999999999999998,
+                0.0
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 7.07842712474619
+            },
+            {
+              "position": [
+                5.51471862576143,
+                0.0
+              ],
+              "velocity": [
+                1.2426406871192845,
+                0.0
+              ],
+              "acceleration": [
+                1.5000000000000004,
+                0.0
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 7.90685424949238
+            },
+            {
+              "position": [
+                6.5,
+                0.0
+              ],
+              "velocity": [
+                2.1213203435596424,
+                0.0
+              ],
+              "acceleration": [
+                -1.5,
+                0.0
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 8.492640687119284
+            },
+            {
+              "position": [
+                7.48528137423857,
+                0.0
+              ],
+              "velocity": [
+                1.2426406871192848,
+                0.0
+              ],
+              "acceleration": [
+                -1.4999999999999998,
+                0.0
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 9.07842712474619
+            }
+          ],
+          "completion_time": 9.90685424949238,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                3.0,
+                -1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                -0.5000000000000001,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 4.0
+            },
+            {
+              "position": [
+                5.82842712474619,
+                -2.4852813742385704
+              ],
+              "velocity": [
+                -0.41421356237309503,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                -0.5000000000000002,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 4.82842712474619
+            },
+            {
+              "position": [
+                5.5,
+                -1.5000000000000002
+              ],
+              "velocity": [
+                -0.7071067811865477,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                0.5000000000000002,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 5.414213562373095
+            },
+            {
+              "position": [
+                5.17157287525381,
+                -0.51471862576143
+              ],
+              "velocity": [
+                -0.41421356237309503,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                0.5000000000000001,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 6.0
+            },
+            {
+              "position": [
+                5.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 0.25,
+              "start_time": 6.82842712474619
+            },
+            {
+              "position": [
+                5.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.4999999999999998,
+                0.0
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 7.07842712474619
+            },
+            {
+              "position": [
+                5.51471862576143,
+                0.0
+              ],
+              "velocity": [
+                1.2426406871192845,
+                0.0
+              ],
+              "acceleration": [
+                1.5000000000000004,
+                0.0
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 7.90685424949238
+            },
+            {
+              "position": [
+                6.5,
+                0.0
+              ],
+              "velocity": [
+                2.1213203435596424,
+                0.0
+              ],
+              "acceleration": [
+                -1.5,
+                0.0
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 8.492640687119284
+            },
+            {
+              "position": [
+                7.48528137423857,
+                0.0
+              ],
+              "velocity": [
+                1.2426406871192848,
+                0.0
+              ],
+              "acceleration": [
+                -1.4999999999999998,
+                0.0
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 9.07842712474619
+            }
+          ],
+          "completion_time": 9.90685424949238,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      ],
+      "communication": {
+        "peak_staleness": 5.022228596199897,
+        "contacts": [
+          {
+            "agents": [
+              0,
+              1
+            ],
+            "raw": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                5.703744474365492,
+                9.078427124746188
+              ],
+              [
+                9.07842712474619,
+                9.90685424949238
+              ]
+            ],
+            "effective": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                5.953744474365492,
+                9.078427124746188
+              ],
+              [
+                9.32842712474619,
+                9.90685424949238
+              ]
+            ]
+          }
+        ],
+        "history": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.9315158781655951,
+            0.0,
+            0.0
+          ],
+          [
+            5.953744474365492,
+            5.022228596199897,
+            0.0
+          ],
+          [
+            9.078427124746188,
+            0.0,
+            0.0
+          ],
+          [
+            9.32842712474619,
+            0.2500000000000018,
+            0.0
+          ],
+          [
+            9.90685424949238,
+            0.0,
+            0.0
+          ]
+        ],
+        "final_clock": [
+          [
+            9.90685424949238,
+            9.90685424949238
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ],
+        "bottleneck": [
+          1,
+          0,
+          5.953744474365492,
+          "left"
+        ],
+        "numerical_status": "resolved"
+      }
+    },
+    "task_a": {
+      "objectives": [
+        -20,
+        12.25
+      ],
+      "reward": 20,
+      "feasible": false,
+      "motion_budget_valid": true,
+      "validation_status": "valid",
+      "reason": "Communication recurrence bound exceeded",
+      "peak_staleness": 6.265203346138552,
+      "comm_violation": 1.2152033461385523,
+      "completion_times": [
+        12.25,
+        12.25
+      ],
+      "visit_times": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.82842712474619,
+            2.82842712474619
+          ],
+          [
+            2.82842712474619,
+            8.25
+          ],
+          [
+            12.25,
+            12.25
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.0,
+            4.0
+          ],
+          [
+            8.0,
+            8.25
+          ],
+          [
+            12.25,
+            12.25
+          ]
+        ]
+      ],
+      "reached_tasks": [
+        [
+          "a"
+        ],
+        [
+          "a",
+          "b"
+        ]
+      ],
+      "first_visitors": [
+        [
+          "a",
+          0,
+          2.82842712474619
+        ],
+        [
+          "b",
+          1,
+          3.999999986622065
+        ]
+      ],
+      "routes": [
+        [
+          {
+            "id": "0:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task0",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "meet0",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "0:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ],
+        [
+          {
+            "id": "1:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task1",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "meet1",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "1:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ]
+      ],
+      "meetings": [
+        {
+          "left": "meet0",
+          "right": "meet1"
+        }
+      ],
+      "trajectories": [
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                0.3431457505076198,
+                0.5147186257614293
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 0.8284271247461898
+            },
+            {
+              "position": [
+                1.0000000000000004,
+                1.4999999999999996
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 1.414213562373095
+            },
+            {
+              "position": [
+                1.656854249492381,
+                2.48528137423857
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 5.42157287525381,
+              "start_time": 2.82842712474619
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 8.25
+            },
+            {
+              "position": [
+                5.0,
+                1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 10.25
+            }
+          ],
+          "completion_time": 12.25,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                3.0,
+                -1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                -1.0,
+                1.5
+              ],
+              "duration": 2.0,
+              "start_time": 4.0
+            },
+            {
+              "position": [
+                4.0,
+                0.0
+              ],
+              "velocity": [
+                -2.0,
+                3.0
+              ],
+              "acceleration": [
+                1.0,
+                -1.5
+              ],
+              "duration": 2.0,
+              "start_time": 6.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 0.25,
+              "start_time": 8.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 8.25
+            },
+            {
+              "position": [
+                5.0,
+                1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 10.25
+            }
+          ],
+          "completion_time": 12.25,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      ],
+      "communication": {
+        "peak_staleness": 6.265203346138552,
+        "contacts": [
+          {
+            "agents": [
+              0,
+              1
+            ],
+            "raw": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                6.946719224304148,
+                12.25
+              ]
+            ],
+            "effective": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                7.196719224304148,
+                12.25
+              ]
+            ]
+          }
+        ],
+        "history": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.9315158781655951,
+            0.0,
+            0.0
+          ],
+          [
+            7.196719224304148,
+            6.265203346138552,
+            0.0
+          ],
+          [
+            12.25,
+            0.0,
+            0.0
+          ]
+        ],
+        "final_clock": [
+          [
+            12.25,
+            12.25
+          ],
+          [
+            12.25,
+            12.25
+          ]
+        ],
+        "bottleneck": [
+          1,
+          0,
+          7.196719224304148,
+          "left"
+        ],
+        "numerical_status": "resolved"
+      }
+    },
+    "task_b": {
+      "objectives": [
+        -20,
+        9.90685424949238
+      ],
+      "reward": 20,
+      "feasible": false,
+      "motion_budget_valid": true,
+      "validation_status": "valid",
+      "reason": "Communication recurrence bound exceeded",
+      "peak_staleness": 5.093630470884742,
+      "comm_violation": 0.043630470884742145,
+      "completion_times": [
+        9.90685424949238,
+        9.90685424949238
+      ],
+      "visit_times": [
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            2.82842712474619,
+            2.82842712474619
+          ],
+          [
+            6.82842712474619,
+            7.07842712474619
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ],
+        [
+          [
+            0.0,
+            0.0
+          ],
+          [
+            4.0,
+            4.0
+          ],
+          [
+            4.0,
+            7.07842712474619
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ]
+      ],
+      "reached_tasks": [
+        [
+          "a",
+          "b"
+        ],
+        [
+          "b"
+        ]
+      ],
+      "first_visitors": [
+        [
+          "a",
+          0,
+          2.82842712474619
+        ],
+        [
+          "b",
+          1,
+          3.999999986622065
+        ]
+      ],
+      "routes": [
+        [
+          {
+            "id": "0:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task0",
+            "kind": "TASK",
+            "position": [
+              2.0,
+              3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "a",
+            "wait": 0.0
+          },
+          {
+            "id": "meet0",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "0:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ],
+        [
+          {
+            "id": "1:start",
+            "kind": "START",
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          },
+          {
+            "id": "task1",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "meet1",
+            "kind": "TASK",
+            "position": [
+              6.0,
+              -3.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": "b",
+            "wait": 0.0
+          },
+          {
+            "id": "1:end",
+            "kind": "END",
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ],
+            "task_id": null,
+            "wait": 0.0
+          }
+        ]
+      ],
+      "meetings": [
+        {
+          "left": "meet0",
+          "right": "meet1"
+        }
+      ],
+      "trajectories": [
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                0.3431457505076198,
+                0.5147186257614293
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 0.8284271247461898
+            },
+            {
+              "position": [
+                1.0000000000000004,
+                1.4999999999999996
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 1.414213562373095
+            },
+            {
+              "position": [
+                1.656854249492381,
+                2.48528137423857
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                2.0,
+                3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0,
+                -1.5
+              ],
+              "duration": 2.0,
+              "start_time": 2.82842712474619
+            },
+            {
+              "position": [
+                4.0,
+                0.0
+              ],
+              "velocity": [
+                2.0,
+                -3.0
+              ],
+              "acceleration": [
+                -1.0,
+                1.5
+              ],
+              "duration": 2.0,
+              "start_time": 4.82842712474619
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 0.25,
+              "start_time": 6.82842712474619
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 7.07842712474619
+            },
+            {
+              "position": [
+                6.343145750507619,
+                -2.4852813742385704
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 7.90685424949238
+            },
+            {
+              "position": [
+                7.0,
+                -1.5000000000000002
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 8.492640687119284
+            },
+            {
+              "position": [
+                7.656854249492381,
+                -0.51471862576143
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 9.07842712474619
+            }
+          ],
+          "completion_time": 9.90685424949238,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        },
+        {
+          "pieces": [
+            {
+              "position": [
+                0.0,
+                0.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.5,
+                -0.75
+              ],
+              "duration": 2.0,
+              "start_time": 0.0
+            },
+            {
+              "position": [
+                3.0,
+                -1.5
+              ],
+              "velocity": [
+                3.0,
+                -1.5
+              ],
+              "acceleration": [
+                -1.5,
+                0.75
+              ],
+              "duration": 2.0,
+              "start_time": 2.0
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                0.0,
+                0.0
+              ],
+              "duration": 3.07842712474619,
+              "start_time": 4.0
+            },
+            {
+              "position": [
+                6.0,
+                -3.0
+              ],
+              "velocity": [
+                0.0,
+                0.0
+              ],
+              "acceleration": [
+                1.0000000000000007,
+                1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 7.07842712474619
+            },
+            {
+              "position": [
+                6.343145750507619,
+                -2.4852813742385704
+              ],
+              "velocity": [
+                0.8284271247461904,
+                1.2426406871192845
+              ],
+              "acceleration": [
+                0.9999999999999998,
+                1.5000000000000004
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 7.90685424949238
+            },
+            {
+              "position": [
+                7.0,
+                -1.5000000000000002
+              ],
+              "velocity": [
+                1.4142135623730954,
+                2.1213203435596424
+              ],
+              "acceleration": [
+                -1.0,
+                -1.5
+              ],
+              "duration": 0.5857864376269051,
+              "start_time": 8.492640687119284
+            },
+            {
+              "position": [
+                7.656854249492381,
+                -0.51471862576143
+              ],
+              "velocity": [
+                0.8284271247461903,
+                1.2426406871192848
+              ],
+              "acceleration": [
+                -1.0000000000000007,
+                -1.4999999999999998
+              ],
+              "duration": 0.8284271247461898,
+              "start_time": 9.07842712474619
+            }
+          ],
+          "completion_time": 9.90685424949238,
+          "start": {
+            "position": [
+              0.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          },
+          "end": {
+            "position": [
+              8.0,
+              0.0
+            ],
+            "velocity": [
+              0.0,
+              0.0
+            ]
+          }
+        }
+      ],
+      "communication": {
+        "peak_staleness": 5.093630470884742,
+        "contacts": [
+          {
+            "agents": [
+              0,
+              1
+            ],
+            "raw": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                5.775146349050337,
+                9.078427124746188
+              ],
+              [
+                9.07842712474619,
+                9.90685424949238
+              ]
+            ],
+            "effective": [
+              [
+                0.0,
+                0.9315158781655951
+              ],
+              [
+                6.025146349050337,
+                9.078427124746188
+              ],
+              [
+                9.32842712474619,
+                9.90685424949238
+              ]
+            ]
+          }
+        ],
+        "history": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.9315158781655951,
+            0.0,
+            0.0
+          ],
+          [
+            6.025146349050337,
+            5.093630470884742,
+            0.0
+          ],
+          [
+            9.078427124746188,
+            0.0,
+            0.0
+          ],
+          [
+            9.32842712474619,
+            0.2500000000000018,
+            0.0
+          ],
+          [
+            9.90685424949238,
+            0.0,
+            0.0
+          ]
+        ],
+        "final_clock": [
+          [
+            9.90685424949238,
+            9.90685424949238
+          ],
+          [
+            9.90685424949238,
+            9.90685424949238
+          ]
+        ],
+        "bottleneck": [
+          1,
+          0,
+          6.025146349050337,
+          "left"
+        ],
+        "numerical_status": "resolved"
+      }
+    }
+  },
+  "validation": {
+    "no_meeting": {
+      "solutions_checked": 1,
+      "motion_pieces_checked": 12,
+      "max_residual": 8.881784197001252e-16,
+      "tolerance": 2e-06,
+      "independent_delta": 5.2153953684149945
+    },
+    "free": {
+      "solutions_checked": 1,
+      "motion_pieces_checked": 24,
+      "max_residual": 2.6645352591003757e-15,
+      "tolerance": 2e-06,
+      "independent_delta": 5.022228596199894
+    },
+    "task_a": {
+      "solutions_checked": 1,
+      "motion_pieces_checked": 14,
+      "max_residual": 1.3322676295501878e-15,
+      "tolerance": 2e-06,
+      "independent_delta": 6.265203346138545
+    },
+    "task_b": {
+      "solutions_checked": 1,
+      "motion_pieces_checked": 18,
+      "max_residual": 1.7763568394002505e-15,
+      "tolerance": 2e-06,
+      "independent_delta": 5.093630470884735
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "label": "tc2-seed42",
+      "solutions_checked": 144,
+      "motion_pieces_checked": 4028,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 15,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.044580583002244
+    },
+    {
+      "label": "tc5-seed42",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.025028666997969
+    },
+    {
+      "label": "tc10-seed42",
+      "solutions_checked": 147,
+      "motion_pieces_checked": 4098,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 21,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.206109250000736
+    },
+    {
+      "label": "tc5-seed7",
+      "solutions_checked": 138,
+      "motion_pieces_checked": 4216,
+      "max_motion_residual": 8.075874546875639e-08,
+      "front_size": 14,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.027068417002738
+    },
+    {
+      "label": "without-wait",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.062192792000133
+    },
+    {
+      "label": "without-meeting",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.037310082996555
+    },
+    {
+      "label": "without-free_move",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.026783417000843
+    },
+    {
+      "label": "without-free_remove",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.0380651249943185
+    },
+    {
+      "label": "task-only-seed42",
+      "solutions_checked": 145,
+      "motion_pieces_checked": 4031,
+      "max_motion_residual": 7.598131190889035e-08,
+      "front_size": 17,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.031835084002523
+    },
+    {
+      "label": "task-only-seed7",
+      "solutions_checked": 142,
+      "motion_pieces_checked": 4706,
+      "max_motion_residual": 6.125418394731241e-08,
+      "front_size": 14,
+      "bank_checked": true,
+      "communication_method": "independent companion polynomial roots + backwards latest-departure reachability",
+      "validation_seconds": 5.54453716599528
+    }
+  ],
+  "optimizer_starts": 10,
+  "total_solution_entries": 1441,
+  "total_motion_piece_entries": 41234,
+  "max_motion_residual": 8.075874546875639e-08,
+  "max_optimizer_wall_seconds": 27.66578870900048
+}

@@ -1,6 +1,6 @@
 # Implementation specification: MOVNS → team KOP → intermittent communication
 
-Drafted 2026-10-11. Status: implementation plan with steps 1–3 now implemented; see [milestone status](../docs/implementation.md). Stage 4 core is implemented; the bounded sweep/ablation campaign is recorded in the milestone status.
+Drafted 2026-10-11. Status: implementation plan with steps 1–4 now implemented; see [milestone status](../docs/implementation.md). Stage 4 core, independent validation, and the bounded sweep/ablation campaign are complete; see the milestone status and experiment report.
 
 ## Purpose and agreed scope
 

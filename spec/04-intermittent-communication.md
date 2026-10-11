@@ -87,3 +87,9 @@ Optional continuous refinement is a separate explicit move applied to selected c
 ## Exit gate
 
 Feasible fronts contain only motion/budget/communication-verified solutions. Tests cover moving/stationary/terminal links, zero-length contacts, simultaneous relay, uncertainty handling, waits charged correctly, repeated visits, free positions, and equal-objective search guidance. Demonstrate an instance where a free rendezvous improves feasibility or the two-objective front relative to task-only meetings, using equal search effort and multiple seeds.
+
+## Implementation record
+
+Implemented on `implementation/step4-intermittent-communication`; see [milestones](../docs/implementation.md) and [experiment report](../docs/experiments-icc.md). Numerical contact extraction, full clock sweep, stopped-meeting schedule, free positions, four new operator families, guidance pool, and portable data export are available. Pair caches include horizon changes; checkpointed incremental sweeps are deferred as planned.
+
+70 correctness tests pass. The user’s ten-run budget is respected: three Tc settings, new-family singleton ablations, and paired full/task-only seeds. Independent data validators check all exported fronts and banks. The dense benchmark did not demonstrate a free-waypoint performance advantage; a controlled fixed-route fixture demonstrates spatial feasibility improvement only. Broader statistical/instance-general benefit remains an empirical research question, not an implementation claim.

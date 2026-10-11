@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "checks": [
+    {
+      "label": "tc2-seed42",
+      "fronts_reconstructed": 15,
+      "passed": true
+    },
+    {
+      "label": "tc5-seed42",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "tc10-seed42",
+      "fronts_reconstructed": 21,
+      "passed": true
+    },
+    {
+      "label": "tc5-seed7",
+      "fronts_reconstructed": 14,
+      "passed": true
+    },
+    {
+      "label": "without-wait",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "without-meeting",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "without-free_move",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "without-free_remove",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "task-only-seed42",
+      "fronts_reconstructed": 17,
+      "passed": true
+    },
+    {
+      "label": "task-only-seed7",
+      "fronts_reconstructed": 14,
+      "passed": true
+    }
+  ],
+  "note": "Final configuration normalizes JSON arrays to immutable tuples; same stored motion and communication metrics"
+}

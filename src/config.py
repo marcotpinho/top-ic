@@ -100,6 +100,11 @@ class Config:
     neighborhood_candidates: int = 120
 
     def __post_init__(self):
+        # JSON arrays must not leave mutable containers inside a frozen config.
+        for name in ("speed_fractions","disabled","waypoint_steps","wait_steps"):
+            object.__setattr__(self,name,tuple(getattr(self,name)))
+        if self.waypoint_workspace is not None:
+            object.__setattr__(self,"waypoint_workspace",tuple(self.waypoint_workspace))
         if self.mode not in ("single_kop", "team_kop", "team_kop_icc"):
             raise ValueError("Unknown problem mode")
         if self.algorithm not in ("movns", "lns"):
