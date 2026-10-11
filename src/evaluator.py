@@ -1,68 +1,112 @@
-"""Multi-objective evaluation: reward, RSSI, path length."""
-
+"""Continuous passage, flight-time accounting, and deterministic scoring."""
+from dataclasses import dataclass, replace
+from math import inf
 import numpy as np
-from typing import List
+from .trajectory import State, MotionPiece, AgentTrajectory, connect, MotionError
 
-from topcc.numba_kernels import (
-    get_paths_max_length,
-    get_time_to_rewards,
-    calculate_max_distance,
-    maximize_reward,
-)
-from topcc.solution import Solution
-from topcc.rssi import LogDistanceRSSI
+
+@dataclass(frozen=True)
+class Evaluation:
+    valid: bool
+    objectives: tuple[float,float]
+    completion_times: tuple[float,...]
+    reached_tasks: tuple[frozenset[str],...]
+    trajectories: tuple[AgentTrajectory,...]
+    reason: str = ""
+    peak_staleness: float | None = None
+    first_visitors: tuple[tuple[str,int,float],...] = ()
+
+    @property
+    def reward(self):
+        return -self.objectives[0]
+
+
+def passage_time(piece, point, tolerance=2e-7):
+    differences=tuple(p-z for p,z in zip(piece.position,point))
+    axis=max(range(2),key=lambda d:abs(differences[d])+abs(piece.velocity[d])+abs(piece.acceleration[d]))
+    coeff=[.5*piece.acceleration[axis],piece.velocity[axis],differences[axis]]
+    while len(coeff)>1 and abs(coeff[0])<1e-13:
+        coeff.pop(0)
+    if len(coeff)==1:
+        candidates=[0.,piece.duration] if abs(coeff[0])<=tolerance else []
+    else:
+        candidates=[float(r.real) for r in np.roots(coeff) if abs(r.imag)<1e-8]
+        candidates.extend([0.,piece.duration])
+    valid=[]
+    for t in candidates:
+        if -1e-9<=t<=piece.duration+1e-9:
+            t=min(piece.duration,max(0.,t))
+            if max(abs(p-z) for p,z in zip(piece.state(t).position,point))<=tolerance:
+                valid.append(piece.start_time+t)
+    return min(valid) if valid else None
 
 
 class Evaluator:
+    def __init__(self,problem,allow_team=False):
+        self.problem=problem
+        self.allow_team=allow_team
+        self.cache={}
 
-    def __init__(self, environment, rssi_model=None):
-        self.env = environment
-        self.rssi_model = rssi_model or LogDistanceRSSI()
+    def evaluate(self,solution):
+        if solution.key in self.cache:
+            return replace(solution,evaluation=self.cache[solution.key])
+        try:
+            result=self._evaluate(solution)
+        except (MotionError,ValueError) as exc:
+            result=Evaluation(False,(inf,inf),(),(),(),str(exc))
+        self.cache[solution.key]=result
+        return replace(solution,evaluation=result)
 
-    def evaluate(self, solutions: List[Solution] | Solution) -> None:
-        if not isinstance(solutions, list):
-            solutions = [solutions]
-        if len(solutions) == 0:
-            return
-
-        for solution in solutions:
-            paths = solution.get_solution_paths()
-            paths_flat = np.concatenate(paths)
-
-            total_reward = maximize_reward(paths_flat, self.env.rvalues)
-            max_len = get_paths_max_length(paths, self.env.distmx)
-
-            speeds = np.array(solution.ctx.speeds)
-            interesting_times, _ = get_time_to_rewards(paths, speeds, self.env.distmx)
-            interpolated_positions = self._interpolate_positions(paths, speeds, interesting_times)
-            max_distance = calculate_max_distance(interpolated_positions)
-
-            min_rssi = self.rssi_model.compute(max_distance, noise=False)
-            solution.score = (total_reward, min_rssi, -max_len)
-
-    def _interpolate_positions(self, paths, speeds, interesting_times):
-        num_paths = len(paths)
-        num_times = len(interesting_times)
-        interpolated = np.zeros((num_paths, num_times, 2))
-
-        for i in range(num_paths):
-            path = paths[i]
-            speed = speeds[i]
-            if len(path) <= 1:
-                continue
-
-            time_to_rewards = np.zeros(len(path) - 1)
-            cumulative_dist = 0.0
-            for j in range(len(path) - 1):
-                cumulative_dist += self.env.distmx[path[j], path[j + 1]]
-                time_to_rewards[j] = cumulative_dist / speed
-
-            x_positions = np.array([self.env.rpositions[path[j + 1], 0] for j in range(len(path) - 1)])
-            y_positions = np.array([self.env.rpositions[path[j + 1], 1] for j in range(len(path) - 1)])
-
-            for t in range(num_times):
-                if len(time_to_rewards) > 0:
-                    interpolated[i, t, 0] = np.interp(interesting_times[t], time_to_rewards, x_positions)
-                    interpolated[i, t, 1] = np.interp(interesting_times[t], time_to_rewards, y_positions)
-
-        return interpolated
+    def _evaluate(self,solution):
+        problem=self.problem
+        if len(solution.routes)!=problem.num_agents or (problem.num_agents!=1 and not self.allow_team):
+            raise ValueError("This stage supports one agent; route counts must match")
+        trajectories=[]
+        sets=[]
+        owners={}
+        ids=[]
+        for m,route in enumerate(solution.routes):
+            if len(route)<2 or route[0].kind!="START" or route[-1].kind!="END":
+                raise ValueError("Route must begin START and terminate END")
+            if route[0].position!=problem.start or route[0].velocity!=problem.initial_velocities[m] or route[-1].position!=problem.end or route[-1].velocity!=(0.,0.) or route[-1].wait!=0:
+                raise ValueError("Invalid boundary states")
+            for visit in route:
+                ids.append(visit.id)
+                if visit.kind=="FREE":
+                    raise ValueError("Free visits require the future communication stage")
+                if visit.kind=="TASK" and (visit.task_id not in problem.task_map or visit.position!=problem.task_map[visit.task_id].position):
+                    raise ValueError("Invalid fixed task position")
+            if any(v.kind!="TASK" for v in route[1:-1]):
+                raise ValueError("Interior visits must be tasks")
+            pieces=[]
+            elapsed=0.
+            for start,end in zip(route,route[1:]):
+                if start.wait:
+                    pieces.append(MotionPiece(start.position,start.velocity,(0.,0.),start.wait,elapsed))
+                    elapsed+=start.wait
+                connection=connect(State(start.position,start.velocity),State(end.position,end.velocity),problem.limits[m])
+                pieces.extend(replace(p,start_time=p.start_time+elapsed) for p in connection.pieces)
+                elapsed+=connection.duration
+            trajectory=AgentTrajectory(tuple(pieces),elapsed,State(route[0].position,route[0].velocity),State(route[-1].position,route[-1].velocity))
+            trajectories.append(trajectory)
+            reached=set()
+            for task in problem.tasks:
+                times=[t for p in pieces if (t:=passage_time(p,task.position)) is not None]
+                if task.position==trajectory.start.position:
+                    times.append(0.)
+                if task.position==trajectory.end.position:
+                    times.append(elapsed)
+                if times:
+                    reached.add(task.id)
+                    record=(min(times),m)
+                    if task.id not in owners or record<owners[task.id]:
+                        owners[task.id]=record
+            sets.append(frozenset(reached))
+        if len(ids)!=len(set(ids)):
+            raise ValueError("Visit occurrence IDs must be unique")
+        completions=tuple(t.completion_time for t in trajectories)
+        reward=sum(task.reward for task in problem.tasks if task.id in set().union(*sets))
+        feasible=all(c<=b+1e-7 for c,b in zip(completions,problem.time_budgets))
+        return Evaluation(feasible,(-reward,sum(completions)/len(completions)),completions,tuple(sets),tuple(trajectories),
+                          "" if feasible else "Individual flight-time budget exceeded",0. if problem.num_agents==1 else None,
+                          tuple((task,m,t) for task,(t,m) in sorted(owners.items())))

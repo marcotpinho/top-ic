@@ -1,1 +1,2 @@
-"""TOP-CC: Team Orienteering Problem with Communication Constraints."""
+"""Kinematic orienteering research implementation (communication pending)."""
+__version__ = "0.2.0"

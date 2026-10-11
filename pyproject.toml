@@ -1,23 +1,23 @@
 [build-system]
-requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "topcc"
-version = "0.1.0"
-description = "Team Orienteering Problem with Communication Constraints"
+version = "0.2.0"
+description = "Acceleration-aware Kinematic Orienteering with MOVNS"
 requires-python = ">=3.12"
-dependencies = [
-    "numpy",
-    "scipy",
-    "numba",
-    "matplotlib",
-    "tqdm",
-    "scikit-learn",
-]
+dependencies = ["numpy>=1.26", "scipy>=1.11", "matplotlib>=3.8"]
 
 [project.optional-dependencies]
-surrogate = ["torch"]
+test = ["pytest>=8"]
 
 [project.scripts]
 topcc = "topcc.main:main"
+
+[tool.setuptools]
+packages = ["topcc"]
+package-dir = {topcc = "src"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

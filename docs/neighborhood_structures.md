@@ -96,3 +96,7 @@ Repair may fail. Neither removing every task nor removing every planned meeting 
 - Report two-objective front quality, feasible-run rate, communication violation, accepted moves, and evaluation cost by family.
 
 Expected improvements from each family are hypotheses to test. Incidental reward collection, changed velocity states, and contact ordering can defeat simple objective-direction guarantees. Avoid carrying over constant-speed triangle-inequality, disjointness, reachability, or guaranteed-repair proofs without rederiving their assumptions.
+
+## Implementation status
+
+See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.

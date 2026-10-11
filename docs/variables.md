@@ -108,3 +108,7 @@ Keep handshake $\delta$ and staleness $\Delta$ distinct in code. Effective initi
 | — | Full-reference propagation state for incremental restart | `checkpoint` |
 
 $\Delta$ is not an objective, crowding coordinate, or archive level. An exact cache key includes all motion/timing/free-position decisions that affect a trajectory. RSSI, binary arc variables, MTZ labels, and time big-$M$ constants are not part of this metaheuristic formulation.
+
+## Implementation status
+
+See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.

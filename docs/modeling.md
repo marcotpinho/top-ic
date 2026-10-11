@@ -1,6 +1,6 @@
 # Team KOP with Intermittent Communication — Modeling
 
-This document describes the target research model. The implementation is being planned in [spec/](../spec/README.md); the existing code still contains the earlier constant-speed, distance-budget TOP-CC model.
+This document describes the target research model. The implementation is being planned in [spec/](../spec/README.md); the foundation implements acceleration-aware trajectories; search stages are tracked in [implementation status](implementation.md).
 
 ## Research stages
 
@@ -52,3 +52,7 @@ The communication stage adds actual visit positions that are not task locations.
 MOVNS changes task selection/order/assignment, visit velocities, stopped waits, and, in the third stage, free positions and coordinated meetings. A deterministic connector constructs complete acceleration-feasible trajectories. Continuous contact extraction and temporal propagation then evaluate communication. Minimum-time connectors are a starting point; waiting and changed motion states allow communication-aware schedules.
 
 A general nonlinear inner optimizer is optional refinement, not a mandatory part of every candidate evaluation. The baseline uses visit-level motion states and continuous trajectories rather than a uniform time-expanded workspace graph. See [neighborhood structures](neighborhood_structures.md), [variables](variables.md), and [mathematical formulation](math_formulation.md).
+
+## Implementation status
+
+See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.

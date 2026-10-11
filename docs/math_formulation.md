@@ -181,3 +181,7 @@ They are not the only allowed contacts: every valid moving or opportunistic cont
 For fixed trajectories, $\Delta$ is independent of $T_c$, and communication feasibility is monotone as $T_c$ increases. An edit that changes trajectories can change encounter order and staleness anywhere downstream. Removing communication recovers the team KOP variant with time budgets, not constant-speed TOP.
 
 Numerical quartic contact extraction needs documented tolerances and uncertainty handling. Complexity and exactness claims must follow the implemented verifier; the earlier constant-speed sweep bounds are not assumed here. The mathematical model is continuous in time even though visit velocities may be discretized by the search.
+
+## Implementation status
+
+See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.

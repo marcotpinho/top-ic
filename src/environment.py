@@ -1,58 +1,37 @@
-"""Environment representations for TOP-CC problem instances."""
-
-import numpy as np
+"""Versioned instances: budgets must explicitly be seconds."""
+import json
+from dataclasses import asdict
 from pathlib import Path
-from scipy.spatial.distance import cdist
-from typing import Tuple
+from .config import Problem, Task, MotionLimits
 
 
-class Map2D:
-    """2D Euclidean environment with positions, rewards, and distance matrix."""
+def problem_from_dict(data):
+    if data.get("schema_version") != 1 or data.get("budget_unit") != "seconds":
+        raise ValueError("Expected schema_version=1 and budget_unit='seconds'; convert legacy distance instances explicitly")
+    agents = data["agents"]
+    return Problem(tuple(Task(str(t["id"]), t["position"], float(t["reward"])) for t in data["tasks"]),
+                   data["start"], data["end"], tuple(a["time_budget"] for a in agents),
+                   tuple(MotionLimits(a.get("velocity_axis_limit", (3,3)), a.get("acceleration_axis_limit", (1.5,1.5))) for a in agents),
+                   tuple(a.get("initial_velocity", (0,0)) for a in agents), data.get("name", "instance"))
 
-    def __init__(self, rpositions: np.ndarray, rvalues: np.ndarray):
-        self.rpositions = rpositions
-        self.rvalues = rvalues
-        self.distmx = cdist(rpositions, rpositions, metric="euclidean")
+
+def problem_to_dict(problem):
+    return {"schema_version": 1, "budget_unit": "seconds", "name": problem.name,
+            "start": problem.start, "end": problem.end, "tasks": [asdict(t) for t in problem.tasks],
+            "agents": [{"time_budget": b, "velocity_axis_limit": l.velocity, "acceleration_axis_limit": l.acceleration,
+                        "initial_velocity": v} for b,l,v in zip(problem.time_budgets,problem.limits,problem.initial_velocities)]}
 
 
-def load_problem_instance(map_file_path: str) -> Tuple[
-    int, int, list[float], list[float], np.ndarray, np.ndarray
-]:
-    """Parse a map file into problem instance data.
+def load_problem_instance(path):
+    if Path(path).suffix != ".json":
+        raise ValueError("Legacy text maps require explicit conversion to a seconds-budget JSON instance")
+    return problem_from_dict(json.loads(Path(path).read_text()))
 
-    Returns:
-        (num_rewards, num_agents, budget, speeds, rpositions, rvalues)
-    """
-    map_path = Path(map_file_path)
-    if not map_path.exists():
-        raise FileNotFoundError(f"Map file not found: {map_file_path}")
 
-    try:
-        with open(map_path, "r") as f:
-            lines = f.readlines()
+def save_problem_instance(problem, path):
+    Path(path).write_text(json.dumps(problem_to_dict(problem), indent=2)+"\n")
 
-        num_rewards = int(float(lines[0].split()[1]))
-        num_agents = int(lines[1].split()[1])
-        default_budget = float(lines[2].split()[1])
 
-        budget = [default_budget] * num_agents
-        default_speeds = [1.0] * num_agents
-
-        reward_data = []
-        for line in lines[3:]:
-            parts = line.strip().split()
-            if len(parts) >= 3:
-                x, y, value = float(parts[0]), float(parts[1]), float(parts[2])
-                reward_data.append([x, y, value])
-
-        if not reward_data:
-            raise ValueError("No reward data found in map file")
-
-        reward_array = np.array(reward_data)
-        rpositions = np.vstack([reward_array[1:, :2], reward_array[0:1, :2]])
-        rvalues = np.concatenate([reward_array[1:, 2], reward_array[0:1, 2]])
-
-        return num_rewards, num_agents, budget, default_speeds, rpositions, rvalues
-
-    except (IndexError, ValueError) as e:
-        raise ValueError(f"Invalid map file format: {e}")
+def smoke_problem(agents=1):
+    return Problem((Task("a", (2.,2.), 5.),Task("b", (4.,-1.), 8.),Task("c", (6.,2.), 3.)),
+                   (0.,0.), (8.,0.), (14.,)*agents, (MotionLimits(),)*agents, ((0.,0.),)*agents, "smoke")
