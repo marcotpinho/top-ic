@@ -39,7 +39,7 @@ Wait insertion is not necessary for the no-communication baseline but representa
 Modify `src/runner.py`, `src/operators.py`, `src/archive.py`, and `Solution.dominates`:
 
 - All Pareto coordinates use minimization; strict dominance requires no worse values and at least one strict improvement. Equal objectives never mutually dominate.
-- Archive contains motion/budget-feasible nondominated solutions only; capacity handling uses two-objective crowding or an explicitly documented ε policy.
+- Archive contains motion/budget-feasible nondominated solutions only; archive approximation uses epsilon-box dominance in reward units and seconds; capacity handling deterministically coarsens epsilon widths and records effective values.
 - Keep structural duplicates and objective-equal alternatives separate. Store representative trajectories, not just score tuples.
 - Select seeds using objective diversity/exploration state; remove RSSI selection and inverse-score calculations.
 - Run VND over the neighborhood schedule; reset neighborhood index on a qualifying improvement. Define archive improvement as a new retained objective region, with deterministic handling of ties.

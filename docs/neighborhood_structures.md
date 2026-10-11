@@ -102,3 +102,7 @@ Expected improvements from each family are hypotheses to test. Incidental reward
 See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
 
 Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team and communication operators remain later-stage functionality on this branch.
+
+## Implemented epsilon archive policy
+
+For minimization vector $f=(-Q,\bar c)$, define box $b_j=\lfloor f_j/\varepsilon_j\rfloor$. Box dominance requires no worse box coordinates and at least one strict improvement. Within one box retain the trajectory nearest its normalized lower corner, with deterministic objective/decision ties. Defaults are $\varepsilon_Q=1$ reward unit and $\varepsilon_c=0.1$ seconds. If capacity is exceeded, double both widths until the approximate box front fits and record effective widths. Crowding-distance truncation is not used.

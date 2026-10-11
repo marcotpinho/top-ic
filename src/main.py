@@ -15,6 +15,8 @@ def main():
     parser.add_argument("--max-seconds",type=float,default=30.)
     parser.add_argument("--max-evaluations",type=int,default=2000)
     parser.add_argument("--max-iterations",type=int,default=100)
+    parser.add_argument("--eps-reward",type=float,default=1.0)
+    parser.add_argument("--eps-time",type=float,default=0.1)
     parser.add_argument("--headings",type=int,default=4)
     parser.add_argument("--speed-fractions",type=float,nargs="+",default=[0,.5,1])
     parser.add_argument("--disable",nargs="*",default=[])
@@ -22,7 +24,7 @@ def main():
     args=parser.parse_args()
     try:
         config=Config(mode=args.mode,seed=args.seed,max_seconds=args.max_seconds,max_evaluations=args.max_evaluations,
-                      max_iterations=args.max_iterations,headings=args.headings,speed_fractions=tuple(args.speed_fractions),
+                      max_iterations=args.max_iterations,eps_reward=args.eps_reward,eps_time=args.eps_time,headings=args.headings,speed_fractions=tuple(args.speed_fractions),
                       disabled=tuple(args.disable),algorithm=args.algorithm)
         problem=load_problem_instance(args.instance) if args.instance else smoke_problem()
         result=run_optimization(problem,config)

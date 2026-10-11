@@ -83,6 +83,8 @@ class Config:
     max_iterations: int = 100
     archive_size: int = 40
     headings: int = 4
+    eps_reward: float = 1.0
+    eps_time: float = 0.1
     speed_fractions: tuple[float, ...] = (0.0, 0.5, 1.0)
     disabled: tuple[str, ...] = ()
     algorithm: str = "movns"
@@ -96,6 +98,8 @@ class Config:
             raise ValueError("Runtime limit must be in (0,600] seconds")
         if min(self.max_evaluations, self.max_iterations, self.archive_size, self.headings) <= 0:
             raise ValueError("Search counts must be positive")
+        if not all(isfinite(e) and e>0 for e in (self.eps_reward,self.eps_time)):
+            raise ValueError("Epsilon widths must be positive and finite")
         if not self.speed_fractions or any(not isfinite(f) or not 0 <= f <= 1 for f in self.speed_fractions):
             raise ValueError("Speed fractions must be in [0,1]")
 

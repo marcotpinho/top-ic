@@ -1,0 +1,10 @@
+{
+  "retrieved": "2026-10-11",
+  "primary_catalog": "https://www.mech.kuleuven.be/en/mim/op",
+  "download": "https://www.mech.kuleuven.be/en/mim/op/instances/TsiligiridesOP2",
+  "original": "Tsiligirides T. Heuristic Methods Applied to Orienteering. JORS 35(9),797\u2013809 (1984).",
+  "archive_sha256": "1fca710dd4b9ba644403f2d2d855bc85969bd97f32b8860ab7c1b48cbb78547c",
+  "raw_sha256": "09c603086e963364be8806081b9f18cb9c6ddbe8c2708cf76cbee257ad9c8076",
+  "conversion": "All 19 tasks, unmodified coordinates/rewards. Coordinates interpreted as meters. Original 30-unit travel budget is NOT converted mathematically: new 30-second flight budget chosen for acceleration-aware experiments. Axis speed 3m/s, acceleration 1.5m/s\u00b2; zero endpoint velocities. No obstacles, collisions, or communication. Published OP optimal values do not apply.",
+  "license": "Primary download has no explicit license notice. Preserve attribution; no new license asserted for original benchmark data."
+}

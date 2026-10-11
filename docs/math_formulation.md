@@ -187,3 +187,7 @@ Numerical quartic contact extraction needs documented tolerances and uncertainty
 See [implementation milestones](implementation.md) for supported stages, validation, and commands. Communication and free-waypoint sections describe the later target extension, not completed functionality.
 
 Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team and communication operators remain later-stage functionality on this branch.
+
+## Search approximation
+
+The mathematical objectives retain their exact meaning. The implemented search reports an epsilon-box approximate front: $b(f)=(\lfloor -Q/\varepsilon_Q\rfloor,\lfloor\bar c/\varepsilon_c\rfloor)$. It retains nondominated boxes and one deterministic representative per box. Initial widths are 1 reward unit and 0.1 seconds; capacity-driven deterministic coarsening is recorded. This archive policy does not relax motion, budget, or communication feasibility.

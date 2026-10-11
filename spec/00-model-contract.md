@@ -55,3 +55,7 @@ Use canonical, deterministic keys and seeded RNG for shaking/selection. Only exc
 Enable FREE visits only in the communication stage. Recommended default: positions inside an explicit bounded workspace enclosing tasks and depots, adjustable free-waypoint count limit per agent, and scheduled neighborhood step sizes. These are algorithmic restrictions, not proofs that optimal meetings lie inside the task bounding box or under the chosen count cap. Report the limits and sensitivity experiments.
 
 At least one coordinated move must insert/move a pair of rendezvous visits and adjust both agents' motion states/timing together. Stationary planned meetings are a constructive mechanism; all valid moving contacts still count.
+
+## Confirmed archive policy
+
+Use epsilon-box dominance, not crowding distance. Positive widths apply to minimization coordinates `(-reward, mean_completion_time)` in reward units and seconds. Retain one deterministic representative per nondominated box; log any capacity-driven coarsening and report an approximate epsilon front. Initial widths are 1 reward unit and 0.1 seconds. Delta does not enter archive boxes.
