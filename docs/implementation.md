@@ -43,3 +43,13 @@ Example: `topcc --mode team_kop --max-seconds 60 --max-evaluations 4000 --output
 ## Archive policy update
 
 Following the user's instruction, both search branches filter with epsilon-box dominance rather than crowding distance. Configurable defaults: reward width 1.0, time width 0.1 seconds. Capacity handling coarsens both widths deterministically; output records effective epsilon and coarsening count. Four additional tests verify negative-coordinate flooring, same-box representative replacement, box dominance, and capacity coarsening; 25 core tests pass on the team branch. Pre-update benchmark invocations are retained as superseded in the experimental run ledger, not reported as epsilon runs.
+
+## Final integrated validation
+
+The final team branch inherits the complete single-agent experiment/plot commit and adds the team campaign. The three branches are `implementation/step1-foundation`, `implementation/step2-single-kop`, and `implementation/step3-team-kop`. Step 1 is an ancestor of step 2; the final step 2 branch is an ancestor of the final team branch through the integration merge. The original `main` branch was not modified.
+
+Final integrated suite: **30 tests passed in 1.60 seconds**. Documentation links and Markdown math fences pass consistency checks, no merge markers remain, and the team artifact manifest checksums match. Independent campaign verification checked 92 final single-agent solutions (2,164 motion pieces) and 113 team solutions (3,127 pieces).
+
+Each stage recorded exactly **10 experimental optimizer starts**, counting superseded/interrupted pre-epsilon attempts. The final epsilon suites completed seven single-agent runs (full, all five singleton ablations, and LNS) and nine team runs (full, all six singleton ablations, two extra full seeds). Maximum completed wall durations were 45.256 seconds for single-agent and 45.115 seconds for team; subprocess hard timeouts were 120 seconds. Fixture/unit tests are correctness checks separate from these experimental campaigns.
+
+The short runs are engineering validation on one adapted benchmark, not statistically established algorithm superiority. Disabling insertion also removes constructive insertion initialization. Communication and freely positioned waypoints remain step 4 work; collision constraints remain ignored.
