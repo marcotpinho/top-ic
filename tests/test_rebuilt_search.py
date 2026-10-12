@@ -8,9 +8,11 @@ import pytest
 from src.config import Config, MotionLimits, Problem, Task
 from src.entities.archive import Archive
 from src.entities.evaluator import Evaluator
+from src.entities.neighborhood import Neighborhood
 from src.entities.runner import Runner
 from src.evaluation_core.trajectory import MotionError, State, connect
 from src.solution import Solution, Visit
+from src.solver import result_to_dict
 
 
 def relay_problem():
@@ -148,6 +150,19 @@ def test_fixed_seed_repeats_front():
     assert [(solution.key, solution.objectives) for solution in first.front] == [
         (solution.key, solution.objectives) for solution in second.front
     ]
+
+
+def test_search_profiling_is_saved_by_family():
+    result = Runner(relay_problem(), settings(2.0, seed=19)).run()
+    profile = result_to_dict(result)["statistics"]["profiling"]
+    assert profile["search_loop_seconds"] > 0
+    assert profile["evaluation_seconds"] >= profile["evaluator_seconds"] > 0
+    assert set(profile["neighborhoods"]) == set(Neighborhood.ICC)
+    assert any(row["calls"] for row in profile["neighborhoods"].values())
+    for row in profile["neighborhoods"].values():
+        assert row["total_seconds"] >= row["generation_seconds"] >= 0
+        assert row["total_seconds"] >= row["evaluation_seconds"] >= 0
+        assert row["total_seconds"] >= row["shake_seconds"] >= 0
 
 
 def test_archive_keeps_zero_violation_in_own_layer():

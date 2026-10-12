@@ -84,6 +84,7 @@ def main() -> int:
             "status": result.status,
             "elapsed_seconds": result.elapsed_seconds,
             "evaluations": result.statistics.get("evaluated", 0),
+            "profiling": result.statistics["profiling"],
             "front": [solution.objectives for solution in result.front],
         }
         print(json.dumps(summary, indent=2))

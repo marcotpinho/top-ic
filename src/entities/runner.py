@@ -11,6 +11,7 @@ from .archive import Archive
 from .archive_updates import evaluate_candidate
 from .evaluator import Evaluator
 from .neighborhood import Neighborhood
+from .profiling import SearchProfile
 from .search_loop import run_iterations
 from .seed_construction import (
     construct_reward_seed,
@@ -32,6 +33,7 @@ class Runner:
         self.evaluator = Evaluator(problem, config)
         self.archive = Archive(config, self.rng)
         self.neighborhood = Neighborhood(problem, config, self.rng)
+        self.profile = SearchProfile.for_neighborhoods(self.neighborhood.names)
         self.counts: Counter[str] = Counter()
         self.by_family: dict[str, Counter[str]] = {}
         self.seen: set[object] = set()
@@ -48,7 +50,11 @@ class Runner:
 
     def evaluate(self, solution: Solution, family: str) -> Solution | None:
         """Evaluate one complete decision and update archive/pool (eqs. 1–16)."""
-        return evaluate_candidate(self, solution, family)
+        started = perf_counter()
+        try:
+            return evaluate_candidate(self, solution, family)
+        finally:
+            self.profile.evaluation_seconds += perf_counter() - started
 
     def run(self) -> RunResult:
         """Construct seeds, then run independent sampled family searches."""

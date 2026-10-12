@@ -2,6 +2,7 @@
 
 from collections import Counter
 from dataclasses import replace
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
@@ -57,7 +58,11 @@ def evaluate_candidate(
         runner.counts["duplicate"] += 1
         return None
     runner.seen.add(candidate.key)
-    scored = runner.evaluator.evaluate(candidate)
+    started = perf_counter()
+    try:
+        scored = runner.evaluator.evaluate(candidate)
+    finally:
+        runner.profile.evaluator_seconds += perf_counter() - started
     runner.counts["evaluated"] += 1
     row["evaluated"] += 1
     if not scored.evaluation.valid:

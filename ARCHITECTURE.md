@@ -31,6 +31,16 @@ refinement and the full evaluation pipeline. Physically valid solutions enter
 the ε archive or the dominated pool. The search loop records evaluation and
 front changes before moving to the next family or iteration.
 
+Run JSON stores `statistics.profiling` in wall-clock seconds. Its
+`search_loop_seconds` covers the complete local-search loop after seed
+construction. `evaluation_seconds` covers all candidate processing, including
+velocity refinement and archive updates. `evaluator_seconds` is the time inside
+the evaluation core. Each enabled neighborhood records call count and total,
+shake, generation, and evaluation durations. A shake's candidate evaluation
+belongs to both its `shake_seconds` and `evaluation_seconds`; add neither phase
+to `total_seconds`. Top-level `elapsed_seconds` covers the full run, including
+seed construction and result packaging.
+
 ## Formulation map
 
 The notation follows [docs/variables.md](docs/variables.md) and

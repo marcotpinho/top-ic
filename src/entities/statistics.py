@@ -1,5 +1,6 @@
 """Run result and stable search diagnostics."""
 
+from dataclasses import asdict
 from time import perf_counter
 from typing import TYPE_CHECKING
 
@@ -23,6 +24,7 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "accepted_history": runner.history,
             "pool_size": len(runner.archive.pool),
             "rng_seed": runner.config.seed,
+            "profiling": asdict(runner.profile),
         }
     )
     return RunResult(
