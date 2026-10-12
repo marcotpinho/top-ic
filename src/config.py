@@ -1,7 +1,7 @@
 """Validated, explicit physical inputs and search settings."""
 
 from dataclasses import dataclass
-from math import isfinite, cos, sin, pi
+from math import cos, isfinite, pi, sin
 
 Vector = tuple[float, float]
 
@@ -88,7 +88,7 @@ class Problem:
 
 @dataclass(frozen=True)
 class Config:
-    mode: str = "single_kop"
+    mode: str = "team_kop_icc"
     seed: int = 42
     max_seconds: float = 30.0
     max_evaluations: int = 2000
@@ -115,6 +115,9 @@ class Config:
     wait_steps: tuple[float, ...] = (0.25, 1.0)
     candidate_bank_size: int = 80
     neighborhood_candidates: int = 120
+    excursion_max_bypass_tasks: int = 5
+    recreate_sample_slots: int = 8
+    recreate_noise_scale: float = 1.0
     shake_candidate_prefix: int = 200  # Maximum candidates inspected in a shake.
     meeting_link_limit: int = 8  # Existing visit pairs retained per agent pair.
     meeting_slot_limit: int = 3  # Candidate slots on each meeting route.
@@ -143,10 +146,10 @@ class Config:
             object.__setattr__(
                 self, "waypoint_workspace", tuple(self.waypoint_workspace)
             )
-        if self.mode not in ("single_kop", "team_kop", "team_kop_icc"):
-            raise ValueError("Unknown problem mode")
-        if self.algorithm not in ("movns", "lns"):
-            raise ValueError("Unknown search algorithm")
+        if self.mode != "team_kop_icc":
+            raise ValueError("Only team_kop_icc is supported")
+        if self.algorithm != "movns":
+            raise ValueError("Only MOVNS is supported")
         if not isfinite(self.max_seconds) or not 0 < self.max_seconds <= 3600:
             raise ValueError("Runtime limit must be in (0,3600] seconds")
         if (
@@ -156,10 +159,14 @@ class Config:
                 self.archive_size,
                 self.headings,
                 self.neighborhood_candidates,
+                self.excursion_max_bypass_tasks,
+                self.recreate_sample_slots,
             )
             <= 0
         ):
             raise ValueError("Search counts must be positive")
+        if not isfinite(self.recreate_noise_scale) or self.recreate_noise_scale < 0:
+            raise ValueError("Recreate noise scale must be finite and nonnegative")
         if (
             min(
                 self.shake_candidate_prefix,

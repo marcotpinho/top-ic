@@ -3,10 +3,10 @@
 from dataclasses import dataclass, replace
 from math import inf
 
+from ..config import Config, Problem
+from ..solution import Solution, Visit
 from .communication import evaluate_communication
-from .config import Config, Problem
 from .scheduling import schedule
-from .solution import Solution, Visit
 from .trajectory import AgentTrajectory, MotionError, MotionPiece, State, connect
 
 
@@ -35,13 +35,9 @@ class Evaluation:
 class Evaluator:
     """Cache complete evaluations by physical solution identity."""
 
-    def __init__(
-        self, problem: Problem, allow_team: bool = False, config: Config | None = None
-    ) -> None:
+    def __init__(self, problem: Problem, config: Config) -> None:
         self.problem = problem
-        self.allow_team = allow_team
         self.config = config
-        self.icc = config is not None and config.mode == "team_kop_icc"
         self.cache: dict[object, Evaluation] = {}
         self.cache_hits = 0
         self.cache_misses = 0
@@ -101,12 +97,8 @@ class Evaluator:
     def validate_structure(self, solution: Solution) -> None:
         """Validate route and occurrence invariants of eq. (1)."""
         problem = self.problem
-        if len(solution.routes) != problem.num_agents or (
-            problem.num_agents != 1 and not self.allow_team
-        ):
-            raise ValueError("This stage supports one agent; route counts must match")
-        if solution.meetings and not self.icc:
-            raise ValueError("Planned meetings require communication mode")
+        if problem.num_agents < 2 or len(solution.routes) != problem.num_agents:
+            raise ValueError("ICC requires matching routes for at least two agents")
         identities = [visit.id for route in solution.routes for visit in route]
         if len(identities) != len(set(identities)):
             raise ValueError("Visit occurrence IDs must be unique")
@@ -126,20 +118,16 @@ class Evaluator:
             or end.wait != 0
         ):
             raise ValueError("Invalid boundary states")
-        allowed = ("TASK", "FREE") if self.icc else ("TASK",)
-        if any(visit.kind not in allowed for visit in route[1:-1]):
+        if any(visit.kind not in ("TASK", "FREE") for visit in route[1:-1]):
             raise ValueError("Invalid interior visit")
         if (
-            self.icc
-            and sum(visit.kind == "FREE" for visit in route)
+            sum(visit.kind == "FREE" for visit in route)
             > self.config.max_free_waypoints
         ):
             raise ValueError("Free-waypoint cap exceeded")
         task_map = self.problem.task_map
         for visit in route:
             if visit.kind == "FREE":
-                if not self.icc:
-                    raise ValueError("Free visits require communication mode")
                 if not self._in_workspace(visit.position):
                     raise ValueError("Free waypoint outside configured workspace")
             if visit.kind == "TASK" and (
@@ -149,17 +137,15 @@ class Evaluator:
                 raise ValueError("Invalid fixed task position")
 
     def _in_workspace(self, point: tuple[float, float]) -> bool:
-        """Check search workspace membership; unrestricted workspace admits all points."""
-        workspace = self.config.waypoint_workspace if self.config else None
+        """Check search workspace membership; None admits all points."""
+        workspace = self.config.waypoint_workspace
         if workspace is None:
             return True
         xmin, xmax, ymin, ymax = workspace
         return xmin <= point[0] <= xmax and ymin <= point[1] <= ymax
 
-    def schedule_solution(self, solution: Solution) -> tuple | None:
+    def schedule_solution(self, solution: Solution) -> tuple:
         """Find least feasible meeting waits; implements eqs. (2) and (16)."""
-        if not self.icc:
-            return None
         timing, _ = schedule(
             solution.routes,
             solution.meetings,
@@ -171,7 +157,7 @@ class Evaluator:
         return timing
 
     def build_trajectories(
-        self, solution: Solution, timing: tuple | None
+        self, solution: Solution, timing: tuple
     ) -> tuple[tuple, tuple]:
         """Construct piecewise motion and visit times; implements eqs. (2)–(6)."""
         trajectories = []
@@ -183,20 +169,16 @@ class Evaluator:
         return tuple(trajectories), tuple(visit_times)
 
     def _build_route_trajectory(
-        self, agent: int, route: tuple[Visit, ...], timing: tuple | None
+        self, agent: int, route: tuple[Visit, ...], timing: tuple
     ) -> tuple:
         """Connect one route; a scheduled wait requires zero velocity, eqs. (1)–(4)."""
         pieces = []
         elapsed = 0.0
         times = []
         for visit_index, (start, end) in enumerate(zip(route, route[1:])):
-            wait = (
-                start.wait
-                if timing is None
-                else timing[agent][visit_index][1] - timing[agent][visit_index][0]
-            )
+            wait = timing[agent][visit_index][1] - timing[agent][visit_index][0]
             times.append((elapsed, elapsed + wait))
-            if wait > (self.config.numerical_tolerance if self.config else 1e-13):
+            if wait > self.config.numerical_tolerance:
                 if start.velocity != (0.0, 0.0):
                     raise ValueError("Scheduled waiting requires a stopped state")
                 pieces.append(
@@ -246,7 +228,7 @@ class Evaluator:
 
     def check_budgets(self, completions: tuple[float, ...]) -> bool:
         """Check individual completion against B_m; implements eq. (5)."""
-        tolerance = self.config.budget_tolerance if self.config else 1e-7
+        tolerance = self.config.budget_tolerance
         return all(
             completion <= budget + tolerance
             for completion, budget in zip(completions, self.problem.time_budgets)
@@ -256,7 +238,7 @@ class Evaluator:
         self, trajectories: tuple, feasible: bool
     ) -> tuple[object | None, float]:
         """Evaluate contacts and staleness for feasible ICC routes; eqs. (9)–(15)."""
-        if not feasible or not self.icc:
+        if not feasible:
             return None, 0.0
         communication = evaluate_communication(
             trajectories,
@@ -281,17 +263,15 @@ class Evaluator:
         violation: float,
     ) -> Evaluation:
         """Assemble the minimization vector; implements eqs. (5), (7), and (8)."""
-        objectives = (-reward, sum(completions) / len(completions))
-        if self.icc:
-            objectives += (violation if communication else inf,)
+        objectives = (
+            -reward,
+            sum(completions) / len(completions),
+            violation if communication else inf,
+        )
         first_visitors = tuple(
             (task, agent, time) for task, (time, agent) in sorted(owners.items())
         )
-        peak = (
-            communication.peak_staleness
-            if communication
-            else (0.0 if self.problem.num_agents == 1 else None)
-        )
+        peak = communication.peak_staleness if communication else None
         reason = "" if feasible else "Individual flight-time budget exceeded"
         return Evaluation(
             feasible,

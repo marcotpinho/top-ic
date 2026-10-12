@@ -1,5 +1,9 @@
 # Implementation milestones
 
+For the current search architecture and regression gates, see
+[TOP-CC-shaped rebuild](topcc-rebuild.md). Historical status and experiment
+counts below refer to the frozen pre-rebuild implementation.
+
 ## Step 1 — foundation
 
 Branch: `implementation/step1-foundation`. Implemented versioned JSON instances with explicit seconds budgets, immutable visits and solution decisions, a cached deterministic box-bounded double-integrator connector, continuous task-passage evaluation, and source/installed CLI entry points. Collision constraints are deliberately absent. Team search, MOVNS, communication, and FREE visits are not enabled on this branch.

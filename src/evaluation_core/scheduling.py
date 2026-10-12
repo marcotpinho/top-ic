@@ -1,7 +1,7 @@
 """Least stopped-rendezvous schedule over fixed kinematic connection times."""
 
-from .config import Problem
-from .solution import Meeting, Visit
+from ..config import Problem
+from ..solution import Meeting, Visit
 from .trajectory import State, connect
 
 

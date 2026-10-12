@@ -1,5 +1,9 @@
 # Team KOP-ICC — MOVNS Neighborhood Structures
 
+The current search rewrite is described in [TOP-CC-shaped rebuild](topcc-rebuild.md).
+Implementation-status paragraphs below document the frozen pre-rebuild solver;
+the model and named move definitions remain the design reference.
+
 Target search design, following [modeling](modeling.md), [formulation](math_formulation.md), and the [implementation plans](../spec/README.md). Operators act on task/free visit occurrences, boundary velocities, stopped waits, and optional planned meetings. This replaces the earlier distance-based, constant-speed neighborhood assumptions.
 
 ## 1. Representation and invariants

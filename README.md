@@ -4,6 +4,12 @@ Staged implementation: MOVNS for single-agent KOP, multi-agent KOP, then intermi
 
 See [implementation status](docs/implementation.md) and [specification](spec/README.md).
 
+The current `topcc` entry point runs only `team_kop_icc` through the
+[TOP-CC-shaped rebuild](docs/topcc-rebuild.md). Its evaluation core is checked
+against frozen trajectory, contact, staleness, bottleneck, and objective
+fixtures. Historical single-agent, team-only, and LNS runs remain at the
+`pre-topcc-rebuild-20261012` tag.
+
 To find the saved results for stages 2–4, use the [results index](results/README.md). To run the eight synthetic scenario maps and interpret saved fronts, paths, and communication timelines, follow the [scenario tutorial](maps/scenarios/README.md).
 
 ```sh
@@ -13,7 +19,12 @@ uv pip install --python .venv/bin/python -e '.[test]'
 .venv/bin/topcc
 ```
 
-The current stage runs single-agent, multi-agent, and intermittent-communication MOVNS-KOP. Use `--mode team_kop` for the two-agent smoke instance. A matched LNS baseline is available for single-agent instances. Use `--max-seconds`, `--max-evaluations`, `--disable`, and `--output` to control and record runs. Input JSON requires `schema_version: 1`, `budget_unit: "seconds"`, task IDs/positions/rewards, explicit start/end, and per-agent budget and axis motion limits.
+The current solver runs team KOP with intermittent communication. Use
+`--max-seconds`, `--max-evaluations`, `--disable`, and `--output` to control and
+record runs. Input JSON requires `schema_version: 1`, `budget_unit: "seconds"`,
+task IDs/positions/rewards, explicit start/end, and per-agent budget and axis
+motion limits. Historical commands below describe saved experiments from the
+frozen tag.
 
 ## Implementation branches and experimental results
 
