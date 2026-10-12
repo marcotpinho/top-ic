@@ -5,9 +5,8 @@ from math import hypot
 from random import Random
 
 from ..config import Config
-from ..neighborhoods.common import fresh_id, normalize
 from ..solution import Solution, Visit
-from .neighborhoods.common import sample_candidates
+from .neighborhoods.common import fresh_id, normalize, sample_candidates
 
 RUIN_MODES = ("route", "sequence", "related")
 

@@ -6,8 +6,8 @@ from random import Random
 from typing import TYPE_CHECKING
 
 from ..config import Problem, Task
-from ..neighborhoods.common import normalize
 from ..solution import Solution, Visit
+from .neighborhoods.common import normalize
 
 if TYPE_CHECKING:
     from .runner import Runner

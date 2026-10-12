@@ -4,7 +4,7 @@ This stage tests MOVNS with two agents, shared reward, independent elapsed-time 
 
 ## Reproduce
 
-From the branch checkout, create an isolated environment with `uv venv .venv` and `uv pip install --python .venv/bin/python -e '.[test]'`. Run `.venv/bin/python scripts/benchmark_team.py` in a fresh output directory. The script deliberately refuses an existing campaign ledger: the recorded campaign must not be overwritten or silently rerun. Use `.venv/bin/python -m pytest -q` for correctness checks.
+The historical team-only campaign code is available at the `pre-topcc-rebuild-20261012` tag. Its script refused an existing campaign ledger so recorded runs would not be silently overwritten. The current working tree runs only team KOP-ICC.
 
 The archive minimizes `(-unique_reward, mean_completion_time)`, with initial epsilon widths 1 reward unit and 0.1 seconds. If its capacity requires coarsening, effective widths are logged and independently validated. Delta is not a Pareto objective and is not evaluated in this stage.
 
@@ -20,7 +20,7 @@ The final campaign contains full seed 42, six singleton ablations (insert, remov
 
 One earlier crowding-archive full run was interrupted before completing when epsilon dominance was requested. Its start remains in [superseded-ledger.json](../results/step3/superseded-ledger.json). Together with the nine epsilon starts this is **10 total optimizer starts**, with no retries. Unit and plot correctness tests are separate checks.
 
-For every saved front, [validate_team.py](../scripts/validate_team.py) checks polynomial dynamics, continuity, component limits, endpoint velocity/position, individual completion budgets, continuous task passage, shared reward, first visitors, objective values, ordinary nondominance, and epsilon-box nondominance. It does not call the production trajectory connector or evaluator. Raw JSON stores complete trajectories and routes; ledgers store validation residuals and timings; the manifest hashes outputs.
+For every saved front, the historical `validate_team.py` at the frozen tag checked polynomial dynamics, continuity, component limits, endpoint velocity/position, individual completion budgets, continuous task passage, shared reward, first visitors, objective values, ordinary nondominance, and epsilon-box nondominance. It did not call the production trajectory connector or evaluator. Raw JSON stores complete trajectories and routes; ledgers store validation residuals and timings; the manifest hashes outputs.
 
 ## Visualization
 

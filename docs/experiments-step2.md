@@ -25,18 +25,17 @@ Independent saved-output validation checks all trajectory pieces algebraically: 
 
 Removing insertion from direct initialization prevents any reward-bearing visit from entering the search; that ablation tests the whole implemented pipeline, including construction, rather than a pre-seeded neighborhood-only experiment. The LNS baseline is independently implemented and adapted to two objectives, not the source authors’ code. Practical wall stops may produce unequal evaluation counts. No superiority claim follows from one seed.
 
-Reproduce setup and data conversion:
+Check the current ICC environment:
 
 ```sh
 uv venv --python 3.12 .venv
 uv pip install --python .venv/bin/python -e '.[test]'
-.venv/bin/python scripts/prepare_benchmark.py
 .venv/bin/python -m pytest -q
 ```
 
-A single final run is reproducible with `topcc --instance benchmarks/tsiligirides/single-30s.json --mode single_kop --seed 42 --max-seconds 45 --max-evaluations 4000 --max-iterations 60 --eps-reward 1 --eps-time 0.1 --output /tmp/single-reproduction.json`. Add `--disable FAMILY` for an ablation or `--algorithm lns` for the baseline. These commands are documentation and were not additional campaign runs.
+At the frozen tag, a single final run was reproducible with `topcc --instance benchmarks/tsiligirides/single-30s.json --mode single_kop --seed 42 --max-seconds 45 --max-evaluations 4000 --max-iterations 60 --eps-reward 1 --eps-time 0.1 --output /tmp/single-reproduction.json`. The current solver accepts only `team_kop_icc`. These commands were documentation and were not additional campaign runs.
 
-The committed ledger prevents accidental reruns beyond the cap. To regenerate figures/report without new searches, run `scripts/summarize_step2.py` and call `topcc.viz.plot_result` on a saved JSON file. The campaign script documents its original schedule and resumed epsilon revision.
+The committed ledger prevents accidental reruns beyond the cap. The historical `prepare_benchmark.py`, `run_step2_campaign.py`, and `summarize_step2.py` are available at the `pre-topcc-rebuild-20261012` tag. The current working tree supports ICC searches and saved-result plotting.
 
 ![Final epsilon comparison](../results/step2/comparison.png)
 

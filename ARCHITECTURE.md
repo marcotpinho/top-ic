@@ -17,8 +17,8 @@ implementation is frozen at `pre-topcc-rebuild-20261012`.
 | `src/entities/statistics.py` | Package counters, history, and the final run result. |
 
 The historical families `wait`, `free_move`, `free_remove`,
-`duplicate_rendezvous`, `velocity`, and `velocity_dp` remain in
-`src/neighborhoods/legacy/` for inspection. They are absent from the active
+`duplicate_rendezvous`, `velocity`, and `velocity_dp` are available at the
+`pre-topcc-rebuild-20261012` tag. The working tree keeps only the active ICC
 registry.
 
 ## One iteration

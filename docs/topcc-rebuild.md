@@ -32,9 +32,9 @@ The new operator generators in `src/entities/neighborhoods/` are written from
 the model contract and named neighborhood descriptions in
 `docs/neighborhood_structures.md`. They do not call the historical generators.
 The registry in `src/entities/neighborhood.py` defines the enabled ICC list.
-The historical `src/neighborhoods/legacy/` package retains `wait`,
-`free_move`, `free_remove`, `duplicate_rendezvous`, `velocity`, and
-`velocity_dp` for saved-run compatibility.
+The unused historical neighborhood tree, including `wait`, `free_move`,
+`free_remove`, `duplicate_rendezvous`, `velocity`, and `velocity_dp`, was
+removed from the working tree. It remains at the frozen tag.
 The continuous evaluator remains the final authority for motion, budgets,
 contact, and recurrence validity.
 
