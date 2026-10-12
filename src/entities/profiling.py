@@ -1,8 +1,8 @@
 """Wall-clock accumulators for the ICC search.
 
 All durations use perf_counter seconds. Family total includes shaking,
-generation, and evaluation. Shake time includes its candidate evaluation,
-so shake_seconds overlaps evaluation_seconds.
+generation, and evaluation. The shake duration covers perturbation only;
+its later candidate evaluation is included in evaluation_seconds.
 """
 
 from dataclasses import dataclass, field

@@ -2,6 +2,7 @@
 
 from itertools import permutations, product
 from random import Random
+from types import SimpleNamespace
 
 import pytest
 
@@ -9,9 +10,11 @@ from src.config import Config, MotionLimits, Problem, Task
 from src.entities.archive import Archive
 from src.entities.evaluator import Evaluator
 from src.entities.neighborhood import Neighborhood
+from src.entities.profiling import SearchProfile
 from src.entities.runner import Runner
+from src.entities.search_loop import _search_family
 from src.evaluation_core.trajectory import MotionError, State, connect
-from src.solution import Solution, Visit
+from src.solution import Solution, Visit, direct_solution
 from src.solver import result_to_dict
 
 
@@ -163,6 +166,42 @@ def test_search_profiling_is_saved_by_family():
         assert row["total_seconds"] >= row["generation_seconds"] >= 0
         assert row["total_seconds"] >= row["evaluation_seconds"] >= 0
         assert row["total_seconds"] >= row["shake_seconds"] >= 0
+
+
+def test_shaken_solution_generates_neighbors_before_evaluation(monkeypatch):
+    problem = relay_problem()
+    base = direct_solution(problem)
+    shaken = fixed_solution(problem, (("a",), ()))
+    events = []
+
+    class RecordingNeighborhood:
+        def generate(self, name, solution):
+            events.append(("generation_started", solution))
+            yield solution
+            events.append(("generation_finished", solution))
+
+    def evaluate(solution, family):
+        events.append(("evaluated", family, solution))
+        return None
+
+    monkeypatch.setattr(
+        "src.entities.search_loop.ruin_recreate", lambda *arguments: shaken
+    )
+    runner = SimpleNamespace(
+        config=settings(2.0),
+        rng=Random(1),
+        neighborhood=RecordingNeighborhood(),
+        profile=SearchProfile.for_neighborhoods(("insert",)),
+        evaluate=evaluate,
+        exhausted=lambda: False,
+    )
+    _search_family(runner, "insert", base, 0)
+    assert events == [
+        ("generation_started", shaken),
+        ("generation_finished", shaken),
+        ("evaluated", "ruin_recreate", shaken),
+        ("evaluated", "insert", shaken),
+    ]
 
 
 def test_archive_keeps_zero_violation_in_own_layer():

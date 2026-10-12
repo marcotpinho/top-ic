@@ -25,7 +25,8 @@ registry.
 
 The Runner selects a solution from the ε front or dominated pool. For each
 enabled family it independently ruins and recreates that same base, then
-samples at most `neighborhood_candidates` proposals. The same RNG flows
+generates at most `neighborhood_candidates` proposals from the raw shaken
+solution before evaluating the shake. The same RNG flows
 through selection, shaking, and generation. Each proposal receives velocity
 refinement and the full evaluation pipeline. Physically valid solutions enter
 the ε archive or the dominated pool. The search loop records evaluation and
@@ -36,9 +37,9 @@ Run JSON stores `statistics.profiling` in wall-clock seconds. Its
 construction. `evaluation_seconds` covers all candidate processing, including
 velocity refinement and archive updates. `evaluator_seconds` is the time inside
 the evaluation core. Each enabled neighborhood records call count and total,
-shake, generation, and evaluation durations. A shake's candidate evaluation
-belongs to both its `shake_seconds` and `evaluation_seconds`; add neither phase
-to `total_seconds`. Top-level `elapsed_seconds` covers the full run, including
+shake, generation, and evaluation durations. `shake_seconds` covers only the
+perturbation; evaluating the shaken solution belongs to `evaluation_seconds`.
+These phases are included in `total_seconds`. Top-level `elapsed_seconds` covers the full run, including
 seed construction and result packaging.
 
 ## Formulation map
