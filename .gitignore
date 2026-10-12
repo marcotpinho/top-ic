@@ -8,3 +8,5 @@ results/
 spec/
 scripts/
 maps/
+topcc.egg-info/
+benchmarks/
