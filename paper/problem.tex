@@ -1,0 +1,50 @@
+\subsection{Tasks, Routes, and Motion}
+Let $\mathcal V=\{1,\ldots,N\}$ contain task locations $z_i\in\mathbb R^2$ and nonnegative rewards $r_i$. Agents $m\in\mathcal A=\{1,\ldots,M\}$ share start $z_S$ and destination $z_E$. Agent $m$ has a flight-time budget $B_m$, initial velocity $v_m^S$, and componentwise velocity and acceleration bounds $\bar v_{md}$ and $\bar a_{md}$ for $d\in\{x,y\}$. We ignore collisions, obstacles, and jerk limits.
+
+An agent selects an ordered sequence of \emph{visit occurrences} $\pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1})$ beginning at START and ending at END. An interior occurrence is TASK, with fixed position $z_i$ and an associated task ID, or FREE, with a chosen position and no intrinsic reward. Occurrences have distinct identities even when positions or task IDs coincide. Each has a boundary velocity $v_{mk}$ and a nonnegative pre-departure wait $w_{mk}$. End velocity is zero and a positive wait requires zero velocity. An explicit TASK occurrence earns reward even if traversed at nonzero velocity; incidental flyovers and FREE visits at a task position do not.
+
+The motion joining consecutive visits obeys
+\begin{equation}
+ \dot p_m(t)=v_m(t),\quad \dot v_m(t)=a_m(t),\quad
+ |v_{md}(t)|\le\bar v_{md},\quad |a_{md}(t)|\le\bar a_{md}.
+ \label{eq:dynamics}
+\end{equation}
+The implemented connector represents each connection by finitely many constant-acceleration pieces and chooses a minimum-time feasible connection for fixed endpoint states. If $D_{mk}$ is its duration, arrival and departure times satisfy
+\begin{equation}
+ \alpha_{m0}=0,\quad \beta_{mk}=\alpha_{mk}+w_{mk},\quad
+ \alpha_{m,k+1}=\beta_{mk}+D_{mk}.
+ \label{eq:timing}
+\end{equation}
+An agent's expenditure and the mission horizon are
+\begin{equation}
+ c_m=\alpha_{m,K_m-1}\le B_m,\qquad
+ \bar c=\frac1M\sum_m c_m,\qquad T=\max_m c_m.
+ \label{eq:budget}
+\end{equation}
+Waiting before END consumes budget. After arrival the agent remains at $z_E$ until $T$, contributing to communication without further expenditure. Flight time is a proxy for resource use, not a physical energy model.
+
+Let $\mathcal Q_m$ be the task IDs in agent $m$'s explicit TASK occurrences. Repeated or shared visits earn each reward once:
+\begin{equation}
+ Q(S)=\sum_{i\in\cup_m\mathcal Q_m} r_i.
+ \label{eq:reward}
+\end{equation}
+
+\subsection{Range Contacts and Information Propagation}
+At time $t$, a pair $(m,n)$ is within range if $\|p_m(t)-p_n(t)\|_2\le R$. For each maximal closed within-range interval $[s,e]$, the usable link interval is $[s+\delta,e]$ when $s>0$ and $e-s\ge\delta$, where $\delta$ is the continuous handshake duration. The initial interval beginning at zero is usable immediately because initial handshakes and synchronization are assumed complete. A later interruption resets the handshake. Thus communication can occur during movement, waits, or post-arrival presence; a planned meeting is sufficient but not necessary.
+
+Agents retain and forward information. Simultaneously linked agents exchange the latest data across each connected component, while links at different times must respect chronological order. Let $h_{nm}(t)$ be the latest timestamp of information originating at source $m$ available to receiver $n$ by $t$, with $h_{nm}(0)=0$ and $h_{mm}(t)=t$. The directed information age and its mission peak are
+\begin{equation}
+ A_{nm}(t)=t-h_{nm}(t),\qquad
+ \Delta(S)=\sup_{0\le t\le T}\max_{m\ne n} A_{nm}(t).
+ \label{eq:staleness}
+\end{equation}
+The supremum includes left limits immediately before a contact, when age may be larger than just after information exchange. For one agent we set $\Delta=0$. The communication requirement is $\Delta(S)\le T_c$. Equivalently, under initial synchronization, every full mission window of length $T_c$ must permit time-respecting propagation of every source's information to every other agent. If $T<T_c$, no full window is required. No additional delivery condition is imposed after $T$.
+
+\subsection{Objectives and Feasibility}
+We minimize the three-component vector
+\begin{equation}
+ f_{T_c}(S)=\left(-Q(S),\;\bar c(S),\;V_c(S)\right),\quad
+ V_c(S)=\max\{0,\Delta(S)-T_c\}.
+ \label{eq:objectives}
+\end{equation}
+The flight-time bounds in~\eqref{eq:budget}, dynamics in~\eqref{eq:dynamics}, and visit rules are hard physical constraints. A physically valid candidate with $V_c>0$ may be retained during search as an infeasible communication stepping stone. The reported feasible reward--time front is the $V_c=0$ slice. All candidates below $T_c$ tie on the third objective, so the final front does not reward unnecessary communication margin.

@@ -1,4 +1,4 @@
-"""Two-objective epsilon-box dominance; no crowding-distance truncation.
+"""Dimension-aware epsilon-box dominance; no crowding-distance truncation.
 
 Each nondominated box retains the point closest to its lower corner. If a
 capacity is requested, deterministically double both box widths until the
@@ -8,17 +8,26 @@ from math import floor,isfinite
 
 
 class Archive:
-    def __init__(self,max_size=40,eps_reward=1.0,eps_time=0.1):
-        if max_size<1 or not all(isfinite(e) and e>0 for e in (eps_reward,eps_time)):
+    def __init__(self,max_size=40,eps_reward=1.0,eps_time=0.1,eps_delta=None,zero_separated_last=False):
+        widths=(eps_reward,eps_time) if eps_delta is None else (eps_reward,eps_time,eps_delta)
+        if max_size<1 or not all(isfinite(e) and e>0 for e in widths):
             raise ValueError('Archive capacity and epsilon widths must be positive')
         self.max_size=max_size
-        self.epsilon=(float(eps_reward),float(eps_time))
+        self.epsilon=tuple(map(float,widths))
+        self.zero_separated_last=zero_separated_last
         self.front=[]
         self.alternatives=[]
         self.coarsenings=0
 
     def box(self,solution):
-        return tuple(floor(f/e) for f,e in zip(solution.objectives,self.epsilon))
+        if len(solution.objectives)!=len(self.epsilon):
+            raise ValueError('Objective dimension does not match archive epsilon')
+        boxes=tuple(floor(f/e) for f,e in zip(solution.objectives,self.epsilon))
+        if self.zero_separated_last:
+            violation=solution.objectives[-1]
+            if violation<0:raise ValueError('Violation objective must be nonnegative')
+            boxes=(*boxes[:-1],0 if violation==0 else 1+floor(violation/self.epsilon[-1]))
+        return boxes
 
     @staticmethod
     def box_dominates(a,b):
@@ -26,9 +35,9 @@ class Archive:
 
     def representative_key(self,solution):
         box=self.box(solution)
-        distance=sum((f/e-b)**2 for f,e,b in zip(solution.objectives,self.epsilon,box))
-        delta=solution.evaluation.peak_staleness
-        return (distance,solution.objectives,float("inf") if delta is None else delta,repr(solution.key))
+        corners=box if not self.zero_separated_last or box[-1]==0 else (*box[:-1],box[-1]-1)
+        distance=sum((f/e-b)**2 for f,e,b in zip(solution.objectives,self.epsilon,corners))
+        return (distance,solution.objectives,repr(solution.key))
 
     def _filter(self,solutions):
         representatives={}

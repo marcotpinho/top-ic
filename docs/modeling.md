@@ -12,11 +12,11 @@ This document describes the target research model. The implementation is being p
 
 ## Tasks, agents, and motion
 
-Tasks are fixed 2D locations with nonnegative rewards. Each agent chooses which tasks to reach and in which order, starting at a common start and ending at a common destination. A task's reward is collected once for the team, by its first physical visitor. Other agents may visit it, and an agent may return to a task location for communication. Task passage does not require stopping; incidental passage also collects reward.
+Tasks are fixed 2D locations with nonnegative rewards. Each agent chooses which tasks to visit and in which order, starting at a common start and ending at a common destination. An explicit TASK visit collects its reward once for the team; repeated or shared TASK visits earn no additional reward. Task passage does not require stopping. A trajectory crossing without a TASK occurrence earns no reward.
 
 Agents follow double-integrator dynamics: position changes with velocity, and velocity changes with bounded acceleration. Their velocities remain continuous; acceleration may change between motion pieces. A visit includes position and velocity, so task order alone does not specify a complete solution.
 
-The proposed initial motion convention is KOP-compatible componentwise velocity and acceleration bounds. These are axis bounds, not bounds on Euclidean speed or acceleration magnitude. Initial velocity is configurable, with zero as the default. Final velocity is zero so that agents can remain stationary after arrival. Numerical task-passage tolerance is distinct from a physical reward-collection radius.
+The proposed initial motion convention is KOP-compatible componentwise velocity and acceleration bounds. These are axis bounds, not bounds on Euclidean speed or acceleration magnitude. Initial velocity is configurable, with zero as the default. Final velocity is zero so that agents can remain stationary after arrival. Declared TASK visits must match fixed task coordinates; there is no physical reward-collection radius.
 
 **Collisions are ignored in this version.** Agents may cross or occupy the same position. Obstacles, jerk constraints, and detailed vehicle energy models are outside the initial scope. These motion conventions and the remaining configurable defaults are recorded in the [model contract](../spec/00-model-contract.md).
 
@@ -26,10 +26,13 @@ Each agent has a flight-time budget measured in seconds. Expenditure is elapsed 
 
 An agent stops consuming budget after final arrival, remains at the destination, and continues to communicate until the last agent arrives. Thus an early agent's terminal waiting affects communication but neither expenditure nor completion time. The mission horizon is the maximum individual completion time.
 
-There are exactly two Pareto objectives:
+The ICC stage has three Pareto objectives:
 
 - Maximize total team reward, counting each task once.
 - Minimize average completion time, which is average budget expenditure.
+- Minimize communication violation $V_c=\max(0,\Delta-T_c)$ for the configured $T_c$.
+
+The single-agent and team KOP stages use the first two objectives only.
 
 Path length and mission horizon are diagnostics. Flight-time expenditure is not a physical energy model. Individual budgets remain constraints; a low team average cannot offset an over-budget agent.
 
@@ -39,15 +42,17 @@ Two agents communicate when they have remained continuously within Euclidean ran
 
 Agents store and forward data. Simultaneously linked agents relay instantly through connected components; encounters at different times must form a chronological chain. For example, A meeting B before B receives C's data does not deliver that data to A.
 
-The requirement is all-to-all information propagation in every full sliding window of duration $T_c$ contained in the mission. Define $\Delta$ as the supremum of information staleness over the mission, including limiting peaks immediately before exchanges. Feasibility requires $\Delta\le T_c$.
+Define $\Delta$ as the supremum of information staleness over the mission, including limiting peaks immediately before exchanges. A reported $T_c$ slice keeps solutions with $\Delta\le T_c$, equivalent to all-to-all information propagation in every full sliding window of that duration contained in the mission.
 
-$\Delta$ is a constraint metric and search guide, not a third Pareto objective. Communication-infeasible but otherwise valid candidates can be explored in a separate bounded working pool. Smaller violation guides them toward feasibility; lower $\Delta$ can break objective ties or prioritize exploration among feasible solutions.
+$V_c=\max(0,\Delta-T_c)$ is the third ICC search objective. All solutions within the bound tie at zero violation; physically valid candidates above the bound remain available as stepping stones. A separate dominated-solution archive preserves alternative search seeds using crowding distance; the Pareto archive itself uses epsilon-box dominance. A different $T_c$ requires a separate search.
+
+Search guidance additionally records the peak age of each directed source–receiver information pair and the integrated excess age $\sum_{s\ne r}\int_0^T[A_{rs}(t)-T_c]_+\,dt$. These quantities help retain and revisit partially repaired, physically valid candidates whose global $\Delta$ has not yet changed. They do not alter $V_c$, feasibility, or the reported Pareto front. Meeting proposals are prioritized using the bottleneck time and spatial distance to range. A sampled comparison of unrefined and route-time-DP states measures when refinement helps or harms communication; a valid unrefined state is retained when it is better under the run's feasibility-first, then time/violation comparison.
 
 No extra final-delivery requirement is imposed. A contact at the destination still needs its handshake unless it is a continuation of an already established link. If the mission is shorter than $T_c$, there is no full sliding window to enforce.
 
 ## Free waypoints and solution method
 
-The communication stage adds actual visit positions that are not task locations. They can create meetings or shape motion and have no intrinsic reward. An incidental task crossing still counts. These waypoints are visited positions, not spline control points that the trajectory need not traverse.
+The communication stage adds actual visit positions that are not task locations. They can create meetings or shape motion and have no intrinsic reward, even when their coordinates coincide with a task. These waypoints are visited positions, not spline control points that the trajectory need not traverse.
 
 MOVNS changes task selection/order/assignment, visit velocities, stopped waits, and, in the third stage, free positions and coordinated meetings. A deterministic connector constructs complete acceleration-feasible trajectories. Continuous contact extraction and temporal propagation then evaluate communication. Minimum-time connectors are a starting point; waiting and changed motion states allow communication-aware schedules.
 
@@ -65,8 +70,8 @@ Team implementation: individual time budgets, shared reward accounting, and cros
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Four new operator families are `wait`, `meeting`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
+Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Five communication-stage operator families are `wait`, `meeting`, `duplicate_rendezvous`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
 
-The reported epsilon archive still has only reward and mean completion time. A separate bounded pool retains motion/budget-feasible communication-infeasible candidates; lower violation guides repair, and lower delta can prefer objective-equal representatives/search seeds. Neither is a third archive coordinate. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
+The current ICC epsilon archive uses negative reward, mean completion time, and communication violation at the run's $T_c$. Valid motion and individual budgets determine archive eligibility; the reported reward–time front is its zero-violation slice. A separate bounded dominated-solution archive uses normalized crowding distance to preserve diverse search seeds. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
 
-Saved results use schema version 2 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, bottlenecks, candidate bank, working pool, and feasibility flags. ICC VND examines at most 120 candidates per family per pass by default, while shaking samples bounded neighborhoods. These are search restrictions, not completeness guarantees.
+Current ICC results use schema version 4 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, a three-objective archive, a dominated archive, accepted-front snapshots, and the zero-violation front at the configured $T_c$. Historical stage-4 files remain schema versions 2 or 3. ICC VND examines at most 120 candidates per family per pass by default; these are search restrictions, not completeness guarantees.

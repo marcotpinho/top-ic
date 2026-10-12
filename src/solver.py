@@ -41,12 +41,34 @@ def solution_to_dict(s):
 
 def result_to_dict(result):
     from .trajectory import VERSION
-    return {"schema_version":2,"model":"box_double_integrator","connector_version":VERSION,
+    icc=result.config.mode=="team_kop_icc"
+    front=list(result.front)
+    # Violation is defined for this run's Tc; other Tc values need independent searches.
+    sweep=(result.config.recurrence_bound,) if icc else ()
+    slices=[]
+    for tc in sweep:
+        eligible=[i for i,s in enumerate(front) if s.objectives[2]==0]
+        selected=[]
+        for i in eligible:
+            a=front[i]
+            dominated=any(j!=i and all(front[j].objectives[d]<=a.objectives[d] for d in (0,1)) and
+                          ((front[j].objectives[0],front[j].objectives[1])!=(a.objectives[0],a.objectives[1])
+                           or (front[j].objectives[2],j)<(a.objectives[2],i))
+                          for j in eligible)
+            if not dominated:selected.append(i)
+        chosen=max((front[i] for i in selected),key=lambda s:(s.evaluation.reward,-s.objectives[1]),default=None)
+        slices.append({"tc":tc,"front_indices":selected,"front_size":len(selected),
+                       "best_reward":chosen.evaluation.reward if chosen else None,
+                       "mean_time_at_best_reward":chosen.objectives[1] if chosen else None})
+    return {"schema_version":4 if icc else 2,"reward_policy":"explicit_task_visits",
+            "objective_policy":"reward_time_violation" if icc else "reward_time",
+            "model":"box_double_integrator","connector_version":VERSION,
             "problem":problem_to_dict(result.problem),"config":asdict(result.config),"status":result.status,
             "elapsed_seconds":result.elapsed_seconds,"statistics":result.statistics,
-            "front":[solution_to_dict(s) for s in result.front],
+            "front":[solution_to_dict(s) for s in front],"tc_slices":slices,
+            "feasible_front_indices":slices[0]["front_indices"] if icc else [],
             "candidate_bank":[solution_to_dict(s) for s in result.candidate_bank],
-            "working_pool":[solution_to_dict(s) for s in result.working_pool]}
+            "dominated_archive":[solution_to_dict(s) for s in result.dominated_archive]}
 
 
 def save_result(result,path):

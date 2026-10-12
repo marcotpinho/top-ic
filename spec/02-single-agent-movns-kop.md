@@ -8,7 +8,7 @@ Requires Step 1 gates. Set M=1, communication disabled, FREE visits disabled. Op
 
 - Construct the trajectory deterministically from stored task order, visit states, and valid waits.
 - Verify endpoints and task passage; compute actual completion time and budget feasibility.
-- Count rewards by physical task IDs reached, including incidental crossings under the contract. Use bounding-box filtering and root/position checks for polynomial-piece passage; dense sampling is diagnostic only.
+- Count rewards by task IDs named by explicit TASK occurrences. Check that the continuous trajectory passes through every declared visit; incidental task crossings earn no reward. Dense sampling is diagnostic only.
 - Return immutable objectives and validity. Never hide a budget violation by dropping tasks inside evaluation.
 - Lower-bound rejection may use straight-line distance divided by the maximum attainable speed; with axis-box limits the Euclidean speed bound is √2 v_axis_max. A tighter direction-dependent bound is possible. A bound must not overestimate the minimum duration or assume insertion cost is nonnegative when boundary-state choices change.
 

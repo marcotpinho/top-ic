@@ -6,7 +6,7 @@ Requires single-agent correctness. Enable multiple agents with common start/end 
 
 ## 3.1 Team representation and evaluation
 
-Extend ordered agent plans, individual trajectories, and evaluation arrays. Sum rewards over the union of actual task passages; do not sum per-route reward totals. Keep a deterministic first-visitor log for diagnostics, resolving simultaneous arrivals by agent ID, without making that owner determine the objective.
+Extend ordered agent plans, individual trajectories, and evaluation arrays. Sum rewards over the union of task IDs named by explicit TASK visits; do not sum per-route reward totals or incidental crossings. Keep a deterministic first-visitor log for diagnostics, resolving simultaneous arrivals by agent ID, without making that owner determine the objective.
 
 Compute c_m independently, validate every c_m≤B_m, and score `(-team_reward, sum(c_m)/M)`. All agents must reach the destination even if assigned no tasks. Store T=max(c_m) for later communication, but never replace the mean objective by maximum time.
 
@@ -32,7 +32,7 @@ Retain Step 2 intra-route/state moves and add:
 
 Reward-neutral transfer moves can reduce mean completion time or free budget for later insertion. Search needs some exploration outside immediate front improvement, using bounded seed pools/shaking; do not claim every useful route is reachable through only accepted nondominated moves.
 
-Repeated/shared task visits are supported but normally removed when unnecessary in this stage. Duplicate visits may still affect incidental passage or motion continuity; any cleanup must reconstruct and reevaluate rather than assume no effect.
+Repeated/shared task visits are supported but normally removed when unnecessary in this stage. Duplicate visits may still affect motion continuity; any cleanup must reconstruct and reevaluate rather than assume no effect.
 
 ## 3.4 Caching, runner, and outputs
 

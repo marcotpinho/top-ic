@@ -5,6 +5,7 @@ import numpy as np
 
 def validate_motion(data):
     problem=data['problem']; tolerance=2e-6; maximum=0.;count=0
+    explicit_rewards=data.get('reward_policy')=='explicit_task_visits'
     def residual(a,b):
         nonlocal maximum
         r=max(abs(x-y) for x,y in zip(a,b));maximum=max(maximum,r);assert r<tolerance,(a,b,r)
@@ -24,7 +25,7 @@ def validate_motion(data):
                 acceleration=np.array(piece['acceleration']);tail_v=velocity+acceleration*h
                 assert np.all(np.abs(acceleration)<=np.array(agent['acceleration_axis_limit'])+tolerance)
                 assert np.all(np.maximum(np.abs(velocity),np.abs(tail_v))<=np.array(agent['velocity_axis_limit'])+tolerance)
-                for task in problem['tasks']:
+                for task in (() if explicit_rewards else problem['tasks']):
                     target=np.array(task['position']);diff=position-target
                     axis=int(np.argmax(np.abs(diff)+np.abs(velocity)+np.abs(acceleration)))
                     coefficients=np.trim_zeros(np.array([.5*acceleration[axis],velocity[axis],diff[axis]]),'f')
@@ -36,14 +37,14 @@ def validate_motion(data):
                 position=position+velocity*h+.5*acceleration*h*h;velocity=tail_v;elapsed+=h
             residual(position,problem['end']);residual(velocity,[0,0]);residual([elapsed],[trajectory['completion_time']]);residual([elapsed],[solution['completion_times'][m]])
             assert elapsed<=agent['time_budget']+tolerance
-            for task in problem['tasks']:
+            for task in (() if explicit_rewards else problem['tasks']):
                 if max(abs(np.array(problem['start'])-task['position']))<tolerance:visits[task['id']]=0.
                 if max(abs(position-task['position']))<tolerance:visits[task['id']]=min(visits.get(task['id'],math.inf),elapsed)
-            assert set(visits)==set(solution['reached_tasks'][m])
+            credited={}
             for visit in route[1:-1]:
                 assert visit['kind'] in ('TASK','FREE')
                 if visit['kind']=='TASK':
-                    assert visit['task_id'] in visits
+                    if not explicit_rewards:assert visit['task_id'] in visits
                     task=next(t for t in problem['tasks'] if t['id']==visit['task_id'])
                     assert visit['position']==task['position']
                 else:
@@ -52,9 +53,21 @@ def validate_motion(data):
                     if bounds: assert bounds[0]<=visit['position'][0]<=bounds[1] and bounds[2]<=visit['position'][1]<=bounds[3]
                 assert visit['wait']>=0
                 if visit['wait']>0:assert visit['velocity']==[0.,0.]
-            reached.append(visits);arrivals.append(elapsed)
+            if explicit_rewards:
+                for k,visit in enumerate(route):
+                    if visit['kind']=='TASK':
+                        task=visit['task_id']
+                        arrival=solution['visit_times'][m][k][0]
+                        residual(state_at(trajectory,arrival)[0],visit['position'])
+                        credited[task]=min(credited.get(task,math.inf),arrival)
+            else:
+                credited=visits
+            assert set(credited)==set(solution['reached_tasks'][m])
+            reached.append(credited);arrivals.append(elapsed)
         union=set().union(*(set(v) for v in reached));reward=sum(t['reward'] for t in problem['tasks'] if t['id'] in union)
-        residual([reward,-reward,sum(arrivals)/len(arrivals)],[solution['reward'],*solution['objectives']])
+        expected=[-reward,sum(arrivals)/len(arrivals)]
+        if len(solution['objectives'])==3:expected.append(solution['comm_violation'] if data.get('schema_version',2)>=4 else solution['peak_staleness'])
+        residual([reward,*expected],[solution['reward'],*solution['objectives']])
         owners={task:min((v[task],m) for m,v in enumerate(reached) if task in v) for task in union}
         assert set(owners)=={x[0] for x in solution['first_visitors']}
         for task,m,t in solution['first_visitors']:
@@ -70,7 +83,13 @@ def validate_motion(data):
             if i!=j:assert not(all(x<=y for x,y in zip(a['objectives'],b['objectives'])) and any(x<y for x,y in zip(a['objectives'],b['objectives'])))
     if 'effective_epsilon' in data.get('statistics',{}):
         eps=data['statistics']['effective_epsilon']
-        boxes=[tuple(math.floor(f/e) for f,e in zip(s['objectives'],eps)) for s in data['front']]
+        boxes=[]
+        for s in data['front']:
+            box=tuple(math.floor(f/e) for f,e in zip(s['objectives'],eps))
+            if data.get('schema_version',2)>=4:
+                v=s['objectives'][-1]
+                box=(*box[:-1],0 if v==0 else 1+math.floor(v/eps[-1]))
+            boxes.append(box)
         assert len(boxes)==len(set(boxes))
         for i,a in enumerate(boxes):
             for j,b in enumerate(boxes):
@@ -114,14 +133,19 @@ def independent_contacts(first,second,T,R):
                     roots.append(float(r.real))
             nodes=sorted(set([0.,duration,*roots]))
             for l,r in zip(nodes,nodes[1:]):
-                if poly((l+r)/2)<0:raw.append((start+l,start+r))
+                # Exact-range parallel motion has an identically zero polynomial;
+                # the whole interval is contact, not just its endpoints.
+                if poly((l+r)/2)<=0:raw.append((start+l,start+r))
             for t in nodes:
                 if poly(t)<=0 or t in roots:raw.append((start+t,start+t))
     merged=[]
     for s,e in sorted(raw):
         if merged and s<=merged[-1][1]:merged[-1]=(merged[-1][0],max(e,merged[-1][1]))
         else:merged.append((s,e))
-    return merged
+    # A companion root can place a zero-length boundary contact just before
+    # the adjacent interval. Ignore that duplicate without closing genuine gaps.
+    return [(s,e) for s,e in merged if e>s or not any(a-2e-6<=s<=b+2e-6
+                                                      for a,b in merged if b>a)]
 
 
 def state_at_piece(piece,time):
@@ -196,7 +220,8 @@ def validate_solution(data,solution,require_feasible=True):
     assert abs(peak-solution['peak_staleness'])<2e-6,(peak,solution['peak_staleness'])
     assert abs(max(0.,peak-c['recurrence_bound'])-solution['comm_violation'])<2e-6
     if require_feasible:
-        assert solution['feasible'] and peak<=c['recurrence_bound']+2e-6
+        assert solution['feasible']
+        if data.get('schema_version',2)<3:assert peak<=c['recurrence_bound']+2e-6
     assert np.max(np.abs(latest_departures(M,original,T)-np.array(solution['communication']['final_clock'])))<2e-6
     for time,left,event in solution['communication']['history']:
         for is_left,value in ((True,left),(False,event)):

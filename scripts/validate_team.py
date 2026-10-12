@@ -5,6 +5,14 @@ import numpy as np
 
 def validate(data):
     problem=data['problem']; tolerance=2e-6; maximum=0.;count=0
+    explicit_rewards=data.get('reward_policy')=='explicit_task_visits'
+    def position_at(trajectory,time):
+        for piece in trajectory['pieces']:
+            start=piece['start_time'];end=start+piece['duration']
+            if start-1e-9<=time<=end+1e-9:
+                dt=max(0.,min(piece['duration'],time-start))
+                return np.array(piece['position'])+np.array(piece['velocity'])*dt+.5*np.array(piece['acceleration'])*dt*dt
+        return np.array(trajectory['end']['position'])
     def residual(a,b):
         nonlocal maximum
         r=max(abs(x-y) for x,y in zip(a,b));maximum=max(maximum,r);assert r<tolerance,(a,b,r)
@@ -24,7 +32,7 @@ def validate(data):
                 acceleration=np.array(piece['acceleration']);tail_v=velocity+acceleration*h
                 assert np.all(np.abs(acceleration)<=np.array(agent['acceleration_axis_limit'])+tolerance)
                 assert np.all(np.maximum(np.abs(velocity),np.abs(tail_v))<=np.array(agent['velocity_axis_limit'])+tolerance)
-                for task in problem['tasks']:
+                for task in (() if explicit_rewards else problem['tasks']):
                     target=np.array(task['position']);diff=position-target
                     axis=int(np.argmax(np.abs(diff)+np.abs(velocity)+np.abs(acceleration)))
                     coefficients=np.trim_zeros(np.array([.5*acceleration[axis],velocity[axis],diff[axis]]),'f')
@@ -36,17 +44,28 @@ def validate(data):
                 position=position+velocity*h+.5*acceleration*h*h;velocity=tail_v;elapsed+=h
             residual(position,problem['end']);residual(velocity,[0,0]);residual([elapsed],[trajectory['completion_time']]);residual([elapsed],[solution['completion_times'][m]])
             assert elapsed<=agent['time_budget']+tolerance
-            for task in problem['tasks']:
+            for task in (() if explicit_rewards else problem['tasks']):
                 if max(abs(np.array(problem['start'])-task['position']))<tolerance:visits[task['id']]=0.
                 if max(abs(position-task['position']))<tolerance:visits[task['id']]=min(visits.get(task['id'],math.inf),elapsed)
-            assert set(visits)==set(solution['reached_tasks'][m])
+            credited={}
             for visit in route[1:-1]:
-                assert visit['kind']=='TASK' and visit['task_id'] in visits
+                assert visit['kind']=='TASK'
+                if not explicit_rewards:assert visit['task_id'] in visits
                 task=next(t for t in problem['tasks'] if t['id']==visit['task_id'])
                 assert visit['position']==task['position']
                 assert visit['wait']>=0
                 if visit['wait']>0:assert visit['velocity']==[0.,0.]
-            reached.append(visits);arrivals.append(elapsed)
+            if explicit_rewards:
+                for k,visit in enumerate(route):
+                    if visit['kind']=='TASK':
+                        task=visit['task_id']
+                        arrival=solution['visit_times'][m][k][0]
+                        residual(position_at(trajectory,arrival),visit['position'])
+                        credited[task]=min(credited.get(task,math.inf),arrival)
+            else:
+                credited=visits
+            assert set(credited)==set(solution['reached_tasks'][m])
+            reached.append(credited);arrivals.append(elapsed)
         union=set().union(*(set(v) for v in reached));reward=sum(t['reward'] for t in problem['tasks'] if t['id'] in union)
         residual([reward,-reward,sum(arrivals)/len(arrivals)],[solution['reward'],*solution['objectives']])
         owners={task:min((v[task],m) for m,v in enumerate(reached) if task in v) for task in union}

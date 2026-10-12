@@ -1,0 +1,37 @@
+\subsection{Protocol and Artifacts}
+We report completed, saved runs rather than projected performance. Four deterministic synthetic maps represent clustered post-disaster tasks, a curved wildfire front, a branching pipeline corridor, and a uniform agriculture field. All have three agents, axis limits of $3\,$m/s and $1.5\,$m/s$^2$, and a $0.5\,$s handshake. The results below use the archived threefold-flight-budget variants of these maps. Their task positions, rewards, motion limits, and communication settings are unchanged from the source maps; only each agent's flight-time budget is tripled. The maps contain 64, 55, 48, and 180 tasks, respectively. Their geometry is stylized and contains no obstacles.
+
+Each map receives one MOVNS run with seed 42, a 115-second optimizer allowance, a 120-second process timeout, and limits of one million candidate evaluations and one million outer iterations. The first limit reached stops the run. The archive epsilon widths are one reward unit, $0.1\,$s mean time, and $1\,$s positive communication violation. Free waypoints are capped at three per agent. Two maps run concurrently. Full configuration, source hashes, trajectories, archives, logs, and plots are saved in the repository's \texttt{results/step4/scenarios\_search\_guidance\_triple\_budget\_20261012\_4maps} folder. An independent reconstruction checker validated all four saved epsilon fronts.
+
+\subsection{Observed Fronts}
+Table~\ref{tab:scenarios} reports the highest-reward member of each zero-violation front, breaking reward ties by lower mean completion time. The last reward column is the highest-reward \emph{saved} motion- and budget-valid candidate when the communication bound is ignored; it is a diagnostic comparator, not an optimum or a formal upper bound. The values are taken from the saved result and representative-path metadata.
+
+\begin{table}[t]
+\centering
+\caption{Single-seed, 115-second searches on threefold-flight-budget maps. $Q_f$ is the best saved $T_c$-feasible reward and $Q_b$ the best saved budget-only reward.}
+\label{tab:scenarios}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Map & $B_m$ & $R$ & $T_c$ & $Q_f$ & $\bar c$ & $\Delta$ & $Q_b$ & Iter.\\
+\midrule
+Post-disaster & 360 & 12 & 12 & 186 & 65.49 & 11.79 & 1035 & 2\\
+Wildfire & 450 & 14 & 15 & 339 & 70.96 & 0.50 & 1348 & 2\\
+Pipeline & 480 & 15 & 20 & 118 & 65.00 & 0.50 & 579 & 3\\
+Agriculture & 465 & 18 & 25 & 30 & 44.92 & 0.50 & 367 & 1\\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+The saved zero-violation fronts contain 16, 25, 11, and 8 epsilon representatives, respectively. Their best-reward solutions have no FREE visit or planned meeting. The observed $Q_f$--$Q_b$ gaps therefore cannot be attributed solely to the communication constraint: they also reflect incomplete search. In particular, agriculture completed just one outer iteration. The number of evaluated candidates was 1328, 1378, 1423, and 1084, respectively. These counts and the objective-evolution plots show that a short wall-time cap spends substantial effort on initialization and early routing families before communication neighborhoods receive comparable exploration.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{../results/step4/scenarios_search_guidance_triple_budget_20261012_4maps/02_wildfire_front/paths-max-reward.png}
+\caption{Highest-reward $T_c$-feasible wildfire route from the saved threefold-budget run. Each agent has its own speed-gradient color; collected tasks use distinct markers. The co-located pattern illustrates the current search's tendency to retain convoy-like solutions.}
+\label{fig:wildfire_route}
+\end{figure}
+
+A separate, deliberately small two-agent relay probe tests whether a free waypoint can improve a feasible route. Its saved best feasible solution collects reward 146 with mean completion time $55.13\,$s, peak staleness $9.11\,$s below $T_c=12\,$s, and a FREE visit at $(67.4,0)$. A saved same-reward feasible candidate without a FREE visit has mean time $57.65\,$s. This is a within-run example of benefit, not a controlled ablation or a general performance estimate.
+
+The budget multiplier is not a monotonicity claim about the heuristic. A larger physical budget enlarges the feasible set, but a fixed-time stochastic search need not return a better incumbent. The archived original-versus-tripled comparison summary illustrates this: post-disaster's best saved feasible reward fell from 311 to 186 when the larger budget changed the search trajectory. We do not infer a causal improvement or deterioration from one seed. Matched multi-seed comparisons, longer search budgets, communication-neighborhood ablations, and a kinematically matched TOP-CC baseline remain future experimental work.

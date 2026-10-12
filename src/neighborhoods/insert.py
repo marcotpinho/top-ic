@@ -1,0 +1,17 @@
+"""insert neighborhood."""
+
+from random import Random
+from typing import Iterator
+
+from ..config import Config, Problem
+from ..solution import Solution
+from .core import neighbors
+
+NAME = "insert"
+
+
+def generate(
+    solution: Solution, problem: Problem, config: Config, rng: Random, **kwargs: object
+) -> Iterator[Solution]:
+    """Enumerate this family with an explicit random stream."""
+    yield from neighbors(solution, problem, config, NAME, rng=rng, **kwargs)

@@ -5,6 +5,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from .viz_team import plot_result
+from .viz_paths import add_speed_colorbars, draw_speed_paths, draw_task_markers
 
 
 def plot_fronts(named,destination,title):
@@ -19,10 +20,12 @@ def plot_fronts(named,destination,title):
 def plot_communication(data,directory,prefix='full'):
     directory=Path(directory);directory.mkdir(parents=True,exist_ok=True)
     if not data['front']:return
-    chosen=max(data['front'],key=lambda s:(s['reward'],-s['objectives'][1]))
+    row=next((row for row in data.get('tc_slices',[]) if row['tc']==data['config']['recurrence_bound']),None)
+    options=[data['front'][i] for i in row['front_indices']] if row and row['front_indices'] else data['front']
+    chosen=max(options,key=lambda s:(s['reward'],-s['objectives'][1]))
     # Reuse actual quadratic paths / speed rendering; add free-visit markers
     # and planned meeting positions to a separate geometry figure.
-    plot_result(data,directory,prefix)
+    plot_result({**data,'front':options},directory,prefix)
     fig,axes=plt.subplots(2,1,figsize=(10,7),sharex=True)
     records=chosen['communication']['contacts']
     for i,record in enumerate(records):
@@ -37,17 +40,14 @@ def plot_communication(data,directory,prefix='full'):
     axes[1].set(xlabel='Mission time (s)',ylabel='Information staleness (s)',title=f"Supremum Δ={chosen['peak_staleness']:.4g}s; arrival markers include free terminal presence")
     axes[1].legend();axes[1].grid(alpha=.25);fig.tight_layout();fig.savefig(directory/f'{prefix}-communication.png',dpi=160);plt.close(fig)
     fig,ax=plt.subplots(figsize=(8,7));problem=data['problem']
-    ax.scatter([t['position'][0] for t in problem['tasks']],[t['position'][1] for t in problem['tasks']],color='gray',marker='.',label='Tasks')
+    reached=set().union(*(set(ids) for ids in chosen.get('reached_tasks',[])))
+    draw_task_markers(ax,problem['tasks'],reached)
+    _, speed_colors = draw_speed_paths(ax, chosen['trajectories'])
     for m,tr in enumerate(chosen['trajectories']):
-        positions=[]
-        for piece in tr['pieces']:
-            t=np.linspace(0,piece['duration'],30)[:,None]
-            positions.extend(np.array(piece['position'])+t*np.array(piece['velocity'])+.5*t*t*np.array(piece['acceleration']))
-        if positions:
-            points=np.array(positions);ax.plot(points[:,0],points[:,1],label=f'Agent {m+1}')
         for v in chosen['routes'][m]:
             if v['kind']=='FREE':ax.scatter(*v['position'],marker='D',facecolors='none',edgecolors='tab:red',s=70)
     ax.scatter(*problem['start'],marker='s',color='black',label='Start');ax.scatter(*problem['end'],marker='*',color='black',s=100,label='End')
     ax.scatter([],[],marker='D',facecolors='none',edgecolors='tab:red',label='Free waypoint')
     ax.set(xlabel='x (m)',ylabel='y (m)',title='Continuous paths and freely positioned rendezvous visits');ax.set_aspect('equal');ax.legend();ax.grid(alpha=.2)
-    fig.tight_layout();fig.savefig(directory/f'{prefix}-free-waypoints.png',dpi=160);plt.close(fig)
+    add_speed_colorbars(fig, ax, speed_colors)
+    fig.savefig(directory/f'{prefix}-free-waypoints.png',dpi=160);plt.close(fig)

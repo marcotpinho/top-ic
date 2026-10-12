@@ -28,7 +28,7 @@ The expenditure objective is `mean_completion_time = sum(c_m)/M`, and minimizati
 
 After arrival an agent has position equal to destination and velocity/acceleration zero until T. This stationary extension contributes to communication only; it adds no expenditure. Earlier robots remain communication participants and retain/forward information.
 
-Reward is the sum over task locations actually reached by any trajectory before termination, counted once globally. Recommended default: exact point passage in the mathematical model, with a separately configured numerical position tolerance. Explicit visits guarantee passage; incidental task crossings should also count if discovered by the trajectory evaluator. Numerical tolerance must not become an undocumented physical collection radius. A designated reward owner is optional bookkeeping, not the source of the objective. Coincident task coordinates require explicit distinct IDs and a documented collection rule; default is collecting all tasks at that coordinate.
+Reward is the sum over task IDs named by explicit TASK visit occurrences, counted once globally. Every declared TASK visit must be reached by its continuous trajectory, but incidental trajectory crossings and FREE visits at a task's coordinates earn no reward. A designated first visitor is diagnostic bookkeeping, not the source of the objective. Coincident task coordinates retain distinct IDs: each ID earns reward only if explicitly named by a TASK occurrence.
 
 ## 4. Communication semantics
 

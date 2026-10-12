@@ -79,24 +79,24 @@ $$
 
 This extension does not increase $c_m$ or budget expenditure. The mean $\bar c$ is different from mission duration $T$.
 
-## 5. Rewards and two objectives
+## 5. Rewards and objectives
 
-Define actual reached tasks, including incidental trajectory crossings, by
+Define credited tasks from explicit TASK occurrences by
 
 $$
-\mathcal Q_m=\{i\in\mathcal V:\exists t\in[0,c_m],\ p_m(t)=z_i\},\qquad
+\mathcal Q_m=\{i\in\mathcal V:\exists k,\ \kappa_{mk}=\mathrm{TASK},\ \iota_{mk}=i\},\qquad
 Q=\sum_{i\in\bigcup_m\mathcal Q_m}r_i. \tag{7}
 $$
 
-Stopping is not necessary for reward collection. A task contributes once regardless of repeated/shared visits. Numerical position tolerance is an evaluation policy, not an implicit physical collection radius.
+Stopping is not necessary for reward collection: an explicit TASK occurrence may have nonzero velocity. A task contributes once regardless of repeated/shared visits. Incidental trajectory crossings and FREE visits at a task's coordinates do not earn reward. TASK positions are checked exactly against the declared task coordinates; continuous motion must pass through each declared visit.
 
-The objective vector, with both coordinates minimized, is
+In ICC mode the objective vector, with all coordinates minimized, is
 
 $$
-f(S)=(-Q,\bar c). \tag{8}
+f_{T_c}(S)=(-Q,\bar c,V_c(S)),\qquad V_c(S)=\max(0,\Delta(S)-T_c). \tag{8}
 $$
 
-There is no objective for $\Delta$, path length, RSSI, or mission duration. Path length $L_m=\int_0^{c_m}\|v_m(t)\|\,dt$ is a diagnostic. Flight time is the expenditure proxy; no physical energy claim is made.
+The single-agent and team KOP stages use only $(-Q,\bar c)$. There is no objective for path length, RSSI, or mission duration. Path length $L_m=\int_0^{c_m}\|v_m(t)\|\,dt$ is a diagnostic. Flight time is the expenditure proxy; no physical energy claim is made.
 
 ## 6. Contacts and usable links
 
@@ -144,10 +144,10 @@ $$
 \displaystyle\sup_{\sigma\in[0,T]}\max_{m\ne n}A_{nm}(\sigma),&M\ge2,\\
 0,&M=1.
 \end{cases}
-\qquad \Delta\le T_c. \tag{13}
+\tag{13}
 $$
 
-The supremum accounts for unattained peaks immediately before an exchange. Every full sliding window must support all-to-all propagation:
+The supremum accounts for unattained peaks immediately before an exchange. A reported $T_c$ slice requires $\Delta\le T_c$; equivalently every full sliding window must support all-to-all propagation:
 
 $$
 \forall t\ge0\text{ with }t+T_c\le T,\ \forall m\ne n:
@@ -168,7 +168,13 @@ $$
 V_c(S)=\max(0,\Delta(S)-T_c). \tag{15}
 $$
 
-The Pareto archive contains only valid, individually budget-feasible, communication-feasible solutions. A separate bounded pool can explore motion/budget-feasible solutions with $V_c>0$. Violation and lower $\Delta$ guide selection/repair or objective ties; neither changes two-objective Pareto dominance.
+The ICC Pareto archive contains all valid, individually budget-feasible solutions, including those with positive violation. Three-objective dominance accounts for $V_c$ directly. All solutions satisfying $\Delta\le T_c$ tie at $V_c=0$, so their retained front is a two-objective reward–time front. Positive-violation solutions can remain nondominated when they improve reward or time. A separate bounded archive retains dominated but valid search seeds using crowding distance. Because $V_c$ depends on $T_c$, each bound requires its own optimization run; filtering one archive at other bounds is only a diagnostic of retained members.
+
+For search guidance only, let $P_{nm}=\sup_{t\in[0,T]} A_{nm}(t)$ and
+$$
+A_c=\sum_{n\ne m}\int_0^T [A_{nm}(t)-T_c]_+\,dt.
+$$
+The chronological sweep computes $P_{nm}$ and integrates the positive part of each affine age segment between communication events. These diagnostics can distinguish partial repairs whose global $\Delta$ is unchanged. Neither changes (8), (15), or archive feasibility. The dominated seed pool uses them as additional diversity coordinates; the reported Pareto archive still uses only $(-Q,\bar c,V_c)$.
 
 Planned stationary rendezvous are optional constructive decisions. For two stopped visits within range, sufficient handshake overlap is
 
@@ -192,16 +198,16 @@ Team implementation: individual time budgets, shared reward accounting, and cros
 
 ## Epsilon-dominance archive policy
 
-Archive filtering uses epsilon-box dominance, never crowding distance. With minimization objectives $f=(-Q,\bar c)$ and positive widths $\varepsilon_Q,\varepsilon_c$, define $b_i=\lfloor f_i/\varepsilon_i\rfloor$. Retain nondominated boxes and one representative per box, chosen by minimum squared normalized distance to its lower corner; objective values and full decision keys break ties deterministically. Flooring also applies to negative reward coordinates.
+Archive filtering uses epsilon-box dominance, never crowding distance. With ICC minimization objectives $f=(-Q,\bar c,V_c)$ and positive widths $\varepsilon_Q,\varepsilon_c,\varepsilon_V$, define the first two box coordinates by $b_i=\lfloor f_i/\varepsilon_i\rfloor$ and the third by $b_V=0$ when $V_c=0$, otherwise $b_V=1+\lfloor V_c/\varepsilon_V\rfloor$. This keeps exact feasibility distinct from any positive violation. Earlier stages omit the third coordinate. Retain nondominated boxes and one representative per box, chosen by minimum squared normalized distance to its lower corner; objective values and full decision keys break ties deterministically. Flooring also applies to negative reward coordinates.
 
-Defaults are `eps_reward=1.0` reward unit and `eps_time=0.1` second, configurable with `--eps-reward` and `--eps-time`. If the configured capacity is exceeded, double both widths deterministically and re-filter until the front fits. Saved statistics record effective widths and coarsening count. This is an approximate epsilon front, not a promise to retain every exact Pareto point. Communication staleness is not an epsilon coordinate.
+Defaults are `eps_reward=1.0` reward unit, `eps_time=0.1` second, and `eps_violation=1.0` second. If capacity is exceeded, double all widths deterministically and re-filter, preserving the exact-zero violation layer. Saved statistics record effective widths and coarsening count. This is an approximate epsilon front, not a promise to retain every exact Pareto point.
 
 ## Step 4 implementation
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Four new operator families are `wait`, `meeting`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
+Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Five communication-stage operator families are `wait`, `meeting`, `duplicate_rendezvous`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
 
-The reported epsilon archive still has only reward and mean completion time. A separate bounded pool retains motion/budget-feasible communication-infeasible candidates; lower violation guides repair, and lower delta can prefer objective-equal representatives/search seeds. Neither is a third archive coordinate. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
+The current ICC epsilon archive uses three objectives: negative reward, mean completion time, and communication violation for the configured $T_c$. Valid motion and individual budgets determine archive eligibility; zero violation identifies the reported reward–time front. A separate bounded dominated-solution archive uses normalized crowding distance to preserve diverse search seeds. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
 
-Saved results use schema version 2 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, bottlenecks, candidate bank, working pool, and feasibility flags. ICC VND examines at most 120 candidates per family per pass by default, while shaking samples bounded neighborhoods. These are search restrictions, not completeness guarantees.
+Current ICC results use schema version 4 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, a three-objective violation archive, a dominated archive, accepted-front snapshots, and feasible-front indices at the run's $T_c$. Historical stage-4 files remain schema versions 2 or 3. ICC VND examines at most 120 candidates per family per pass by default; these are search restrictions, not completeness guarantees.

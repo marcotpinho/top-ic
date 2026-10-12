@@ -26,7 +26,7 @@ PROTOCOL=[
 
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--output-dir',default=str(ROOT/'experiments/icc'))
+    parser=argparse.ArgumentParser();parser.add_argument('--output-dir',default=str(ROOT/'results/step4'))
     args=parser.parse_args();out=Path(args.output_dir);out.mkdir(parents=True,exist_ok=True);ledger=out/'ledger.json'
     if ledger.exists():raise SystemExit('Existing ledger; refusing another campaign start')
     manifest={'schema_version':1,'maximum_starts':10,'soft_seconds':45,'hard_seconds':120,'max_evaluations':2000,

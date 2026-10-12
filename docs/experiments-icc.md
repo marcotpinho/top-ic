@@ -27,9 +27,9 @@ All recorded searches reached the same 2,000-evaluation limit before the wall de
 
 ## Controlled free-position fixture
 
-[Fixture JSON](../experiments/icc/controlled-free-fixture.json) fixes each agent’s task assignment/order and zero visit velocities, and compares no meeting, meetings at either existing task, and an off-task meeting at (5,0). The free meeting has Delta 5.02223 s and satisfies Tc=5.05 s; the no-meeting and task-location alternatives have Delta 5.21540 s, 6.26520 s, and 5.09363 s and fail that bound. Every variant is independently validated. This isolates a spatial feasibility improvement for these fixed routes; it does not prove all task-only assignments or trajectories infeasible.
+[Fixture JSON](../results/step4/controlled-free-fixture.json) fixes each agent’s task assignment/order and zero visit velocities, and compares no meeting, meetings at either existing task, and an off-task meeting at (5,0). The free meeting has Delta 5.02223 s and satisfies Tc=5.05 s; the no-meeting and task-location alternatives have Delta 5.21540 s, 6.26520 s, and 5.09363 s and fail that bound. Every variant is independently validated. This isolates a spatial feasibility improvement for these fixed routes; it does not prove all task-only assignments or trajectories infeasible.
 
-![Controlled free position](../experiments/icc/controlled-free-free-waypoints.png)
+![Controlled free position](../results/step4/controlled-free-free-waypoints.png)
 
 Hypervolume reference is (0,20) in minimization coordinates (-reward, mean time), shared across all comparisons. Practical wall stops can yield unequal evaluation counts. Prefix candidate limits, finite velocity menus and capped free positions are explicit algorithmic restrictions. A zero observed ablation effect does not prove a family useless.
 
@@ -37,7 +37,9 @@ Every exported front and candidate-bank solution is independently checked from s
 
 ## Parseable artifacts
 
-[Run ledger](../experiments/icc/ledger.json), [independent validation summary](../experiments/icc/validation-summary.json), [summary JSON](../experiments/icc/summary.json), [summary CSV](../experiments/icc/summary.csv), [fixed-bank sweep JSON](../experiments/icc/tc-common-bank.json), and per-run schema-version 2 JSON contain full routes, meetings, actual visit times, accelerated trajectories, raw/effective contacts, clock history, bottleneck, Delta, violation, working pool and a bounded candidate bank. Source/instance hashes and software versions are recorded; the artifact manifest hashes the files.
+[Run ledger](../results/step4/ledger.json), [independent validation summary](../results/step4/validation-summary.json), [summary JSON](../results/step4/summary.json), [summary CSV](../results/step4/summary.csv), [fixed-bank sweep JSON](../results/step4/tc-common-bank.json), and per-run schema-version 2 JSON contain full routes, meetings, actual visit times, accelerated trajectories, raw/effective contacts, clock history, bottleneck, Delta, violation, working pool and a bounded candidate bank. Source/instance hashes and software versions are recorded; the artifact manifest hashes the files.
+
+Each saved search JSON also has a same-named folder under [results/step4](../results/step4/) with Pareto, path, velocity, contact/staleness, and free-waypoint figures. Regenerate these from saved data with `.venv/bin/python scripts/plot_saved_stage_results.py --stage 4`; this starts no searches.
 
 Regenerate plots and summaries without additional optimizer runs:
 
@@ -48,12 +50,12 @@ Regenerate plots and summaries without additional optimizer runs:
 
 For reproduction in a fresh output directory, `scripts/run_icc_campaign.py --output-dir NEW_DIRECTORY` refuses to overwrite an existing ledger. Existing recorded outputs should not be silently replaced.
 
-![Independent searches](../experiments/icc/tc-independent-fronts.png)
+![Independent searches](../results/step4/tc-independent-fronts.png)
 
-![Fixed trajectory bank](../experiments/icc/tc-common-bank-fronts.png)
+![Fixed trajectory bank](../results/step4/tc-common-bank-fronts.png)
 
-![Ablations](../experiments/icc/ablations.png)
+![Ablations](../results/step4/ablations.png)
 
-![Contact and staleness timeline](../experiments/icc/tc5-communication.png)
+![Contact and staleness timeline](../results/step4/tc5-communication.png)
 
-![Paths and velocity](../experiments/icc/tc5-paths-speed.png)
+![Paths and velocity](../results/step4/tc5-paths-speed.png)

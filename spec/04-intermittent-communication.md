@@ -45,7 +45,7 @@ Gate: full continuous reference evaluator validated before any incremental imple
 
 Feasible archive remains two-dimensional. Motion/budget-feasible solutions with communication violations enter a bounded separate working pool. Select infeasible seeds by violation first, with objective/structural diversity and bounded exploration. Feasible seeds use the Pareto front and may prefer lower Δ for ties or selection. Report archive and working pool separately.
 
-Check that Δ never becomes a crowding coordinate, objective penalty, or epsilon archive level. Do not discard an entire search region because one proposed rendezvous increases staleness: changed timing can remove earlier contacts even when adding a planned link.
+Use $V_c=\max(0,\Delta-T_c)$ as the third ICC archive objective, with an exact-zero epsilon box distinct from all positive violation boxes. Keep physically valid, budget-feasible candidates with positive violation as search stepping stones. Do not discard an entire search region because one proposed rendezvous increases staleness: changed timing can remove earlier contacts even when adding a planned link.
 
 ## 4.4 Waiting and planned task-location rendezvous
 
@@ -69,8 +69,9 @@ Neighborhoods:
 - Adjust rendezvous timing and stopped waits together; change free-visit velocity for moving encounters when supported.
 - Remove a free visit, remove a meeting, merge redundant meetings, or exchange meeting partners, reconstructing all affected motion.
 - Use compound group shaking to bypass dominated intermediate states.
+- Replace one agent's redundant TASK occurrence with a projected FREE visit while another agent still visits the task; optionally stop/link the partner at that task in the same candidate.
 
-Use explicit workspace bounds and per-agent free-visit caps. Test several caps/step sizes; waypoint caps are algorithmic restrictions. Only physical visits collect task rewards, including incidental task passage. FREE itself has zero reward.
+Use explicit workspace bounds and per-agent free-visit caps. Test several caps/step sizes; waypoint caps are algorithmic restrictions. Only explicit TASK visits collect task rewards. Incidental passage and FREE visits earn no reward.
 
 A candidate is complete only after deterministic connector construction and scheduling. If local repair cannot connect fixed boundary states, enlarge its neighborhood or reject that attempt; failure is not a proof of global infeasibility.
 
@@ -90,6 +91,6 @@ Feasible fronts contain only motion/budget/communication-verified solutions. Tes
 
 ## Implementation record
 
-Implemented on `implementation/step4-intermittent-communication`; see [milestones](../docs/implementation.md) and [experiment report](../docs/experiments-icc.md). Numerical contact extraction, full clock sweep, stopped-meeting schedule, free positions, four new operator families, guidance pool, and portable data export are available. Pair caches include horizon changes; checkpointed incremental sweeps are deferred as planned.
+Implemented on `implementation/step4-intermittent-communication`; see [milestones](../docs/implementation.md) and [experiment report](../docs/experiments-icc.md). Numerical contact extraction, full clock sweep, stopped-meeting schedule, free positions, five communication-stage operator families, guidance pool, and portable data export are available. Pair caches include horizon changes; checkpointed incremental sweeps are deferred as planned.
 
 70 correctness tests pass. The user’s ten-run budget is respected: three Tc settings, new-family singleton ablations, and paired full/task-only seeds. Independent data validators check all exported fronts and banks. The dense benchmark did not demonstrate a free-waypoint performance advantage; a controlled fixed-route fixture demonstrates spatial feasibility improvement only. Broader statistical/instance-general benefit remains an empirical research question, not an implementation claim.

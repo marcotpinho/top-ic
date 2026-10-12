@@ -35,4 +35,4 @@ def save_fixture(directory):
     return variants
 
 
-if __name__=='__main__':save_fixture(ROOT/'experiments/icc')
+if __name__=='__main__':save_fixture(ROOT/'results/step4')
