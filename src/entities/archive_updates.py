@@ -29,6 +29,15 @@ def _refine(runner: "Runner", solution: Solution) -> Solution | None:
     return replace(solution, routes=tuple(routes), evaluation=None)
 
 
+def rescore(runner: "Runner", solution: Solution) -> Solution | None:
+    """Score a refined solution from the evaluator cache without counting or archiving it."""
+    candidate = _refine(runner, solution)
+    if candidate is None:
+        return None
+    scored = runner.evaluator.evaluate(candidate)
+    return scored if scored.evaluation.valid else None
+
+
 def _record_acceptance(runner: "Runner", scored: Solution, row) -> None:
     runner.counts["accepted"] += 1
     row["accepted"] += 1

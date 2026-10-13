@@ -43,11 +43,14 @@ class MotionPiece:
 
     def state(self, t: float) -> State:
         return State(
-            tuple(
-                p + v * t + 0.5 * a * t * t
-                for p, v, a in zip(self.position, self.velocity, self.acceleration)
+            (
+                self.position[0] + self.velocity[0] * t + 0.5 * self.acceleration[0] * t * t,
+                self.position[1] + self.velocity[1] * t + 0.5 * self.acceleration[1] * t * t,
             ),
-            tuple(v + a * t for v, a in zip(self.velocity, self.acceleration)),
+            (
+                self.velocity[0] + self.acceleration[0] * t,
+                self.velocity[1] + self.acceleration[1] * t,
+            ),
         )
 
 
@@ -209,7 +212,7 @@ def validate_connection(
     end: State,
     limits: MotionLimits,
     tolerance: float = 2e-7,
-) -> None:
+) -> None | bool:
     state = start
     elapsed = 0.0
     for piece in connection.pieces:

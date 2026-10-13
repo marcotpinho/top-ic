@@ -16,6 +16,7 @@ ICC_NEIGHBORHOODS = (
     "insert",
     "excursion",
     "meeting",
+    "relay",
     "unlink",
 )
 

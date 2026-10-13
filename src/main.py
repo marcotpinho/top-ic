@@ -9,32 +9,152 @@ from .solver import run_optimization, save_result
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="TOP-ICC sampled MOVNS search")
-    parser.add_argument("--instance")
-    parser.add_argument("--mode", choices=["team_kop_icc"], default="team_kop_icc")
-    parser.add_argument("--algorithm", choices=["movns"], default="movns")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--max-seconds", type=float, default=30.0)
-    parser.add_argument("--max-evaluations", type=int, default=2000)
-    parser.add_argument("--max-iterations", type=int, default=100)
-    parser.add_argument("--archive-size", type=int, default=200)
-    parser.add_argument("--front-selection-prob", type=float, default=0.9)
-    parser.add_argument("--eps-reward", type=float, default=1.0)
-    parser.add_argument("--eps-time", type=float, default=0.1)
-    parser.add_argument("--eps-violation", type=float)
-    parser.add_argument("--headings", type=int, default=4)
-    parser.add_argument("--speed-fractions", type=float, nargs="+", default=[0, 0.5, 1])
-    parser.add_argument("--disable", nargs="*", default=[])
-    parser.add_argument("--comm-range", type=float, default=2.0)
-    parser.add_argument("--handshake-time", type=float, default=0.5)
-    parser.add_argument("--recurrence-bound", type=float, default=5.0)
-    parser.add_argument("--dominated-archive-size", type=int, default=40)
-    parser.add_argument("--max-free-waypoints", type=int, default=3)
-    parser.add_argument("--waypoint-workspace", type=float, nargs=4)
-    parser.add_argument("--waypoint-steps", type=float, nargs="+", default=[1.0, 0.25])
-    parser.add_argument("--wait-steps", type=float, nargs="+", default=[0.25, 1.0])
-    parser.add_argument("--neighborhood-candidates", type=int, default=120)
-    parser.add_argument("--output")
+    parser = argparse.ArgumentParser(
+        description="TOP-ICC sampled MOVNS search",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--instance",
+        help="instance JSON path; omitting it runs the built-in two-agent smoke map",
+    )
+    parser.add_argument(
+        "--mode",
+        choices=["team_kop_icc"],
+        default="team_kop_icc",
+        help="problem mode; only team KOP with intermittent communication is supported",
+    )
+    parser.add_argument(
+        "--algorithm",
+        choices=["movns"],
+        default="movns",
+        help="search algorithm; only sampled multi-objective VNS is supported",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="seed for the run's random generator"
+    )
+    parser.add_argument(
+        "--max-seconds", type=float, default=30.0, help="search wall-time limit in seconds"
+    )
+    parser.add_argument(
+        "--max-evaluations",
+        type=int,
+        default=2000,
+        help="maximum distinct candidates sent through the evaluator",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=100,
+        help="maximum outer local-search iterations",
+    )
+    parser.add_argument(
+        "--archive-size",
+        type=int,
+        default=200,
+        help="maximum epsilon-front representatives before box coarsening",
+    )
+    parser.add_argument(
+        "--front-selection-prob",
+        type=float,
+        default=0.9,
+        help="probability of selecting a search base from the epsilon front",
+    )
+    parser.add_argument(
+        "--eps-reward",
+        type=float,
+        default=1.0,
+        help="epsilon-box width for negative reward units",
+    )
+    parser.add_argument(
+        "--eps-time",
+        type=float,
+        default=0.1,
+        help="epsilon-box width for mean completion time in seconds",
+    )
+    parser.add_argument(
+        "--eps-violation",
+        type=float,
+        help="epsilon-box width for communication violation in seconds; default 1",
+    )
+    parser.add_argument(
+        "--headings",
+        type=int,
+        default=4,
+        help="number of heading directions in the visit-velocity menu",
+    )
+    parser.add_argument(
+        "--speed-fractions",
+        type=float,
+        nargs="+",
+        default=[0, 0.5, 1],
+        help="fractions of each axis speed limit used in the velocity menu",
+    )
+    parser.add_argument(
+        "--disable",
+        nargs="*",
+        default=[],
+        help="ICC neighborhood family names to omit from the search",
+    )
+    parser.add_argument(
+        "--comm-range",
+        type=float,
+        default=2.0,
+        help="maximum Euclidean communication range in map distance units",
+    )
+    parser.add_argument(
+        "--handshake-time",
+        type=float,
+        default=0.5,
+        help="continuous contact time required before a later link becomes effective",
+    )
+    parser.add_argument(
+        "--recurrence-bound",
+        type=float,
+        default=5.0,
+        help="maximum allowed information staleness T_c in seconds",
+    )
+    parser.add_argument(
+        "--dominated-archive-size",
+        type=int,
+        default=40,
+        help="maximum physically valid dominated solutions kept for search bases",
+    )
+    parser.add_argument(
+        "--max-free-waypoints",
+        type=int,
+        default=3,
+        help="maximum free visits allowed on each agent route",
+    )
+    parser.add_argument(
+        "--waypoint-workspace",
+        type=float,
+        nargs=4,
+        metavar=("XMIN", "XMAX", "YMIN", "YMAX"),
+        help="bounds for free waypoints; inferred from the instance when omitted",
+    )
+    parser.add_argument(
+        "--waypoint-steps",
+        type=float,
+        nargs="+",
+        default=[1.0, 0.25],
+        help="distance steps used to propose or move free waypoints",
+    )
+    parser.add_argument(
+        "--wait-steps",
+        type=float,
+        nargs="+",
+        default=[0.25, 1.0],
+        help="time steps in seconds used for stopped waits and meetings",
+    )
+    parser.add_argument(
+        "--neighborhood-candidates",
+        type=int,
+        default=120,
+        help="maximum sampled proposals generated per neighborhood call",
+    )
+    parser.add_argument(
+        "--output", help="path for the complete JSON run result"
+    )
     return parser
 
 

@@ -24,9 +24,11 @@ registry.
 ## One iteration
 
 The Runner selects a solution from the ε front or dominated pool. For each
-enabled family it independently ruins and recreates that same base, then
-generates at most `neighborhood_candidates` proposals from the raw shaken
-solution before evaluating the shake. The same RNG flows
+enabled family it independently ruins and recreates that same base, scores
+the shake, then generates at most `neighborhood_candidates` proposals from the
+scored shake, so families can read its timing and contacts. A duplicate shake
+is rescored from the evaluator cache without being counted or archived; only an
+invalid shake leaves proposals to come from the raw shake. The same RNG flows
 through selection, shaking, and generation. Each proposal receives velocity
 refinement and the full evaluation pipeline. Physically valid solutions enter
 the ε archive or the dominated pool. The search loop records evaluation and

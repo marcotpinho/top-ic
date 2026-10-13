@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.ruff_cache
 *.egg-info/
 .DS_Store
 results/
@@ -10,3 +11,4 @@ scripts/
 maps/
 topcc.egg-info/
 benchmarks/
+paper/

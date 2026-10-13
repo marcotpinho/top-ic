@@ -123,6 +123,7 @@ class Config:
     meeting_slot_limit: int = 3  # Candidate slots on each meeting route.
     invite_radius_fraction: float = 0.9  # Place invitations within 90% of R.
     rendezvous_radius_fractions: tuple[float, ...] = (0.5, 0.9, 1.0)
+    relay_radius_fractions: tuple[float, ...] = (0.5, 1.0, 1.5, 2.0)  # Of R.
     geometry_tolerance: float = 1e-9
     contact_tolerance: float = 2e-7
     numerical_tolerance: float = 1e-13
@@ -137,6 +138,7 @@ class Config:
             "waypoint_steps",
             "wait_steps",
             "rendezvous_radius_fractions",
+            "relay_radius_fractions",
         ):
             object.__setattr__(self, name, tuple(getattr(self, name)))
         if self.working_pool_size is not None:
@@ -180,6 +182,11 @@ class Config:
             not 0 < fraction <= 1 for fraction in self.rendezvous_radius_fractions
         ):
             raise ValueError("Communication radius fractions must be in (0, 1]")
+        if any(
+            not isfinite(fraction) or fraction <= 0
+            for fraction in self.relay_radius_fractions
+        ):
+            raise ValueError("Relay radius fractions must be positive and finite")
         if any(
             value <= 0 or not isfinite(value)
             for value in (

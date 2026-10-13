@@ -5,6 +5,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
+from .archive_updates import rescore
 from .shaking import ruin_recreate
 
 if TYPE_CHECKING:
@@ -29,7 +30,7 @@ def _timed_candidates(
 
 
 def _search_family(runner: "Runner", name: str, base: Solution, iteration: int) -> None:
-    """Generate from the raw shake before evaluating it or its neighbors."""
+    """Score the shake, then generate from it so families can read its timing."""
     timing = runner.profile.neighborhoods[name]
     timing.calls += 1
     started = perf_counter()
@@ -37,12 +38,18 @@ def _search_family(runner: "Runner", name: str, base: Solution, iteration: int) 
         shake_started = perf_counter()
         shaken = ruin_recreate(base, runner.config, runner.rng, 1 + iteration // 4)
         timing.shake_seconds += perf_counter() - shake_started
-        candidates = list(_timed_candidates(runner, name, shaken))
         evaluation_started = perf_counter()
         try:
-            runner.evaluate(shaken, "ruin_recreate")
+            # A duplicate shake (often the unchanged base) is rescored from the
+            # evaluator cache; only an invalid shake stays unscored.
+            shaken = (
+                runner.evaluate(shaken, "ruin_recreate")
+                or rescore(runner, shaken)
+                or shaken
+            )
         finally:
             timing.evaluation_seconds += perf_counter() - evaluation_started
+        candidates = list(_timed_candidates(runner, name, shaken))
         for candidate in candidates:
             if runner.exhausted():
                 break
