@@ -36,12 +36,6 @@
   {REPRODUCE_COMMAND}
   ```
 
-- **Exact solver command:**
-
-  ```sh
-  {FULL_SOLVER_COMMAND}
-  ```
-
 - **Plot generation command:**
 
   ```sh
