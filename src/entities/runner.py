@@ -38,6 +38,7 @@ class Runner:
         self.by_family: dict[str, Counter[str]] = {}
         self.seen: set[object] = set()
         self.history: list[dict] = []
+        self.objective_history: list[dict] = []
         self.started = 0.0
         self.iterations = 0
 
@@ -71,6 +72,18 @@ class Runner:
             if self.exhausted():
                 break
             self.evaluate(seed, "partition_seed")
+        self.record_archive_objectives(0)
         run_iterations(self)
         status = "ok" if self.archive.front else "no_physically_feasible_solution"
         return finish(self, status)
+
+    def record_archive_objectives(self, iteration: int) -> None:
+        """Save every current archive objective vector at an iteration boundary."""
+        self.objective_history.append(
+            {
+                "iteration": iteration,
+                "objectives": [
+                    list(solution.objectives) for solution in self.archive.front
+                ],
+            }
+        )

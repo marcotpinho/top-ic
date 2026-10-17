@@ -75,5 +75,6 @@ def run_iterations(runner: "Runner") -> None:
                 if runner.exhausted():
                     break
                 _search_family(runner, name, base, iteration)
+            runner.record_archive_objectives(iteration + 1)
     finally:
         runner.profile.search_loop_seconds += perf_counter() - started

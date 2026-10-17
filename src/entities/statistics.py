@@ -22,6 +22,7 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "effective_epsilon": runner.archive.epsilon.epsilon,
             "epsilon_coarsenings": runner.archive.epsilon.coarsenings,
             "accepted_history": runner.history,
+            "objective_history": runner.objective_history,
             "pool_size": len(runner.archive.pool),
             "rng_seed": runner.config.seed,
             "profiling": asdict(runner.profile),

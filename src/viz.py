@@ -1,5 +1,6 @@
 """Portable Pareto and continuous trajectory plots for saved KOP results."""
 import json
+from pathlib import Path
 from matplotlib import pyplot as plt
 from .viz_paths import add_speed_colorbars, draw_speed_paths, draw_task_markers, save_agent_path_panels
 
@@ -81,40 +82,44 @@ def draw_solution_paths(problem,solution,title,output_path):
     plt.close(fig)
     return sampled,reached
 
-def plot_objective_history(data_orpath, output_dir):
-    """Plot archive objective progress from saved iteration snapshots."""
-    from pathlib import Path
+def plot_objective_history(data_orpath: dict | str | Path, output_dir: str | Path) -> Path | None:
+    """Plot archived objective vectors at selected search iterations."""
     data = json.loads(Path(data_orpath).read_text()) if isinstance(data_orpath, (str, Path)) else data_orpath
     history = data.get('statistics', {}).get('objective_history')
     if not history:
         return None  # Older result files did not record iteration snapshots.
-    out = Path(output_dir); out.mkdir(parents=True, exist_ok=True)
-    iterations = [row['iteration'] for row in history]
-    rewards = [row['best_reward'] for row in history]
-    representative_times = [row['mean_time_at_best_reward'] for row in history]
-    minimum_times = [row['minimum_mean_time'] for row in history]
-    icc = len(data.get('front', [{}])[0].get('objectives', ())) == 3 if data.get('front') else False
-    fig, axes = plt.subplots(3 if icc else 2, 1, figsize=(9, 8 if icc else 6), sharex=True)
-    reward_ax,time_ax=axes[:2]
-    reward_ax.plot(iterations, rewards, marker='.', label='Highest feasible archive reward')
-    if icc:
-        reward_ax.plot(iterations,[row.get('best_reward_at_tc') for row in history],marker='.',
-                       linestyle='--',label=f"Best reward at Tc={data['config']['recurrence_bound']:g}s")
-    reward_ax.set(ylabel='Team reward (maximize)', title='Objective evolution by search iteration')
-    time_ax.plot(iterations, representative_times, marker='.', label='Time at highest reward')
-    time_ax.plot(iterations, minimum_times, marker='.', linestyle='--', label='Minimum archive time')
-    time_ax.set(xlabel='Search iteration (0: initialization and construction)',
-                ylabel='Mean completion time (s; minimize)')
-    if icc:
-        violation_policy=data.get('objective_policy')=='reward_time_violation'
-        axes[2].plot(iterations,[row.get('minimum_violation' if violation_policy else 'minimum_delta') for row in history],marker='.',label='Minimum archive violation' if violation_policy else 'Minimum archive Δ')
-        axes[2].axhline(0 if violation_policy else data['config']['recurrence_bound'],color='tab:red',linestyle='--',label='Feasible violation' if violation_policy else 'Tc')
-        axes[2].set(xlabel='Search iteration (0: initialization and construction)',ylabel='Violation v (s)' if violation_policy else 'Peak staleness Δ (s)')
-    for ax in axes:
-        ax.grid(alpha=.25)
-        ax.legend(fontsize=8)
+    out = Path(output_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    snapshots = [row for row in history if row.get('objectives')]
+    if not snapshots:
+        return None
+    selected = sorted(
+        {round(i * (len(snapshots) - 1) / 5) for i in range(min(6, len(snapshots)))}
+    )
+    fig = plt.figure(figsize=(9, 7))
+    ax = fig.add_subplot(111, projection='3d')
+    colors = plt.get_cmap('viridis')
+    denominator = max(1, len(snapshots) - 1)
+    for index in selected:
+        row = snapshots[index]
+        vectors = row['objectives']
+        ax.scatter(
+            [vector[1] for vector in vectors],
+            [-vector[0] for vector in vectors],
+            [vector[2] for vector in vectors],
+            color=colors(index / denominator),
+            label=f"Iteration {row['iteration']}",
+            alpha=0.8,
+        )
+    ax.set(
+        xlabel="Mean completion time (s; minimize)",
+        ylabel="Team reward (maximize)",
+        zlabel="Communication violation (s; minimize)",
+        title="Archive Pareto progression by iteration",
+    )
+    ax.legend(fontsize=8)
     fig.tight_layout()
-    path = out/'objective-evolution.png'
+    path = out/'pareto-improvement.png'
     fig.savefig(path, dpi=150)
     plt.close(fig)
     return path
