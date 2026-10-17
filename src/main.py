@@ -33,7 +33,10 @@ def _parser() -> argparse.ArgumentParser:
         "--seed", type=int, default=42, help="seed for the run's random generator"
     )
     parser.add_argument(
-        "--max-seconds", type=float, default=30.0, help="search wall-time limit in seconds"
+        "--max-seconds",
+        type=float,
+        default=30.0,
+        help="search wall-time limit in seconds",
     )
     parser.add_argument(
         "--max-evaluations",
@@ -46,6 +49,18 @@ def _parser() -> argparse.ArgumentParser:
         type=int,
         default=100,
         help="maximum outer local-search iterations",
+    )
+    parser.add_argument(
+        "--neighborhood-hv-tau",
+        type=float,
+        default=0.0,
+        help="minimum normalized archive hypervolume gain required to repeat a neighborhood",
+    )
+    parser.add_argument(
+        "--neighborhood-max-passes",
+        type=int,
+        default=3,
+        help="maximum passes per neighborhood in each outer iteration",
     )
     parser.add_argument(
         "--archive-size",
@@ -152,9 +167,7 @@ def _parser() -> argparse.ArgumentParser:
         default=120,
         help="maximum sampled proposals generated per neighborhood call",
     )
-    parser.add_argument(
-        "--output", help="path for the complete JSON run result"
-    )
+    parser.add_argument("--output", help="path for the complete JSON run result")
     return parser
 
 
@@ -166,6 +179,8 @@ def _config(args: argparse.Namespace) -> Config:
         max_seconds=args.max_seconds,
         max_evaluations=args.max_evaluations,
         max_iterations=args.max_iterations,
+        neighborhood_hv_tau=args.neighborhood_hv_tau,
+        neighborhood_max_passes=args.neighborhood_max_passes,
         archive_size=args.archive_size,
         front_selection_prob=args.front_selection_prob,
         eps_reward=args.eps_reward,

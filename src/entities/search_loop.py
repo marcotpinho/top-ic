@@ -29,10 +29,14 @@ def _timed_candidates(
         yield candidate
 
 
-def _search_family(runner: "Runner", name: str, base: Solution, iteration: int) -> None:
-    """Score the shake, then generate from it so families can read its timing."""
+def _search_family(
+    runner: "Runner", name: str, base: Solution, iteration: int
+) -> tuple[float, list[Solution]]:
+    """Run one family pass and return its gain and retained archive entrants."""
     timing = runner.profile.neighborhoods[name]
     timing.calls += 1
+    initial_keys = {solution.key for solution in runner.archive.front}
+    initial_hypervolume = runner.archive_hypervolume()
     started = perf_counter()
     try:
         shake_started = perf_counter()
@@ -60,6 +64,13 @@ def _search_family(runner: "Runner", name: str, base: Solution, iteration: int) 
                 timing.evaluation_seconds += perf_counter() - evaluation_started
     finally:
         timing.total_seconds += perf_counter() - started
+    entrants = [
+        solution
+        for solution in runner.archive.front
+        if solution.key not in initial_keys
+    ]
+    improvement = runner.archive_hypervolume() - initial_hypervolume
+    return improvement, entrants
 
 
 def run_iterations(runner: "Runner") -> None:
@@ -74,7 +85,17 @@ def run_iterations(runner: "Runner") -> None:
             for name in runner.neighborhood.names:
                 if runner.exhausted():
                     break
-                _search_family(runner, name, base, iteration)
+                pass_base = base
+                for pass_index in range(runner.config.neighborhood_max_passes):
+                    if runner.exhausted():
+                        break
+                    improvement, entrants = _search_family(
+                        runner, name, pass_base, iteration
+                    )
+                    if improvement <= runner.config.neighborhood_hv_tau or not entrants:
+                        break
+                    if pass_index + 1 < runner.config.neighborhood_max_passes:
+                        pass_base = runner.rng.choice(entrants)
             runner.record_archive_objectives(iteration + 1)
     finally:
         runner.profile.search_loop_seconds += perf_counter() - started

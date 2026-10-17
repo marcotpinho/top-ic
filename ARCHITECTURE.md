@@ -31,8 +31,15 @@ is rescored from the evaluator cache without being counted or archived; only an
 invalid shake leaves proposals to come from the raw shake. The same RNG flows
 through selection, shaking, and generation. Each proposal receives velocity
 refinement and the full evaluation pipeline. Physically valid solutions enter
-the ε archive or the dominated pool. The search loop records evaluation and
-front changes before moving to the next family or iteration.
+the ε archive or the dominated pool. After a family pass, the runner measures
+the normalized three-objective hypervolume of the ε front. If its gain exceeds
+`neighborhood_hv_tau`, the family runs another pass from a seeded-random choice
+among the solutions newly retained in the front, up to
+`neighborhood_max_passes`. The default threshold is 0 and the default pass cap
+is 3. Hypervolume uses minimization objectives normalized by total task reward
+and the maximum agent time budget, with reference point `(1, 1, 1)`. The search
+loop records evaluation and front changes before moving to the next family or
+iteration.
 
 Run JSON stores `statistics.profiling` in wall-clock seconds. Its
 `search_loop_seconds` covers the complete local-search loop after seed

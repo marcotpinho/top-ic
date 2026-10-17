@@ -1,6 +1,7 @@
 """Validated, explicit physical inputs and search settings."""
 
 from dataclasses import dataclass
+from itertools import pairwise
 from math import cos, isfinite, pi, sin
 
 Vector = tuple[float, float]
@@ -93,6 +94,8 @@ class Config:
     max_seconds: float = 30.0
     max_evaluations: int = 2000
     max_iterations: int = 100
+    neighborhood_hv_tau: float = 0.0
+    neighborhood_max_passes: int = 3
     archive_size: int = 200
     front_selection_prob: float = 0.9
     headings: int = 4
@@ -158,6 +161,7 @@ class Config:
             min(
                 self.max_evaluations,
                 self.max_iterations,
+                self.neighborhood_max_passes,
                 self.archive_size,
                 self.headings,
                 self.neighborhood_candidates,
@@ -167,6 +171,8 @@ class Config:
             <= 0
         ):
             raise ValueError("Search counts must be positive")
+        if not isfinite(self.neighborhood_hv_tau) or self.neighborhood_hv_tau < 0:
+            raise ValueError("Neighborhood hypervolume threshold must be nonnegative")
         if not isfinite(self.recreate_noise_scale) or self.recreate_noise_scale < 0:
             raise ValueError("Recreate noise scale must be finite and nonnegative")
         if (
@@ -243,16 +249,15 @@ class Config:
             isfinite(s) and s > 0 for s in self.waypoint_steps + self.wait_steps
         ):
             raise ValueError("Neighborhood step sizes must be positive")
-        if self.waypoint_workspace is not None:
-            if (
-                len(self.waypoint_workspace) != 4
-                or not all(isfinite(x) for x in self.waypoint_workspace)
-                or not (
-                    self.waypoint_workspace[0] < self.waypoint_workspace[1]
-                    and self.waypoint_workspace[2] < self.waypoint_workspace[3]
-                )
-            ):
-                raise ValueError("Workspace must be xmin,xmax,ymin,ymax")
+        if self.waypoint_workspace is not None and (
+            len(self.waypoint_workspace) != 4
+            or not all(isfinite(x) for x in self.waypoint_workspace)
+            or not (
+                self.waypoint_workspace[0] < self.waypoint_workspace[1]
+                and self.waypoint_workspace[2] < self.waypoint_workspace[3]
+            )
+        ):
+            raise ValueError("Workspace must be xmin,xmax,ymin,ymax")
         if not self.speed_fractions or any(
             not isfinite(f) or not 0 <= f <= 1 for f in self.speed_fractions
         ):
@@ -263,7 +268,7 @@ class Config:
         if self.eps_delta is not None:
             return self.eps_delta
         values = sorted(self.tc_sweep)
-        return min((b - a for a, b in zip(values, values[1:])), default=1.0)
+        return min((right - left for left, right in pairwise(values)), default=1.0)
 
     @property
     def violation_resolution(self):

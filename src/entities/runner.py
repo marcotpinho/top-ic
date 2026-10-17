@@ -10,6 +10,7 @@ from ..solution import Solution, direct_solution
 from .archive import Archive
 from .archive_updates import evaluate_candidate
 from .evaluator import Evaluator
+from .hypervolume import hypervolume_3d
 from .neighborhood import Neighborhood
 from .profiling import SearchProfile
 from .search_loop import run_iterations
@@ -79,11 +80,51 @@ class Runner:
 
     def record_archive_objectives(self, iteration: int) -> None:
         """Save every current archive objective vector at an iteration boundary."""
+        scales = self.hypervolume_scales()
+        objective_vectors = []
+        for solution in self.archive.front:
+            objectives = solution.objectives
+            if objectives is not None:
+                objective_vectors.append(objectives)
         self.objective_history.append(
             {
                 "iteration": iteration,
-                "objectives": [
-                    list(solution.objectives) for solution in self.archive.front
-                ],
+                "objectives": [list(objectives) for objectives in objective_vectors],
+                "hypervolume": hypervolume_3d(
+                    self._normalize_objectives(objectives, scales)
+                    for objectives in objective_vectors
+                ),
             }
+        )
+
+    def archive_hypervolume(self) -> float:
+        """Return normalized archive hypervolume against reference (1, 1, 1)."""
+        scales = self.hypervolume_scales()
+        objective_vectors = []
+        for solution in self.archive.front:
+            objectives = solution.objectives
+            if objectives is not None:
+                objective_vectors.append(objectives)
+        return hypervolume_3d(
+            self._normalize_objectives(objectives, scales)
+            for objectives in objective_vectors
+        )
+
+    def hypervolume_scales(self) -> tuple[float, float]:
+        """Return fixed reward and time scales for normalized hypervolume."""
+        reward_scale = sum(task.reward for task in self.problem.tasks) or 1.0
+        time_scale = max(self.problem.time_budgets)
+        return reward_scale, time_scale
+
+    def _normalize_objectives(
+        self,
+        objectives: tuple[float, ...],
+        scales: tuple[float, float],
+    ) -> tuple[float, float, float]:
+        """Scale reward, completion time, and violation into the unit cube."""
+        reward_scale, time_scale = scales
+        return (
+            (objectives[0] + reward_scale) / reward_scale,
+            objectives[1] / time_scale,
+            objectives[2] / time_scale,
         )
