@@ -47,10 +47,11 @@ def plot_tc_sweep(data, output_dir):
     ax.legend(fontsize=8)
     fig.tight_layout()
     fig.savefig(output / "tc-fronts.png", dpi=150)
+    fig.savefig(output / "pareto-frontier.png", dpi=150)
     plt.close(fig)
 
     violation_policy = data.get("objective_policy") == "reward_time_violation"
-    history = data.get("statistics", {}).get("archive_history", [])
+    history = data.get("statistics", {}).get("objective_history", [])
     if history:
         chosen = next(
             (
@@ -61,29 +62,30 @@ def plot_tc_sweep(data, output_dir):
             "infinity",
         )
         indices = sorted(
-            set(
+            {
                 round((len(history) - 1) * fraction)
                 for fraction in (0, 0.25, 0.5, 0.75, 1)
-            )
+            }
         )
         fig, ax = plt.subplots(figsize=(8, 5))
         for index in indices:
             snapshot = history[index]
-            points = (
-                [v for v in snapshot["front"] if v[2] == 0]
-                if violation_policy
-                else [
-                    v
-                    for v in snapshot["front"]
-                    if chosen == "infinity" or v[2] <= chosen + 1e-8
-                ]
-            )
+            objectives = snapshot.get("objectives", [])
+            if objectives:
+                points = [vector for vector in objectives if vector[2] == 0]
+            else:
+                points = snapshot.get("front", [])
+                if violation_policy:
+                    points = [vector for vector in points if vector[2] == 0]
+                else:
+                    points = [
+                        vector
+                        for vector in points
+                        if chosen == "infinity" or vector[2] <= chosen + 1e-8
+                    ]
             points.sort(key=lambda v: v[1])
             if points:
-                label = (
-                    f"accepted {index + 1}/{len(history)} "
-                    f"(eval {snapshot['evaluation']})"
-                )
+                label = f"iteration {snapshot.get('iteration', index)}"
                 ax.plot(
                     [v[1] for v in points],
                     [-v[0] for v in points],

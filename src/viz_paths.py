@@ -101,7 +101,7 @@ def draw_speed_paths(ax, trajectories, samples_per_second=20, linewidth=3,
 def add_speed_colorbars(fig, ax, scales):
     """Place distinct palettes in a shared horizontal speed-key panel."""
     reserve = min(.35, .08 + .045 * len(scales))
-    fig.tight_layout(rect=(0, reserve, 1, 1))
+    fig.tight_layout(rect=(0, reserve, 1, 0.94))
     for agent, scale in enumerate(scales):
         y = reserve - .05 - .045 * agent
         fig.text(.09, y + .008, f"Agent {agent + 1}", va="center", fontsize=8)
