@@ -2,7 +2,7 @@
 
 ## Map parameters and constraints
 
-- **Instance:** [`{INSTANCE_PATH}`](`{INSTANCE_LINK}`); SHA-256: `{INSTANCE_SHA256}`.
+- **Instance:** [`{INSTANCE_PATH}`]({INSTANCE_LINK}); SHA-256: `{INSTANCE_SHA256}`.
 - **Map scale and frame:** `{UNITS}`, `{MAP_BOUNDS_OR_SIZE}`.
 - **Agents:** `{AGENT_COUNT}`; starts: `{START_POSITIONS}`; destinations: `{END_POSITIONS}`; initial velocities: `{INITIAL_VELOCITIES}`.
 - **Motion limits:** per-axis velocity `{VELOCITY_LIMITS}`; per-axis acceleration `{ACCELERATION_LIMITS}`.
@@ -24,14 +24,14 @@
 - **Archive hypervolume:** `{FINAL_HYPERVOLUME}` using reference `{HV_REFERENCE_POINT}` and scales `{HV_SCALES}`.
 - **Observed result:** `{CONCISE_EVIDENCE_BASED_OBSERVATIONS}`.
 - **Limitations:** `{RELEVANT_LIMITATIONS_OR_NONE}`.
-- **Artifacts:** result JSON [`{RESULT_JSON}`](`{RESULT_JSON_LINK}`); best path [`{BEST_PATH_PLOT}`](`{BEST_PATH_LINK}`); Pareto frontier [`{PARETO_PLOT}`](`{PARETO_LINK}`); Delta tradeoff [`{DELTA_PLOT}`](`{DELTA_LINK}`); Pareto evolution [`{PARETO_EVOLUTION_PLOT}`](`{PARETO_EVOLUTION_LINK}`). Remove links for plots not generated and add links for other artifacts.
-- **Neighborhood execution log:** [`{NEIGHBORHOOD_LOG}`](`{NEIGHBORHOOD_LOG_LINK}`), listing each generated neighborhood call in execution order, including phase, iteration/pass where applicable, candidate counts, and generation time.
+- **Artifacts:** result JSON [`{RESULT_JSON}`]({RESULT_JSON_LINK}); best path [`{BEST_PATH_PLOT}`]({BEST_PATH_LINK}); Pareto frontier [`{PARETO_PLOT}`]({PARETO_LINK}); Delta tradeoff [`{DELTA_PLOT}`]({DELTA_LINK}); Pareto evolution [`{PARETO_EVOLUTION_PLOT}`]({PARETO_EVOLUTION_LINK}). Remove links for plots not generated and add links for other artifacts.
+- **Neighborhood execution log:** [`{NEIGHBORHOOD_LOG}`]({NEIGHBORHOOD_LOG_LINK}), listing each generated neighborhood call in execution order, including phase, iteration/pass where applicable, candidate counts, and generation time.
 
 ## Reproduce
 
 - **Repository revision:** commit `{GIT_COMMIT}`; local changes or patches: `{PATCH_OR_NONE}`.
 - **Environment:** Python `{PYTHON_VERSION}`; dependencies `{DEPENDENCY_SOURCE_OR_LOCKFILE}`; operating system `{OPERATING_SYSTEM}`.
-- **Reproduction script:** [`{REPRODUCE_SCRIPT}`](`{REPRODUCE_SCRIPT_LINK}`). Run from the repository root:
+- **Reproduction script:** [`{REPRODUCE_SCRIPT}`]({REPRODUCE_SCRIPT_LINK}). Run from the repository root:
 
   ```sh
   {REPRODUCE_COMMAND}

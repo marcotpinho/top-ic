@@ -239,7 +239,7 @@ def _outcome_replacements(data: dict) -> dict[str, str]:
         "{CONCISE_EVIDENCE_BASED_OBSERVATIONS}": (
             f"The run produced {len(data['front'])} archive solutions, "
             f"{len(feasible)} satisfying Tc, and generated "
-            f"{stats.get('neighborhood_execution_count', 0)} neighborhood calls."
+            f"{stats.get('neighborhood_execution_count', 0)} neighborhood calls"
         ),
         "{RELEVANT_LIMITATIONS_OR_NONE}": (
             "wall-clock stopping can change the final candidate count under different CPU load"
