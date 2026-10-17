@@ -93,7 +93,9 @@ def construct_reward_seed(runner: "Runner", base: Solution) -> None:
     current = base
     while not runner.exhausted():
         candidates = []
-        for solution in runner.neighborhood.generate("insert", current):
+        for solution in runner.neighborhood.generate(
+            "insert", current, phase="seed_construction"
+        ):
             result = runner.evaluate(solution, "construction")
             if result and result.evaluation.reward > current.evaluation.reward:
                 candidates.append(result)

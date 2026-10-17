@@ -13,10 +13,21 @@ if TYPE_CHECKING:
 
 
 def _timed_candidates(
-    runner: "Runner", name: str, solution: Solution
+    runner: "Runner",
+    name: str,
+    solution: Solution,
+    iteration: int,
+    pass_index: int,
 ) -> Iterator[Solution]:
     """Measure generator work without counting the consumer's evaluation time."""
-    candidates = iter(runner.neighborhood.generate(name, solution))
+    candidates = iter(
+        runner.neighborhood.generate(
+            name,
+            solution,
+            iteration=iteration + 1,
+            pass_index=pass_index + 1,
+        )
+    )
     timing = runner.profile.neighborhoods[name]
     while True:
         started = perf_counter()
@@ -30,7 +41,11 @@ def _timed_candidates(
 
 
 def _search_family(
-    runner: "Runner", name: str, base: Solution, iteration: int
+    runner: "Runner",
+    name: str,
+    base: Solution,
+    iteration: int,
+    pass_index: int,
 ) -> tuple[float, list[Solution]]:
     """Run one family pass and return its gain and retained archive entrants."""
     timing = runner.profile.neighborhoods[name]
@@ -53,7 +68,11 @@ def _search_family(
             )
         finally:
             timing.evaluation_seconds += perf_counter() - evaluation_started
-        candidates = list(_timed_candidates(runner, name, shaken))
+        candidates = list(
+            _timed_candidates(runner, name, shaken, iteration, pass_index)
+        )
+        execution = runner.neighborhood.executions[-1]
+        evaluated_before = runner.counts["evaluated"]
         for candidate in candidates:
             if runner.exhausted():
                 break
@@ -62,6 +81,9 @@ def _search_family(
                 runner.evaluate(candidate, name)
             finally:
                 timing.evaluation_seconds += perf_counter() - evaluation_started
+        execution["candidates_evaluated"] = (
+            runner.counts["evaluated"] - evaluated_before
+        )
     finally:
         timing.total_seconds += perf_counter() - started
     entrants = [
@@ -90,7 +112,7 @@ def run_iterations(runner: "Runner") -> None:
                     if runner.exhausted():
                         break
                     improvement, entrants = _search_family(
-                        runner, name, pass_base, iteration
+                        runner, name, pass_base, iteration, pass_index
                     )
                     if improvement <= runner.config.neighborhood_hv_tau or not entrants:
                         break

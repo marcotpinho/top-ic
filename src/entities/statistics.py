@@ -31,6 +31,8 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "neighborhood_max_passes": runner.config.neighborhood_max_passes,
             "accepted_history": runner.history,
             "objective_history": runner.objective_history,
+            "neighborhood_execution_count": len(runner.neighborhood.executions),
+            "neighborhood_executions": list(runner.neighborhood.executions),
             "pool_size": len(runner.archive.pool),
             "rng_seed": runner.config.seed,
             "profiling": asdict(runner.profile),

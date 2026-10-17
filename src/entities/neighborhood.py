@@ -4,6 +4,7 @@ from collections.abc import Iterator
 from importlib import import_module
 from itertools import islice
 from random import Random
+from time import perf_counter
 
 from ..config import Config, Problem
 from ..solution import Solution
@@ -33,11 +34,35 @@ class Neighborhood:
         if config.mode != "team_kop_icc":
             raise ValueError("The rebuilt search supports team_kop_icc only")
         self.names = tuple(name for name in self.ICC if name not in config.disabled)
+        self.executions: list[dict] = []
 
-    def generate(self, name: str, solution: Solution) -> Iterator[Solution]:
+    def generate(
+        self,
+        name: str,
+        solution: Solution,
+        *,
+        phase: str = "search",
+        iteration: int | None = None,
+        pass_index: int | None = None,
+    ) -> Iterator[Solution]:
         """Run one family with the Runner RNG and configured candidate cap."""
         if name not in self.names:
             raise ValueError(f"Disabled or unknown neighborhood: {name}")
         module = import_module(f".neighborhoods.{name}", package=__package__)
         candidates = module.generate(solution, self.problem, self.config, self.rng)
-        yield from islice(candidates, self.config.neighborhood_candidates)
+        execution = {
+            "sequence": len(self.executions) + 1,
+            "neighborhood": name,
+            "phase": phase,
+            "iteration": iteration,
+            "pass": pass_index,
+            "candidates_generated": 0,
+        }
+        self.executions.append(execution)
+        started = perf_counter()
+        try:
+            for candidate in islice(candidates, self.config.neighborhood_candidates):
+                execution["candidates_generated"] += 1
+                yield candidate
+        finally:
+            execution["generation_seconds"] = perf_counter() - started

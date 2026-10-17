@@ -60,6 +60,22 @@ The current ICC search uses a three-objective epsilon archive over negative rewa
 
 The CLI permits an optional search allowance of up to 3,600 seconds. `--max-evaluations 1000000` and a raised `--max-iterations` can be used with it; see the [map tutorial](maps/scenarios/README.md). The saved campaign retains its original limits and results.
 
+## Saving a new experiment
+
+Run new experiments through `scripts/run_experiment.py` so each result directory
+contains the result JSON, neighborhood execution log, plots, run information,
+reproduction script, and a README generated from
+[`docs/templates/README.md`](docs/templates/README.md):
+
+```sh
+.venv/bin/python scripts/run_experiment.py \
+  --output-dir results/my-experiment \
+  -- --instance maps/probes/ten_rewards_origin/instance.json \
+     --seed 42 --recurrence-bound 4 --max-seconds 120
+```
+
+The generated `results/my-experiment/reproduce.sh` repeats the same command.
+
 All ten stage-4 searches reached 2,000 evaluations in under 28 seconds. Independent-search best reward rose from 125 to 150 to 190 at Tc=2,5,10 seconds. These short runs do not establish a benefit from free waypoints; the report distinguishes operator activity, task-only controls, and a controlled geometric fixture.
 
 Current ICC per-run JSON uses result schema version 4 and stores routes, meetings, trajectories, contact intervals, staleness, three-objective violation archive members, dominated search seeds, accepted-front history, and feasible-front indices at the run's `Tc`. Historical stage-4 campaign files remain schema versions 2 or 3. Instance schema remains version 1. Communication history rows are `[time, left_limit_peak, post_exchange_peak]`; final-clock rows are receivers and columns are sources. `feasible` means valid motion and individual flight budgets; zero violation determines recurrence feasibility.

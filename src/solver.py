@@ -127,6 +127,23 @@ def result_to_dict(result: RunResult) -> dict:
 def save_result(result: RunResult, path: str | Path) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
+    neighborhood_log = path.with_name(f"{path.stem}_neighborhoods.json")
+    executions = result.statistics.get("neighborhood_executions", [])
+    neighborhood_log.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "result_file": path.name,
+                "execution_count": len(executions),
+                "executions": executions,
+            },
+            indent=2,
+            allow_nan=False,
+        )
+        + "\n"
+    )
+    data = result_to_dict(result)
+    data["neighborhood_log"] = neighborhood_log.name
     path.write_text(
-        json.dumps(result_to_dict(result), indent=2, allow_nan=False) + "\n"
+        json.dumps(data, indent=2, allow_nan=False) + "\n"
     )
