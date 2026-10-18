@@ -118,7 +118,6 @@ class Config:
     wait_steps: tuple[float, ...] = (0.25, 1.0)
     candidate_bank_size: int = 80
     neighborhood_candidates: int = 120
-    excursion_max_bypass_tasks: int = 5
     recreate_sample_slots: int = 8
     recreate_noise_scale: float = 1.0
     shake_candidate_prefix: int = 200  # Maximum candidates inspected in a shake.
@@ -165,7 +164,6 @@ class Config:
                 self.archive_size,
                 self.headings,
                 self.neighborhood_candidates,
-                self.excursion_max_bypass_tasks,
                 self.recreate_sample_slots,
             )
             <= 0

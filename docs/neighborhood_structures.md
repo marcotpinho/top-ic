@@ -7,7 +7,6 @@ The ICC search uses these operators, in the registry order:
 - **assignment** — Transfer a TASK visit between agents or exchange TASK visits across two agents.
 - **reorder** — Relocate, swap, or reverse interior visits within one agent route.
 - **insert** — Insert one unreached TASK visit at a position in an agent route.
-- **excursion** — Remove a duplicate TASK visit or bypass visits between shared TASK anchors on one route.
 - **meeting** — Add a stopped link, paired FREE rendezvous, or wait; move FREE visits to adjust contact timing and location.
 - **relay** — Replace one shared TASK visit with a nearby FREE visit while another agent retains the task.
 - **unlink** — Remove a planned meeting, FREE visit, or explicit wait.

@@ -15,7 +15,6 @@ ICC_NEIGHBORHOODS = (
     "assignment",
     "reorder",
     "insert",
-    "excursion",
     "meeting",
     "relay",
     "unlink",
