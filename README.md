@@ -56,14 +56,14 @@ For a detached one-hour-per-map campaign with per-iteration objective plots, run
 
 The latest 120-second reruns for the first three maps, using interleaved per-agent candidate generation, are saved under [results/step4/scenarios_refactor_balanced_20261012_3maps](results/step4/scenarios_refactor_balanced_20261012_3maps/README.md), with validated fronts, paths, and objective-evolution plots. These runs reached only one or two outer iterations; see their operator counts in the saved JSON before attributing performance changes to every family.
 
-The current ICC search uses a three-objective epsilon archive over negative reward, mean completion time, and communication violation $\max(0,\Delta-T_c)$. The reported reward–time front is the zero-violation slice. A separate dominated-solution archive uses crowding distance for search diversity. The eight enabled ICC families are `remove`, `replace`, `assignment`, `reorder`, `insert`, `meeting`, `relay`, and `unlink`. Reward is collected only by explicit TASK visits; new result files declare `reward_policy: explicit_task_visits`, while older files retain their historical passage-based interpretation. Every ICC candidate receives deterministic route velocity DP refinement before scoring. Each neighborhood starts from an independent noisy ruin-and-recreate perturbation of the same selected archive member. The only destroy moves are route removal, contiguous sequence removal, and spatially related removal; repair discounts tasks already explicitly visited by another agent. Capped routing neighborhoods interleave proposals by agent in a fresh seeded order; communication neighborhoods interleave shuffled agent pairs, placing the bottleneck pair first. To compare different `Tc` bounds, run the optimizer independently for each bound. To launch scenarios 1–3 as independent background searches, pass an output directory and their map stems to `scripts/start_long_scenario_campaign.sh`; each map folder receives machine-readable results, accepted-front history, and plots. See the [scenario tutorial](maps/scenarios/README.md) and [neighborhood design](docs/neighborhood_structures.md).
+The current ICC search reports reward and mean completion time. Its feasible epsilon archive `F` contains only solutions with zero ordered-pair communication violation; its C-TAEA-inspired pool `P` covers valid candidates outside `F` across 21 fixed reward–time subregions. `CV`, pair peaks, and integrated excess are constraints or diagnostics. Each iteration selects a base from `F` or `P`, applies 10–40% ruin-and-recreate, bounded communication repair, and VND. The eleven enabled ICC families are `remove`, `replace`, `assignment`, `reorder`, `insert`, `relay`, `free_near_visit`, `free_segment`, `unlink`, `velocity_change`, and `velocity_segment`. Reward comes only from explicit TASK visits. To compare different `Tc` bounds, run the optimizer independently for each bound. See the [scenario tutorial](maps/scenarios/README.md) and [neighborhood design](docs/neighborhood_structures.md).
 
 The CLI permits an optional search allowance of up to 3,600 seconds. `--max-evaluations 1000000` and a raised `--max-iterations` can be used with it; see the [map tutorial](maps/scenarios/README.md). The saved campaign retains its original limits and results.
 
 ## Saving a new experiment
 
 Run new experiments through `scripts/run_experiment.py` so each result directory
-contains the result JSON, neighborhood execution log, plots, run information,
+contains the result JSON, neighborhood execution log, plots, agent-path animation, run information,
 reproduction script, and a README generated from
 [`docs/templates/README.md`](docs/templates/README.md):
 
@@ -76,9 +76,14 @@ reproduction script, and a README generated from
 
 The generated `results/my-experiment/reproduce.sh` repeats the same command.
 
+`paths-animation.gif` animates the same solution as `paths.png`, using a shared
+mission clock, exact quadratic motion, and effective communication links. Agents
+remain at their destinations after arrival. The GIF plays the full mission in
+approximately 12 seconds at 15 frames per second and is generated after the search.
+
 All ten stage-4 searches reached 2,000 evaluations in under 28 seconds. Independent-search best reward rose from 125 to 150 to 190 at Tc=2,5,10 seconds. These short runs do not establish a benefit from free waypoints; the report distinguishes operator activity, task-only controls, and a controlled geometric fixture.
 
-Current ICC per-run JSON uses result schema version 4 and stores routes, meetings, trajectories, contact intervals, staleness, three-objective violation archive members, dominated search seeds, accepted-front history, and feasible-front indices at the run's `Tc`. Historical stage-4 campaign files remain schema versions 2 or 3. Instance schema remains version 1. Communication history rows are `[time, left_limit_peak, post_exchange_peak]`; final-clock rows are receivers and columns are sources. `feasible` means valid motion and individual flight budgets; zero violation determines recurrence feasibility.
+Current ICC per-run JSON uses result schema version 7. It publishes only the feasible two-objective reward–time archive and stores routes, trajectories, contacts, staleness, archive history, pool coverage/age, repair outcomes, cache rates, operator counters, and convoy diagnostics. Communication violation is the sum of ordered-pair peak-age excesses over `Tc`; it is a constraint and pool diagnostic. Historical schemas retain their original meaning. Instance schema remains version 1.
 
 Regenerate analysis without new searches:
 

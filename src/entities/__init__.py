@@ -4,12 +4,11 @@ from .archive import Archive
 from .evaluator import Evaluator
 from .neighborhood import Neighborhood
 from .runner import Runner
-from .solution import Meeting, Solution, Visit
+from .solution import Solution, Visit
 
 __all__ = [
     "Archive",
     "Evaluator",
-    "Meeting",
     "Neighborhood",
     "Runner",
     "Solution",

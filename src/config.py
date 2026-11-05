@@ -1,7 +1,6 @@
 """Validated, explicit physical inputs and search settings."""
 
 from dataclasses import dataclass
-from itertools import pairwise
 from math import cos, isfinite, pi, sin
 
 Vector = tuple[float, float]
@@ -94,37 +93,34 @@ class Config:
     max_seconds: float = 30.0
     max_evaluations: int = 2000
     max_iterations: int = 100
+    initialization_budget_fraction: float = 0.2
     neighborhood_hv_tau: float = 0.0
     neighborhood_max_passes: int = 3
-    archive_size: int = 200
-    front_selection_prob: float = 0.9
+    archive_size: int = 100
     headings: int = 4
     eps_reward: float = 1.0
     eps_time: float = 0.1
-    eps_delta: float | None = None
-    eps_violation: float | None = None
-    tc_sweep: tuple[float, ...] = ()
     speed_fractions: tuple[float, ...] = (0.0, 0.5, 1.0)
+    velocity_segment_lengths: tuple[int, ...] = (2, 3)
     disabled: tuple[str, ...] = ()
     algorithm: str = "movns"
     comm_range: float = 2.0
     handshake_time: float = 0.5
     recurrence_bound: float = 5.0
-    dominated_archive_size: int = 40
-    working_pool_size: int | None = None  # legacy schema-2 input alias
-    max_free_waypoints: int = 3
+    dominated_archive_size: int = 100
+    subregion_divisions: int = 20
+    pool_max_age: int = 5
+    communication_repair_rounds: int = 3
+    pool_selection_enabled: bool = True
+    selection_policy: str = "nd_count"
     waypoint_workspace: tuple[float, float, float, float] | None = None
     waypoint_steps: tuple[float, ...] = (1.0, 0.25)
     wait_steps: tuple[float, ...] = (0.25, 1.0)
-    candidate_bank_size: int = 80
     neighborhood_candidates: int = 120
+    free_segment_radius: float | None = None  # Lateral offset bound; None uses R.
     recreate_sample_slots: int = 8
     recreate_noise_scale: float = 1.0
     shake_candidate_prefix: int = 200  # Maximum candidates inspected in a shake.
-    meeting_link_limit: int = 8  # Existing visit pairs retained per agent pair.
-    meeting_slot_limit: int = 3  # Candidate slots on each meeting route.
-    invite_radius_fraction: float = 0.9  # Place invitations within 90% of R.
-    rendezvous_radius_fractions: tuple[float, ...] = (0.5, 0.9, 1.0)
     relay_radius_fractions: tuple[float, ...] = (0.5, 1.0, 1.5, 2.0)  # Of R.
     geometry_tolerance: float = 1e-9
     contact_tolerance: float = 2e-7
@@ -136,16 +132,13 @@ class Config:
         # JSON arrays must not leave mutable containers inside a frozen config.
         for name in (
             "speed_fractions",
+            "velocity_segment_lengths",
             "disabled",
             "waypoint_steps",
             "wait_steps",
-            "rendezvous_radius_fractions",
             "relay_radius_fractions",
         ):
             object.__setattr__(self, name, tuple(getattr(self, name)))
-        if self.working_pool_size is not None:
-            object.__setattr__(self, "dominated_archive_size", self.working_pool_size)
-        object.__setattr__(self, "tc_sweep", tuple(float(x) for x in self.tc_sweep))
         if self.waypoint_workspace is not None:
             object.__setattr__(
                 self, "waypoint_workspace", tuple(self.waypoint_workspace)
@@ -162,6 +155,8 @@ class Config:
                 self.max_iterations,
                 self.neighborhood_max_passes,
                 self.archive_size,
+                self.dominated_archive_size,
+                self.subregion_divisions,
                 self.headings,
                 self.neighborhood_candidates,
                 self.recreate_sample_slots,
@@ -169,23 +164,25 @@ class Config:
             <= 0
         ):
             raise ValueError("Search counts must be positive")
+        if self.pool_max_age < 0 or self.communication_repair_rounds < 0:
+            raise ValueError("Pool age and repair rounds must be nonnegative")
+        if self.selection_policy not in ("nd_count", "legacy_fraction"):
+            raise ValueError("Unknown archive selection policy")
         if not isfinite(self.neighborhood_hv_tau) or self.neighborhood_hv_tau < 0:
             raise ValueError("Neighborhood hypervolume threshold must be nonnegative")
+        if (
+            not isfinite(self.initialization_budget_fraction)
+            or not 0 < self.initialization_budget_fraction < 1
+        ):
+            raise ValueError("Initialization budget fraction must be in (0,1)")
         if not isfinite(self.recreate_noise_scale) or self.recreate_noise_scale < 0:
             raise ValueError("Recreate noise scale must be finite and nonnegative")
-        if (
-            min(
-                self.shake_candidate_prefix,
-                self.meeting_link_limit,
-                self.meeting_slot_limit,
-            )
-            <= 0
+        if self.free_segment_radius is not None and (
+            not isfinite(self.free_segment_radius) or self.free_segment_radius <= 0
         ):
+            raise ValueError("Free segment radius must be positive and finite")
+        if self.shake_candidate_prefix <= 0:
             raise ValueError("Neighborhood limits must be positive")
-        if not 0 < self.invite_radius_fraction <= 1 or any(
-            not 0 < fraction <= 1 for fraction in self.rendezvous_radius_fractions
-        ):
-            raise ValueError("Communication radius fractions must be in (0, 1]")
         if any(
             not isfinite(fraction) or fraction <= 0
             for fraction in self.relay_radius_fractions
@@ -202,27 +199,8 @@ class Config:
             )
         ):
             raise ValueError("Tolerances must be positive and finite")
-        if (
-            not isfinite(self.front_selection_prob)
-            or not 0 <= self.front_selection_prob <= 1
-        ):
-            raise ValueError("Front-selection probability must be in [0,1]")
         if not all(isfinite(e) and e > 0 for e in (self.eps_reward, self.eps_time)):
             raise ValueError("Epsilon widths must be positive and finite")
-        if self.eps_delta is not None and (
-            not isfinite(self.eps_delta) or self.eps_delta <= 0
-        ):
-            raise ValueError("Delta epsilon must be positive and finite")
-        if self.eps_violation is not None and (
-            not isfinite(self.eps_violation) or self.eps_violation <= 0
-        ):
-            raise ValueError("Violation epsilon must be positive and finite")
-        if any(not isfinite(t) or t < 0 for t in self.tc_sweep) or len(
-            set(self.tc_sweep)
-        ) != len(self.tc_sweep):
-            raise ValueError(
-                "Tc sweep values must be distinct nonnegative finite seconds"
-            )
         if (
             not isfinite(self.comm_range)
             or self.comm_range <= 0
@@ -234,15 +212,6 @@ class Config:
             raise ValueError(
                 "Communication range/window must be positive, handshake nonnegative"
             )
-        if (
-            min(
-                self.dominated_archive_size,
-                self.max_free_waypoints,
-                self.candidate_bank_size,
-            )
-            < 0
-        ):
-            raise ValueError("Pool and waypoint limits must be nonnegative")
         if not all(
             isfinite(s) and s > 0 for s in self.waypoint_steps + self.wait_steps
         ):
@@ -260,21 +229,16 @@ class Config:
             not isfinite(f) or not 0 <= f <= 1 for f in self.speed_fractions
         ):
             raise ValueError("Speed fractions must be in [0,1]")
-
-    @property
-    def delta_resolution(self):
-        if self.eps_delta is not None:
-            return self.eps_delta
-        values = sorted(self.tc_sweep)
-        return min((right - left for left, right in pairwise(values)), default=1.0)
-
-    @property
-    def violation_resolution(self):
-        return (
-            self.eps_violation
-            if self.eps_violation is not None
-            else (self.eps_delta if self.eps_delta is not None else 1.0)
-        )
+        if (
+            not self.velocity_segment_lengths
+            or any(
+                not isinstance(length, int) or length < 2
+                for length in self.velocity_segment_lengths
+            )
+            or len(set(self.velocity_segment_lengths))
+            != len(self.velocity_segment_lengths)
+        ):
+            raise ValueError("Velocity segment lengths must be distinct integers >= 2")
 
 
 def velocity_menu(limits: MotionLimits, config: Config):

@@ -12,8 +12,10 @@
 - **Other model constraints and assumptions:** `{COLLISION_RULES}`, `{WAIT_RULES}`, `{OTHER_ASSUMPTIONS}`.
 - **Search:** algorithm `{ALGORITHM}`; seed `{SEED}`; time cap `{TIME_CAP_SECONDS}` s; evaluation cap `{EVALUATION_CAP}`; outer-iteration cap `{ITERATION_CAP}`.
 - **Neighborhood repetition:** normalized hypervolume threshold tau = `{HV_THRESHOLD}`; maximum passes p_max = `{MAX_NEIGHBORHOOD_PASSES}`.
+- **Communication violation:** `CV` is the sum of ordered-pair staleness excesses over Tc; it is a constraint and pool diagnostic, not an objective.
+- **Segment FREE moves:** insertion or relocation around an actual route connector, with lateral offsets within ±`{FREE_SEGMENT_RADIUS}` m; feasibility checked after each edit.
 - **Archive:** epsilon widths `{EPSILON_WIDTHS}`; normalized hypervolume reference point `{HV_REFERENCE_POINT}`; normalization scales `{HV_SCALES}`.
-- **Other search limits:** `{WAYPOINT_STEPS}`, `{WAIT_STEPS}`, `{MAX_FREE_WAYPOINTS}`, `{NEIGHBORHOOD_CANDIDATES}`, `{DISABLED_NEIGHBORHOODS}`.
+- **Other search limits:** `{WAYPOINT_STEPS}`, `{WAIT_STEPS}`, velocity segment lengths `{VELOCITY_SEGMENT_LENGTHS}`, FREE visits per route `{MAX_FREE_WAYPOINTS}`, `{NEIGHBORHOOD_CANDIDATES}`, `{DISABLED_NEIGHBORHOODS}`.
 
 ## Results and observations
 
@@ -22,9 +24,11 @@
 - **Final archive:** `{ARCHIVE_SIZE}` solutions; `{TC_FEASIBLE_ARCHIVE_SIZE}` satisfy Tc.
 - **Best Tc-feasible solution:** reward `{BEST_FEASIBLE_REWARD}` of `{TOTAL_REWARD}`; mean completion time `{BEST_FEASIBLE_MEAN_TIME}` s; peak staleness Delta = `{BEST_FEASIBLE_DELTA}` s.
 - **Archive hypervolume:** `{FINAL_HYPERVOLUME}` using reference `{HV_REFERENCE_POINT}` and scales `{HV_SCALES}`.
+- **Pool and repair:** pool bases `{POOL_BASE_FRACTION}` of selections; `{POOL_TO_FRONT}` pool-to-F conversions, `{POOL_TO_FRONT_FROM_REPAIR}` from repair; repair called `{REPAIR_CALLS}` times, reduced CV `{REPAIR_REDUCED}` times, reached CV=0 `{REPAIR_ZEROED}` times, and inserted `{REPAIR_FRONT_ENTRIES}` candidates into F.
+- **Convoy diagnostic:** mean pairwise task-set Jaccard across F is `{MEAN_TASK_JACCARD}`.
 - **Observed result:** `{CONCISE_EVIDENCE_BASED_OBSERVATIONS}`.
 - **Limitations:** `{RELEVANT_LIMITATIONS_OR_NONE}`.
-- **Artifacts:** result JSON [`{RESULT_JSON}`]({RESULT_JSON_LINK}); best path [`{BEST_PATH_PLOT}`]({BEST_PATH_LINK}); Pareto frontier [`{PARETO_PLOT}`]({PARETO_LINK}); Delta tradeoff [`{DELTA_PLOT}`]({DELTA_LINK}); Pareto evolution [`{PARETO_EVOLUTION_PLOT}`]({PARETO_EVOLUTION_LINK}). Remove links for plots not generated and add links for other artifacts.
+- **Artifacts:** result JSON [`{RESULT_JSON}`]({RESULT_JSON_LINK}); best path [`{BEST_PATH_PLOT}`]({BEST_PATH_LINK}); agent-path animation [paths-animation.gif](paths-animation.gif); Pareto frontier [`{PARETO_PLOT}`]({PARETO_LINK}); Delta tradeoff [`{DELTA_PLOT}`]({DELTA_LINK}); Pareto evolution [`{PARETO_EVOLUTION_PLOT}`]({PARETO_EVOLUTION_LINK}). Remove links for plots not generated and add links for other artifacts.
 - **Neighborhood execution log:** [`{NEIGHBORHOOD_LOG}`]({NEIGHBORHOOD_LOG_LINK}), listing each generated neighborhood call in execution order, including phase, iteration/pass where applicable, candidate counts, and generation time.
 
 ## Reproduce

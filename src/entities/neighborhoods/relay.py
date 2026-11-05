@@ -29,8 +29,6 @@ def _shared_visits(solution: Solution) -> Iterator[tuple[int, int]]:
 def _relay_proposals(solution: Solution, config: Config):
     for agent, visit_index in _shared_visits(solution):
         route = solution.routes[agent]
-        if sum(visit.kind == "FREE" for visit in route) >= config.max_free_waypoints:
-            continue
         x, y = route[visit_index].position
         for fraction in config.relay_radius_fractions:
             radius = fraction * config.comm_range
@@ -44,13 +42,12 @@ def generate(
     solution: Solution, problem: Problem, config: Config, rng: Random
 ) -> Iterator[Solution]:
     """Replace a shared TASK occurrence with a nearby FREE visit (eqs. 7, 10)."""
-    if len(solution.routes) < 2 or config.max_free_waypoints == 0:
+    if len(solution.routes) < 2:
         return
     for agent, visit_index, point in sample_candidates(
         _relay_proposals(solution, config), rng, config.neighborhood_candidates
     ):
         route = list(solution.routes[agent])
-        # A fresh ID drops meetings tied to the task stop; the partner's TASK
-        # occurrence keeps the team reward.
+        # Another agent's TASK occurrence keeps the team reward.
         route[visit_index] = Visit(fresh_id(solution, "relay"), "FREE", point)
         yield edited(solution, agent, route)

@@ -15,9 +15,12 @@ ICC_NEIGHBORHOODS = (
     "assignment",
     "reorder",
     "insert",
-    "meeting",
     "relay",
+    "free_near_visit",
+    "free_segment",
     "unlink",
+    "velocity_change",
+    "velocity_segment",
 )
 
 

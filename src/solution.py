@@ -1,9 +1,4 @@
-"""Immutable ICC decisions.
-
-Occurrence IDs are unique, routes run START to END, meetings join different
-agents, and positive waiting requires zero velocity. The evaluator validates
-the cross-object invariants; local visit invariants are checked here.
-"""
+"""Immutable ICC route decisions and their invariants."""
 
 from dataclasses import dataclass, field
 from math import isfinite
@@ -37,32 +32,12 @@ class Visit:
 
 
 @dataclass(frozen=True)
-class Meeting:
-    left: str
-    right: str
-
-    def __post_init__(self) -> None:
-        if not self.left or self.left == self.right:
-            raise ValueError("Meeting references need two distinct visits")
-        if self.left > self.right:
-            left, right = self.left, self.right
-            object.__setattr__(self, "left", right)
-            object.__setattr__(self, "right", left)
-
-
-@dataclass(frozen=True)
 class Solution:
     routes: tuple[tuple[Visit, ...], ...]
     evaluation: object = field(default=None, compare=False, repr=False)
-    meetings: tuple[Meeting, ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "routes", tuple(tuple(r) for r in self.routes))
-        object.__setattr__(
-            self,
-            "meetings",
-            tuple(sorted(set(self.meetings), key=lambda p: (p.left, p.right))),
-        )
 
     @property
     def key(self) -> tuple:
@@ -71,25 +46,7 @@ class Solution:
             tuple((v.kind, v.position, v.velocity, v.task_id, v.wait) for v in route)
             for route in self.routes
         )
-        positions = {
-            v.id: (m, k)
-            for m, route in enumerate(self.routes)
-            for k, v in enumerate(route)
-        }
-        references = tuple(
-            sorted(
-                tuple(
-                    sorted(
-                        (
-                            positions.get(p.left, (-1, p.left)),
-                            positions.get(p.right, (-1, p.right)),
-                        )
-                    )
-                )
-                for p in self.meetings
-            )
-        )
-        return physical, references
+        return physical
 
     @property
     def objectives(self) -> tuple[float, ...] | None:

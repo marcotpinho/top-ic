@@ -5,7 +5,8 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
-from .archive_updates import rescore
+from .communication_repair import repair_communication
+from .selection import constrained_dominates
 from .shaking import ruin_recreate
 
 if TYPE_CHECKING:
@@ -54,23 +55,7 @@ def _search_family(
     initial_hypervolume = runner.archive_hypervolume()
     started = perf_counter()
     try:
-        shake_started = perf_counter()
-        shaken = ruin_recreate(base, runner.config, runner.rng, 1 + iteration // 4)
-        timing.shake_seconds += perf_counter() - shake_started
-        evaluation_started = perf_counter()
-        try:
-            # A duplicate shake (often the unchanged base) is rescored from the
-            # evaluator cache; only an invalid shake stays unscored.
-            shaken = (
-                runner.evaluate(shaken, "ruin_recreate")
-                or rescore(runner, shaken)
-                or shaken
-            )
-        finally:
-            timing.evaluation_seconds += perf_counter() - evaluation_started
-        candidates = list(
-            _timed_candidates(runner, name, shaken, iteration, pass_index)
-        )
+        candidates = list(_timed_candidates(runner, name, base, iteration, pass_index))
         execution = runner.neighborhood.executions[-1]
         evaluated_before = runner.counts["evaluated"]
         for candidate in candidates:
@@ -100,14 +85,27 @@ def run_iterations(runner: "Runner") -> None:
     started = perf_counter()
     try:
         for iteration in range(runner.config.max_iterations):
-            if runner.exhausted() or not runner.archive.front:
+            if runner.exhausted() or not (runner.archive.front or runner.archive.pool):
                 break
             runner.iterations = iteration + 1
-            base = runner.archive.select(iteration, runner.config.front_selection_prob)
+            base = runner.archive.select(iteration)
+            runner.active_base = base
+            runner.active_base_source = runner.archive.selection_history[-1]["source"]
+            initial_front_keys = {solution.key for solution in runner.archive.front}
+            shaken = ruin_recreate(base, runner.config, runner.rng, 1 + iteration // 4)
+            working = runner.evaluate(shaken, "ruin_recreate")
+            if working is None:
+                working = base
+            if (
+                working.evaluation.valid
+                and working.evaluation.comm_violation
+                > runner.config.numerical_tolerance
+            ):
+                working = repair_communication(runner, working)
             for name in runner.neighborhood.names:
                 if runner.exhausted():
                     break
-                pass_base = base
+                pass_base = working
                 for pass_index in range(runner.config.neighborhood_max_passes):
                     if runner.exhausted():
                         break
@@ -118,6 +116,19 @@ def run_iterations(runner: "Runner") -> None:
                         break
                     if pass_index + 1 < runner.config.neighborhood_max_passes:
                         pass_base = runner.rng.choice(entrants)
+            new_front = any(
+                solution.key not in initial_front_keys
+                for solution in runner.archive.front
+            )
+            pool_improvement = any(
+                constrained_dominates(solution, base)
+                for solution in runner.archive.pool
+                if solution.key != base.key
+            )
+            runner.archive.mark_expansion(base, new_front or pool_improvement)
+            runner.active_base = None
+            runner.active_base_source = None
             runner.record_archive_objectives(iteration + 1)
+            runner.record_metrics(iteration + 1)
     finally:
         runner.profile.search_loop_seconds += perf_counter() - started

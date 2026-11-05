@@ -91,7 +91,7 @@ def _cooperative_subset(base: Solution, tasks: list[Task]) -> Solution:
 def construct_reward_seed(runner: "Runner", base: Solution) -> None:
     """Grow a feasible task assignment from the direct route (eqs. 5 and 7)."""
     current = base
-    while not runner.exhausted():
+    while not runner.initialization_exhausted():
         candidates = []
         for solution in runner.neighborhood.generate(
             "insert", current, phase="seed_construction"
@@ -99,7 +99,7 @@ def construct_reward_seed(runner: "Runner", base: Solution) -> None:
             result = runner.evaluate(solution, "construction")
             if result and result.evaluation.reward > current.evaluation.reward:
                 candidates.append(result)
-            if runner.exhausted():
+            if runner.initialization_exhausted():
                 break
         if not candidates:
             break

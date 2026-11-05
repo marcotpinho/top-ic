@@ -1,0 +1,101 @@
+\documentclass[mscproposta,portugues]{ppgccufmg}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{natbib}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+\begin{document}
+
+% Usa a capa institucional da classe. O relatório intermediário não inclui
+% os elementos pré-textuais completos de uma dissertação, para caber em 5 páginas.
+\defautor{[Nome do discente]}
+\deftitulo{Otimização multiobjetivo de rotas para equipes de agentes com limites configuráveis de comunicação}
+\defcidade{Belo Horizonte}
+\defano{2026}
+\maketitle
+\noindent\textbf{Discente:} [Nome do discente]\hfill
+\textbf{Orientador(a):} [Nome do(a) orientador(a)]\par
+\vspace{0.4cm}
+\setbeforechapskip{0pt}
+\setafterchapskip{0.6cm}
+\setbeforesecskip{0.5cm}
+\setaftersecskip{0.2cm}
+
+\section{Tema e justificativa}
+
+Este trabalho investiga o planejamento de rotas para equipes de agentes móveis que coletam recompensas e, conforme o cenário, precisam trocar informações durante a missão. O problema parte do \textit{Team Orienteering Problem} (TOP), no qual uma equipe seleciona tarefas e rotas sob restrições de tempo \citep{chao1996team,gunawan2016survey}. A pesquisa incorpora movimento com limites cinemáticos e comunicação, integrando planejamento, trajetórias e conectividade temporal.
+
+O objetivo é desenvolver um framework que represente limites de comunicação do TOP sem requisito ao TOP-CC, com comunicação completa, incluindo condições intermediárias parametrizadas. Os agentes seguem trajetórias contínuas; contatos dependem da distância e podem exigir tempo mínimo de handshake. A informação pode ser retransmitida por agentes intermediários. Um limite de janela $T_c$ restringe a idade da informação (\textit{staleness}) e permite investigar como diferentes requisitos alteram as soluções.
+
+A relevância para Ciência da Computação está na combinação de otimização combinatória, busca multiobjetivo e avaliação temporal de sistemas multiagentes. Decisões de rota e movimento afetam recompensa, tempo e comunicação. Um framework único permite comparar regimes sob o mesmo modelo. A busca por vizinhanças preserva soluções com compromissos distintos entre objetivos \citep{duarte2015movns}.
+
+\subsection{Objetivos}
+
+\textbf{Objetivo geral:} desenvolver e avaliar um framework multiobjetivo para planejar rotas e trajetórias de equipes de agentes, com limites de comunicação configuráveis do TOP sem restrição até o TOP-CC com comunicação completa.
+
+\textbf{Objetivos específicos:}
+\begin{itemize}
+    \item Formalizar a família de problemas e os parâmetros que representam os regimes de comunicação.
+    \item Representar soluções por sequências ordenadas de visitas, estados de movimento e pontos livres.
+    \item Implementar avaliação de trajetórias, orçamento, recompensas, contatos e propagação de informação.
+    \item Desenvolver vizinhanças para modificar tarefas, atribuições, ordens, velocidades e pontos livres.
+    \item Validar o limite sem comunicação contra Team KOP e instâncias pequenas contra referência de força bruta.
+    \item Avaliar qualidade, diversidade e custo computacional em vários limites, instâncias e sementes.
+\end{itemize}
+
+\section{Referencial teórico}
+
+O TOP generaliza o problema de orienteering para múltiplas rotas, maximizando a recompensa sob limites de recursos \citep{chao1996team}. A comunicação contínua ou intermitente acrescenta restrições temporais à seleção conjunta de rotas, como no TOP-CC \citep{gunawan2016survey,topcc}.
+
+O modelo cinemático limita velocidade e aceleração e exige uma trajetória factível entre visitas \citep{meyer2022kop}. Em comunicação intermitente, contatos em tempos distintos podem formar cadeias de retransmissão, tema relacionado ao planejamento multi-robô e rendezvous \citep{kantaros2016intermittent,kantaros2017temporal}.
+
+Será usada busca multiobjetivo por vizinhanças, alternando busca local e perturbações para explorar regiões distintas do espaço de soluções \citep{hansen2017vns}. A contribuição pretendida é variar explicitamente o requisito de comunicação e avaliar seus efeitos na fronteira de Pareto.
+
+\section{Metodologia}
+
+As instâncias terão tarefas bidimensionais com posição e recompensa e agentes com início, destino, limites de velocidade e aceleração e orçamento de tempo. Serão usados mapas sintéticos e mapas de teste, variando tarefas e parâmetros de movimento e comunicação.
+
+Cada agente será representado por uma sequência de visitas. Visitas TASK correspondem a tarefas fixas, creditadas uma única vez à equipe. Visitas FREE têm posição ajustável e alteram a trajetória sem recompensa. As conexões terão aceleração limitada; esperas só serão permitidas em velocidade zero. O avaliador verificará estrutura, escalonamento, trajetórias, recompensas e orçamento individual.
+
+A avaliação de comunicação considera contatos dentro do alcance, handshake, interrupções, retransmissão e idade da informação. Para solução $S$, a violação $CV(S)$ é a soma dos excessos dos picos de defasagem dos pares ordenados sobre $T_c$; ela é nula exatamente quando a maior staleness $\Delta$ não excede $T_c$. O limite $T_c\to\infty$ representa ausência de restrição e será comparado com Team KOP. Comunicação completa será definida pela conectividade e troca de informação exigidas no TOP-CC. A equivalência entre esses casos e os limites do framework será validada, não presumida.
+
+A busca proposta usa dois arquivos inspirados no C-TAEA. O arquivo factível $F$ mantém somente soluções que respeitam movimento, orçamento e comunicação, com dominância em recompensa e tempo médio e caixas $\varepsilon$. A pool de cobertura $P$ mantém soluções válidas fora de $F$, inclusive inviáveis em comunicação e factíveis dominadas, distribuídas em sub-regiões do espaço recompensa--tempo. A violação é $CV(S)=\sum_{n\ne m}\max(0,P_{nm}-T_c)$, em que $P_{nm}$ é o pico de defasagem do par ordenado; logo, $CV=0$ se e somente se $\Delta\le T_c$. $CV$, $P_{nm}$ e a área integrada de excesso são restrições ou diagnósticos, não objetivos. Para selecionar o arquivo de origem, $ND_F$ é obtido por Pareto em recompensa e tempo dentro de $F$, enquanto $ND_P$ é obtido por Pareto tridimensional em $CV$, recompensa e tempo dentro de $P$. Com $n_F=|ND_F|$ e $n_P=|ND_P|$, escolhe-se $P$ com probabilidade $n_P/(n_F+n_P)$. O torneio usa somente o conjunto não dominado escolhido: maior crowding em $F$, e menor $CV$ com desempate por maior recompensa em $P$. A busca então aplica ruin-and-recreate, reparo limitado de comunicação e VND. As vizinhanças alteram tarefas, atribuições, ordens, velocidades e posições livres. Esta é a única versão proposta; não se apresenta um experimento de escolha entre formulações de arquivo.
+
+A validação terá quatro etapas: (1) caso sem restrição versus Team KOP; (2) instância pequena de relay versus força bruta em três valores de $T_c$; (3) múltiplas sementes; e (4) mapas maiores. Métricas: recompensa, tempo médio, staleness, factibilidade, fronteira de Pareto, hipervolume e tempo de execução. Scripts versionados registrarão parâmetros, sementes, logs, soluções e gráficos. O protótipo usa Python e Git, com módulos próprios para trajetórias, comunicação e busca.
+
+\section{Aspectos éticos e cronograma}
+
+O escopo atual utiliza simulações e instâncias computacionais, sem participantes humanos, dados pessoais, animais ou intervenções em sistemas reais. Em princípio, não é necessária submissão ao Comitê de Ética em Pesquisa. Essa avaliação será confirmada conforme as regras institucionais e revista caso o trabalho passe a envolver participantes ou dados pessoais.
+
+O cronograma é uma proposta até dezembro de 2027 e deverá ser ajustado ao prazo regulamentar do programa e às datas de qualificação e defesa.
+
+\begin{center}
+\small
+\begin{tabular}{p{0.24\textwidth}p{0.68\textwidth}}
+\toprule
+\textbf{Período} & \textbf{Atividade} \\
+\midrule
+Out.–nov. 2026 & Consolidar formulação e submeter manuscrito ao periódico. \\
+Dez. 2026–jan. 2027 & Finalizar avaliação e validar o limite sem comunicação. \\
+Fev.–mar. 2027 & Validar relay por força bruta e submeter ao IROS 2027. \\
+Abr.–jun. 2027 & Executar experimentos multi-semente e analisar resultados. \\
+Jul.–ago. 2027 & Consolidar experimentos e redigir resultados. \\
+Set.–out. 2027 & Revisar a dissertação e preparar a defesa. \\
+Nov.–dez. 2027 & Entregar versão final e realizar a defesa. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Plano de publicação}
+
+Planeja-se submeter artigo ao periódico \textit{Robotics and Autonomous Systems} em novembro de 2026, cujo escopo abrange aspectos teóricos, computacionais e experimentais de robótica e sistemas autônomos \citep{rasjournal}; trata-se de uma meta do projeto, não de prazo editorial. O ICRA 2027 é potencial veículo para resultados parciais, mas seu prazo divulgado, 16 de setembro de 2026, já passou \citep{icra2027}; a submissão só é possível se já realizada. Para resultados consolidados, planeja-se o IROS 2027, com prazo divulgado de 1º de março de 2027 \citep{iros2027}. As políticas de originalidade e submissão simultânea serão verificadas antes do envio.
+
+\renewcommand\bibname{Referências}
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

@@ -51,6 +51,12 @@ def _parser() -> argparse.ArgumentParser:
         help="maximum outer local-search iterations",
     )
     parser.add_argument(
+        "--initialization-budget-fraction",
+        type=float,
+        default=0.2,
+        help="maximum fraction of time and exact-evaluation budgets used by initialization",
+    )
+    parser.add_argument(
         "--neighborhood-hv-tau",
         type=float,
         default=0.0,
@@ -65,14 +71,8 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--archive-size",
         type=int,
-        default=200,
+        default=100,
         help="maximum epsilon-front representatives before box coarsening",
-    )
-    parser.add_argument(
-        "--front-selection-prob",
-        type=float,
-        default=0.9,
-        help="probability of selecting a search base from the epsilon front",
     )
     parser.add_argument(
         "--eps-reward",
@@ -87,11 +87,6 @@ def _parser() -> argparse.ArgumentParser:
         help="epsilon-box width for mean completion time in seconds",
     )
     parser.add_argument(
-        "--eps-violation",
-        type=float,
-        help="epsilon-box width for communication violation in seconds; default 1",
-    )
-    parser.add_argument(
         "--headings",
         type=int,
         default=4,
@@ -103,6 +98,13 @@ def _parser() -> argparse.ArgumentParser:
         nargs="+",
         default=[0, 0.5, 1],
         help="fractions of each axis speed limit used in the velocity menu",
+    )
+    parser.add_argument(
+        "--velocity-segment-lengths",
+        type=int,
+        nargs="+",
+        default=[2, 3],
+        help="visit counts for contiguous velocity-change blocks",
     )
     parser.add_argument(
         "--disable",
@@ -131,14 +133,19 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--dominated-archive-size",
         type=int,
-        default=40,
+        default=100,
         help="maximum physically valid dominated solutions kept for search bases",
     )
     parser.add_argument(
-        "--max-free-waypoints",
-        type=int,
-        default=3,
-        help="maximum free visits allowed on each agent route",
+        "--disable-pool-selection",
+        action="store_true",
+        help="ablation: update the coverage pool but select search bases only from F",
+    )
+    parser.add_argument(
+        "--selection-policy",
+        choices=["nd_count", "legacy_fraction"],
+        default="nd_count",
+        help="archive selection rule; legacy_fraction reproduces the pre-correction ablation",
     )
     parser.add_argument(
         "--waypoint-workspace",
@@ -159,7 +166,7 @@ def _parser() -> argparse.ArgumentParser:
         type=float,
         nargs="+",
         default=[0.25, 1.0],
-        help="time steps in seconds used for stopped waits and meetings",
+        help="time steps in seconds used for explicit stopped waits",
     )
     parser.add_argument(
         "--neighborhood-candidates",
@@ -168,6 +175,11 @@ def _parser() -> argparse.ArgumentParser:
         help="maximum sampled proposals generated per neighborhood call",
     )
     parser.add_argument("--output", help="path for the complete JSON run result")
+    parser.add_argument(
+        "--free-segment-radius",
+        type=float,
+        help="maximum lateral FREE offset from a route segment; defaults to communication range",
+    )
     return parser
 
 
@@ -179,27 +191,29 @@ def _config(args: argparse.Namespace) -> Config:
         max_seconds=args.max_seconds,
         max_evaluations=args.max_evaluations,
         max_iterations=args.max_iterations,
+        initialization_budget_fraction=args.initialization_budget_fraction,
         neighborhood_hv_tau=args.neighborhood_hv_tau,
         neighborhood_max_passes=args.neighborhood_max_passes,
         archive_size=args.archive_size,
-        front_selection_prob=args.front_selection_prob,
         eps_reward=args.eps_reward,
         eps_time=args.eps_time,
-        eps_violation=args.eps_violation,
         headings=args.headings,
         speed_fractions=tuple(args.speed_fractions),
+        velocity_segment_lengths=tuple(args.velocity_segment_lengths),
         disabled=tuple(args.disable),
         comm_range=args.comm_range,
         handshake_time=args.handshake_time,
         recurrence_bound=args.recurrence_bound,
         dominated_archive_size=args.dominated_archive_size,
-        max_free_waypoints=args.max_free_waypoints,
+        pool_selection_enabled=not args.disable_pool_selection,
+        selection_policy=args.selection_policy,
         waypoint_workspace=tuple(args.waypoint_workspace)
         if args.waypoint_workspace
         else None,
         waypoint_steps=tuple(args.waypoint_steps),
         wait_steps=tuple(args.wait_steps),
         neighborhood_candidates=args.neighborhood_candidates,
+        free_segment_radius=args.free_segment_radius,
     )
 
 

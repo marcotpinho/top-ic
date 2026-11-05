@@ -55,7 +55,7 @@ def _apply(solution: Solution, proposal: tuple[str, int, int, int, int]) -> Solu
         routes[other_agent][partner_index] = replace(
             left, velocity=(0.0, 0.0), wait=0.0
         )
-    return normalize(routes, solution.meetings)
+    return normalize(routes)
 
 
 def generate(

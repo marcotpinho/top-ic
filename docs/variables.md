@@ -29,7 +29,6 @@ Visit occurrences have stable IDs separate from route positions. Repeated visits
 | $v_m^S$ | Initial velocity; zero default | 2D distance/time | `initial_velocity[m]` |
 | $\mathcal U_m$ | Finite visit-velocity menu used initially by search | 2D vectors | `visit_velocity_states[m]` |
 | $\mathbb W$ | Configured free-waypoint search workspace | Bounds | `waypoint_workspace` |
-| $F_{\max}$ | Algorithmic free-visit cap per agent | Count | `max_free_waypoints` |
 | $R$ | Euclidean communication range | Distance | `comm_range` |
 | $\delta$ | Required continuous handshake duration | Time | `handshake_time` |
 | $T_c$ | Sliding-window recurrence bound | Time | `recurrence_bound` |
@@ -47,7 +46,6 @@ The initial convention uses componentwise limits. A diagonal vector can have mag
 | $z_{mk}$ | Visit position; fixed for tasks, adjustable for FREE | `visit.position` |
 | $v_{mk}$ | Arrival/departure boundary velocity | `visit.velocity` |
 | $w_{mk}$ | Pre-departure wait; positive only at zero velocity | `visit.wait_duration` |
-| $\mathcal P$ | Optional planned meetings between stable visit IDs | `planned_meetings` |
 | $D_{mk}$ | Duration of motion connecting visit $k$ to $k+1$ | `connection.duration` |
 | $h_{mq}$ | Duration of constant-acceleration piece $q$ | `piece.duration` |
 | $a_{mq}$ | Acceleration vector on piece $q$ | `piece.acceleration` |
@@ -81,7 +79,7 @@ Use occurrence-indexed arrival times, never one time per task per agent. Waiting
 | $h_{nm}(\sigma)$ | Latest source timestamp from $m$ held by $n$ | `latest_departure[n][m]` |
 | $A_{nm}(\sigma)$ | Staleness $\sigma-h_{nm}(\sigma)$ | `staleness[n][m]` |
 | $\Delta$ | Supremum of off-diagonal staleness; zero if $M=1$ | `peak_staleness` |
-| $V_c$ | Communication violation $\max(0,\Delta-T_c)$ | `comm_violation` |
+| $CV$ | Sum of ordered-pair excesses $\sum_{n\ne m}\max(0,P_{nm}-T_c)$ | `comm_violation` |
 | $P_{nm}$ | Peak information age for directed source $m$ to receiver $n$; diagnostic only | `communication.pair_peaks[n][m]` |
 | $A_c$ | Sum over directed pairs of time-integrated age above $T_c$; search guidance only | `communication.integrated_excess` |
 | $V_{b,m}$ | Budget excess $\max(0,c_m-B_m)$ | `budget_excess[m]` |
@@ -100,16 +98,16 @@ Keep handshake $\delta$ and staleness $\Delta$ distinct in code. Effective initi
 |---|---|---|
 | $f_1=-Q$ | Reward objective in minimization form | `objectives[0]` |
 | $f_2=\bar c$ | Expenditure objective | `objectives[1]` |
-| $f_3=V_c=\max(0,\Delta-T_c)$ | ICC violation objective | `objectives[2]` |
-| — | Physically valid epsilon-box nondominated front in three ICC objectives | `archive` |
-| — | Valid dominated search seeds with crowding-distance truncation | `dominated_archive` |
+| $F$ | Feasible epsilon-box Pareto archive in $(-Q,\bar c)$ | `Archive.front` |
+| $P$ | Valid coverage pool outside $F$ | `Archive.pool` |
+| $\rho_F,\rho_P$ | Archive probabilities from $|ND_F|$ and $|ND_P|$; `P` is never compared with `F` | `selection_history` |
 
 ## Step 4 implementation
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-Meetings reference preserved visit occurrences. A least-schedule difference-constraint solver detects positive cycles and adds stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap. Five communication-stage operator families are `wait`, `meeting`, `duplicate_rendezvous`, `free_move`, and `free_remove`. Existing task and assignment families remain available.
+A least-schedule difference-constraint solver schedules fixed route connections and explicit stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
 
-The current ICC epsilon archive uses negative reward, mean completion time, and communication violation at the configured $T_c$. Valid motion and individual budgets determine archive eligibility; the reported reward–time front is its zero-violation slice. A separate bounded dominated-solution archive uses normalized crowding distance to preserve diverse search seeds. Full propagation is recomputed; pair-contact caching includes the mission horizon. Checkpointed incremental propagation is deferred.
+The current ICC archive publishes only movement-, budget-, and communication-feasible solutions in two objectives. `CV`, $P_{nm}$ and $A_c$ remain constraint values or diagnostics. A separate pool preserves objective-space coverage among valid candidates outside the feasible archive.
 
-Current ICC results use schema version 4 and include full routes, meetings, actual visit times, trajectories, raw/effective contacts, staleness traces, a three-objective archive, a dominated archive, accepted-front snapshots, and zero-violation front indices. Historical stage-4 files remain schema versions 2 or 3. ICC VND examines at most 120 candidates per family per pass by default; these are search restrictions, not completeness guarantees.
+Current ICC results use schema version 7 and include the feasible two-objective front plus pool, repair, cache, operator and convoy diagnostics. Historical files retain their original schema.

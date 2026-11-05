@@ -4,12 +4,13 @@ from collections.abc import Iterable
 from dataclasses import replace
 from random import Random
 
-from ...config import Problem
-from ...solution import Meeting, Solution, Visit
+from ...config import MotionLimits, Problem
+from ...evaluation_core.trajectory import MotionError, State, connect
+from ...solution import Solution, Visit
 
 
-def normalize(routes: tuple | list, meetings: tuple[Meeting, ...] = ()) -> Solution:
-    """Preserve occurrence IDs, resolving collisions and dangling meetings."""
+def normalize(routes: tuple | list) -> Solution:
+    """Preserve routes while resolving duplicate visit occurrence IDs."""
     used = set()
     rebuilt = []
     for route in routes:
@@ -25,17 +26,7 @@ def normalize(routes: tuple | list, meetings: tuple[Meeting, ...] = ()) -> Solut
             used.add(identity)
             row.append(visit)
         rebuilt.append(tuple(row))
-    ownership = {
-        visit.id: agent for agent, route in enumerate(rebuilt) for visit in route
-    }
-    kept = tuple(
-        pair
-        for pair in meetings
-        if pair.left in used
-        and pair.right in used
-        and ownership[pair.left] != ownership[pair.right]
-    )
-    return Solution(tuple(rebuilt), meetings=kept)
+    return Solution(tuple(rebuilt))
 
 
 def fresh_id(solution: Solution, prefix: str) -> str:
@@ -48,10 +39,10 @@ def fresh_id(solution: Solution, prefix: str) -> str:
 
 
 def edited(solution: Solution, agent: int, route: tuple[Visit, ...]) -> Solution:
-    """Replace one agent route and preserve valid meeting references."""
+    """Replace one agent route while preserving the other route decisions."""
     routes = list(solution.routes)
     routes[agent] = tuple(route)
-    return normalize(routes, solution.meetings)
+    return normalize(routes)
 
 
 def in_workspace(point: tuple[float, float], workspace: tuple | None) -> bool:
@@ -76,6 +67,29 @@ def segment_projection(
     )
     fraction = max(0.0, min(1.0, fraction))
     return tuple(before[axis] + fraction * direction[axis] for axis in range(2))
+
+
+def changed_connectors_feasible(
+    route: tuple[Visit, ...],
+    first_changed_index: int,
+    last_changed_index: int,
+    limits: MotionLimits,
+) -> bool:
+    """Check route connectors touched by a contiguous velocity edit."""
+    first_connector = max(0, first_changed_index - 1)
+    last_connector = min(last_changed_index, len(route) - 2)
+    for visit_index in range(first_connector, last_connector + 1):
+        start = route[visit_index]
+        end = route[visit_index + 1]
+        try:
+            connect(
+                State(start.position, start.velocity),
+                State(end.position, end.velocity),
+                limits,
+            )
+        except MotionError:
+            return False
+    return True
 
 
 def reached_task_ids(solution: Solution) -> set[str]:
@@ -114,6 +128,7 @@ def sample_candidates[Candidate](
 
 __all__ = [
     "edited",
+    "changed_connectors_feasible",
     "fresh_id",
     "in_workspace",
     "normalize",

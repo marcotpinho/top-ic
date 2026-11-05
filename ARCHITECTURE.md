@@ -8,12 +8,14 @@ implementation is frozen at `pre-topcc-rebuild-20261012`.
 | Module | Responsibility |
 |---|---|
 | `src/main.py`, `src/solver.py` | Parse an ICC run, construct its workspace, and serialize the result. |
-| `src/config.py`, `src/solution.py` | Immutable physical inputs, search settings, visit occurrences, routes, and meetings. |
+| `src/config.py`, `src/solution.py` | Immutable physical inputs, search settings, visit occurrences, and routes. |
+| `src/velocity_initialization.py` | Sample seeded-random menu velocities with a feasible continuation across every route connector. |
 | `src/entities/runner.py` | Own the run's single seeded random generator and coordinate search. |
 | `src/entities/seed_construction.py`, `selection.py`, `shaking.py`, `search_loop.py` | Build initial solutions, select a base, perturb it, and run sampled families. |
-| `src/entities/neighborhood.py`, `src/entities/neighborhoods/` | Register the eight ICC families and generate candidates with an explicit RNG. |
+| `src/entities/neighborhood.py`, `src/entities/neighborhoods/` | Register the eleven ICC families and generate candidates with an explicit RNG. |
 | `src/entities/archive.py`, `pool.py`, `archive_updates.py` | Maintain the ε-box front, exact-zero violation layer, and dominated working pool. |
-| `src/evaluation_core/` | Validate structure, schedule meetings, construct continuous trajectories, credit rewards, check budgets, evaluate communication, and assemble objectives. |
+| `src/evaluation_core/` | Validate structure, schedule routes, construct continuous trajectories, credit rewards, check budgets, evaluate communication, and assemble objectives. |
+| `src/entities/budget_repair.py` | Repair over-budget candidates by dropping TASK visits at lowest team reward loss per exact route-time saved. |
 | `src/entities/statistics.py` | Package counters, history, and the final run result. |
 
 The historical families `wait`, `free_move`, `free_remove`,
@@ -23,28 +25,29 @@ registry.
 
 ## One iteration
 
-The Runner selects a solution from the ε front or dominated pool. For each
-enabled family it independently ruins and recreates that same base, scores
-the shake, then generates at most `neighborhood_candidates` proposals from the
-scored shake, so families can read its timing and contacts. A duplicate shake
-is rescored from the evaluator cache without being counted or archived; only an
-invalid shake leaves proposals to come from the raw shake. The same RNG flows
-through selection, shaking, and generation. Each proposal receives velocity
-refinement and the full evaluation pipeline. Physically valid solutions enter
-the ε archive or the dominated pool. After a family pass, the runner measures
-the normalized three-objective hypervolume of the ε front. If its gain exceeds
+The Runner selects a solution from feasible archive `F` or coverage pool `P`.
+`ND_F` is Pareto in reward/time and `ND_P` is Pareto in CV/reward/time.
+Archive probabilities use their nondominated-set cardinalities; tournaments use
+only those sets, with crowding in `F` and CV then reward in `P`. It then applies one
+10–40% ruin-and-recreate move, evaluates it, and runs up to three communication
+repair rounds when `CV` is positive. Every enabled VND family then generates at
+most `neighborhood_candidates` proposals from that working solution. The same
+RNG flows through selection, shaking, repair, and generation. Every distinct
+proposal receives the full evaluation pipeline. Communication-feasible
+nondominated solutions update `F`; every other valid candidate updates `P`.
+After a family pass, the runner measures the normalized two-objective hypervolume
+of `F`. If its gain exceeds
 `neighborhood_hv_tau`, the family runs another pass from a seeded-random choice
 among the solutions newly retained in the front, up to
 `neighborhood_max_passes`. The default threshold is 0 and the default pass cap
 is 3. Hypervolume uses minimization objectives normalized by total task reward
-and the maximum agent time budget, with reference point `(1, 1, 1)`. The search
+and the maximum agent time budget, with reference point `(1, 1)`. The search
 loop records evaluation and front changes before moving to the next family or
 iteration.
 
 Run JSON stores `statistics.profiling` in wall-clock seconds. Its
 `search_loop_seconds` covers the complete local-search loop after seed
-construction. `evaluation_seconds` covers all candidate processing, including
-velocity refinement and archive updates. `evaluator_seconds` is the time inside
+construction. `evaluation_seconds` covers all candidate processing and archive updates. `evaluator_seconds` is the time inside
 the evaluation core. Each enabled neighborhood records call count and total,
 shake, generation, and evaluation durations. `shake_seconds` covers only the
 perturbation; evaluating the shaken solution belongs to `evaluation_seconds`.
@@ -67,7 +70,9 @@ The notation follows [docs/variables.md](docs/variables.md) and
 | $R$, $\delta$, $T_c$ | `Config.comm_range`, `handshake_time`, `recurrence_bound` |
 | $\mathcal C_{mn}$, $\mathcal I_{mn}$ | `ContactRecord.raw`, `ContactRecord.effective` |
 | $h_{nm}(\sigma)$, $\Delta$ | `CommunicationResult.final_clock`, `peak_staleness` |
-| $V_c$ | `Evaluation.comm_violation`, the third minimization objective |
+| $CV$ | `Evaluation.comm_violation`, sum of ordered-pair staleness excesses |
+| $F$ | `entities.archive.Archive.front`, feasible reward–time archive |
+| $P$ | `entities.pool.CoveragePool`, valid candidates outside $F$ |
 
 The full evaluator output for three ICC fixtures is compared exactly with
 the frozen record in `tests/data/evaluator_reference.json`. The same file

@@ -1,4 +1,4 @@
-"""Plots of one three-objective ICC archive and its post-run Tc slices."""
+"""Plots of one feasible two-objective ICC archive for its configured Tc."""
 
 import json
 from pathlib import Path
@@ -41,7 +41,7 @@ def plot_tc_sweep(data, output_dir):
     ax.set(
         xlabel="Mean completion time (s; minimize)",
         ylabel="Team reward (maximize)",
-        title="Reward–time fronts filtered from one 3D archive",
+        title="Feasible reward–time front",
     )
     ax.grid(alpha=0.2)
     ax.legend(fontsize=8)
@@ -50,7 +50,6 @@ def plot_tc_sweep(data, output_dir):
     fig.savefig(output / "pareto-frontier.png", dpi=150)
     plt.close(fig)
 
-    violation_policy = data.get("objective_policy") == "reward_time_violation"
     history = data.get("statistics", {}).get("objective_history", [])
     if history:
         chosen = next(
@@ -71,18 +70,7 @@ def plot_tc_sweep(data, output_dir):
         for index in indices:
             snapshot = history[index]
             objectives = snapshot.get("objectives", [])
-            if objectives:
-                points = [vector for vector in objectives if vector[2] == 0]
-            else:
-                points = snapshot.get("front", [])
-                if violation_policy:
-                    points = [vector for vector in points if vector[2] == 0]
-                else:
-                    points = [
-                        vector
-                        for vector in points
-                        if chosen == "infinity" or vector[2] <= chosen + 1e-8
-                    ]
+            points = list(objectives or snapshot.get("front", []))
             points.sort(key=lambda v: v[1])
             if points:
                 label = f"iteration {snapshot.get('iteration', index)}"
@@ -118,9 +106,7 @@ def plot_tc_sweep(data, output_dir):
     ax.set(
         xlabel="Peak staleness Δ (s; minimize)",
         ylabel="Team reward (maximize)",
-        title="Reward–staleness view of violation archive"
-        if violation_policy
-        else "Three-objective archive",
+        title="Reward–staleness diagnostics of the feasible archive",
     )
     ax.grid(alpha=0.2)
     fig.tight_layout()

@@ -1,6 +1,7 @@
 """Validate a solution and assemble the TOP-ICC objectives in ordered stages."""
 
 from dataclasses import dataclass, replace
+from itertools import pairwise
 from math import inf
 
 from ..config import Config, Problem
@@ -74,7 +75,7 @@ class Evaluator:
         return replace(solution, evaluation=result)
 
     def _evaluate(self, solution: Solution) -> Evaluation:
-        """Run validation through objective assembly; implements eqs. (1)–(16)."""
+        """Run validation through objective assembly; implements eqs. (1)–(15)."""
         self.validate_structure(solution)
         timing = self.schedule_solution(solution)
         trajectories, visit_times = self.build_trajectories(solution, timing)
@@ -120,16 +121,10 @@ class Evaluator:
             raise ValueError("Invalid boundary states")
         if any(visit.kind not in ("TASK", "FREE") for visit in route[1:-1]):
             raise ValueError("Invalid interior visit")
-        if (
-            sum(visit.kind == "FREE" for visit in route)
-            > self.config.max_free_waypoints
-        ):
-            raise ValueError("Free-waypoint cap exceeded")
         task_map = self.problem.task_map
         for visit in route:
-            if visit.kind == "FREE":
-                if not self._in_workspace(visit.position):
-                    raise ValueError("Free waypoint outside configured workspace")
+            if visit.kind == "FREE" and not self._in_workspace(visit.position):
+                raise ValueError("Free waypoint outside configured workspace")
             if visit.kind == "TASK" and (
                 visit.task_id not in task_map
                 or visit.position != task_map[visit.task_id].position
@@ -145,13 +140,10 @@ class Evaluator:
         return xmin <= point[0] <= xmax and ymin <= point[1] <= ymax
 
     def schedule_solution(self, solution: Solution) -> tuple:
-        """Find least feasible meeting waits; implements eqs. (2) and (16)."""
+        """Schedule fixed route waits and connection durations; implements eq. (2)."""
         timing, _ = schedule(
             solution.routes,
-            solution.meetings,
             self.problem,
-            self.config.handshake_time,
-            self.config.comm_range,
             self.config.schedule_tolerance,
         )
         return timing
@@ -175,7 +167,7 @@ class Evaluator:
         pieces = []
         elapsed = 0.0
         times = []
-        for visit_index, (start, end) in enumerate(zip(route, route[1:])):
+        for visit_index, (start, end) in enumerate(pairwise(route)):
             wait = timing[agent][visit_index][1] - timing[agent][visit_index][0]
             times.append((elapsed, elapsed + wait))
             if wait > self.config.numerical_tolerance:
@@ -237,7 +229,7 @@ class Evaluator:
     def evaluate_links(
         self, trajectories: tuple, feasible: bool
     ) -> tuple[object | None, float]:
-        """Evaluate contacts and staleness for feasible ICC routes; eqs. (9)–(15)."""
+        """Evaluate contacts and ordered-pair constraint violation; eqs. (9)–(15)."""
         if not feasible:
             return None, 0.0
         communication = evaluate_communication(
@@ -246,9 +238,13 @@ class Evaluator:
             self.config.handshake_time,
             self.config.recurrence_bound,
         )
-        return communication, max(
-            0.0, communication.peak_staleness - self.config.recurrence_bound
+        violation = sum(
+            max(0.0, peak - self.config.recurrence_bound)
+            for receiver, row in enumerate(communication.pair_peaks)
+            for source, peak in enumerate(row)
+            if receiver != source
         )
+        return communication, violation
 
     def assemble_objectives(
         self,
@@ -262,11 +258,10 @@ class Evaluator:
         communication: object | None,
         violation: float,
     ) -> Evaluation:
-        """Assemble the minimization vector; implements eqs. (5), (7), and (8)."""
+        """Assemble the two reported minimization objectives and separate CV."""
         objectives = (
             -reward,
             sum(completions) / len(completions),
-            violation if communication else inf,
         )
         first_visitors = tuple(
             (task, agent, time) for task, (time, agent) in sorted(owners.items())

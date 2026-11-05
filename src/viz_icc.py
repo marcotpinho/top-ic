@@ -24,7 +24,7 @@ def plot_communication(data,directory,prefix='full'):
     options=[data['front'][i] for i in row['front_indices']] if row and row['front_indices'] else data['front']
     chosen=max(options,key=lambda s:(s['reward'],-s['objectives'][1]))
     # Reuse actual quadratic paths / speed rendering; add free-visit markers
-    # and planned meeting positions to a separate geometry figure.
+    # and FREE visit positions to a separate geometry figure.
     plot_result({**data,'front':options},directory,prefix)
     fig,axes=plt.subplots(2,1,figsize=(10,7),sharex=True)
     records=chosen['communication']['contacts']

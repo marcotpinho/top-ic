@@ -45,7 +45,7 @@ def solution_to_dict(s: Solution) -> dict:
     return {
         "objectives": s.objectives,
         "reward": s.evaluation.reward,
-        "feasible": s.evaluation.valid,
+        "feasible": (s.evaluation.valid and s.evaluation.comm_violation <= 1e-13),
         "motion_budget_valid": s.evaluation.motion_budget_valid,
         "validation_status": s.evaluation.validation_status,
         "reason": s.evaluation.reason,
@@ -56,7 +56,6 @@ def solution_to_dict(s: Solution) -> dict:
         "reached_tasks": [sorted(x) for x in s.evaluation.reached_tasks],
         "first_visitors": s.evaluation.first_visitors,
         "routes": [[asdict(v) for v in r] for r in s.routes],
-        "meetings": [asdict(p) for p in s.meetings],
         "trajectories": [asdict(t) for t in s.evaluation.trajectories],
         "communication": asdict(s.evaluation.communication)
         if s.evaluation.communication
@@ -66,7 +65,9 @@ def solution_to_dict(s: Solution) -> dict:
 
 def _tc_slice(front: list[Solution], tc: float) -> dict:
     eligible = [
-        index for index, solution in enumerate(front) if solution.objectives[2] == 0
+        index
+        for index, solution in enumerate(front)
+        if solution.evaluation.comm_violation == 0
     ]
     selected = []
     for index in eligible:
@@ -106,9 +107,9 @@ def result_to_dict(result: RunResult) -> dict:
     # Violation is defined for this run's Tc; other Tc values need independent searches.
     slice_at_tc = _tc_slice(front, result.config.recurrence_bound)
     return {
-        "schema_version": 4,
+        "schema_version": 7,
         "reward_policy": "explicit_task_visits",
-        "objective_policy": "reward_time_violation",
+        "objective_policy": "reward_time_feasible_archive",
         "model": "box_double_integrator",
         "connector_version": VERSION,
         "problem": problem_to_dict(result.problem),
@@ -144,6 +145,4 @@ def save_result(result: RunResult, path: str | Path) -> None:
     )
     data = result_to_dict(result)
     data["neighborhood_log"] = neighborhood_log.name
-    path.write_text(
-        json.dumps(data, indent=2, allow_nan=False) + "\n"
-    )
+    path.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n")

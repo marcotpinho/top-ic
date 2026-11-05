@@ -1,5 +1,5 @@
-"""Occurrence-level route decisions and explicit stopped meetings."""
+"""Occurrence-level route decisions."""
 
-from ..solution import Meeting, Solution, Visit, direct_solution
+from ..solution import Solution, Visit, direct_solution
 
-__all__ = ["Meeting", "Solution", "Visit", "direct_solution"]
+__all__ = ["Solution", "Visit", "direct_solution"]

@@ -48,9 +48,7 @@ def summarize(directory):
     bank={}
     for label,data in results.items():
         for s in data['front']+data['candidate_bank']:
-            indices={v['id']:(m,k) for m,r in enumerate(s['routes']) for k,v in enumerate(r)}
-            pairs=sorted(tuple(sorted((indices[p['left']],indices[p['right']]))) for p in s['meetings'])
-            key=json.dumps([[[v['kind'],v['position'],v['velocity'],v['task_id'],v['wait']] for v in r] for r in s['routes']]+[pairs],sort_keys=True)
+            key=json.dumps([[[v['kind'],v['position'],v['velocity'],v['task_id'],v['wait']] for v in r] for r in s['routes']],sort_keys=True)
             bank[key]={**s,'source_run_label':label,'source_recurrence_bound':data['config']['recurrence_bound']}
     common=[];fronts={}
     for tc in (2,5,10):

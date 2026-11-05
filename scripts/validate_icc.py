@@ -66,7 +66,11 @@ def validate_motion(data):
             reached.append(credited);arrivals.append(elapsed)
         union=set().union(*(set(v) for v in reached));reward=sum(t['reward'] for t in problem['tasks'] if t['id'] in union)
         expected=[-reward,sum(arrivals)/len(arrivals)]
-        if len(solution['objectives'])==3:expected.append(solution['comm_violation'] if data.get('schema_version',2)>=4 else solution['peak_staleness'])
+        if len(solution['objectives'])==3:
+            third=solution['comm_violation'] if data.get('schema_version',2)>=4 else solution['peak_staleness']
+            if data.get('objective_policy')=='reward_time_guided_violation':
+                third*=1+data['config']['proximity_weight']*solution['proximity_penalty']
+            expected.append(third)
         residual([reward,*expected],[solution['reward'],*solution['objectives']])
         owners={task:min((v[task],m) for m,v in enumerate(reached) if task in v) for task in union}
         assert set(owners)=={x[0] for x in solution['first_visitors']}
@@ -186,7 +190,6 @@ def validate_solution(data,solution,require_feasible=True):
     one=copy.deepcopy(data);one['front']=[solution];one['statistics']={}
     motion=validate_motion(one);c=data['config'];M=len(solution['trajectories']);T=max(solution['completion_times'])
     assert solution['motion_budget_valid'] and solution['validation_status']=='valid'
-    declared={}
     for m,(route,times,tr) in enumerate(zip(solution['routes'],solution['visit_times'],solution['trajectories'])):
         assert len(route)==len(times)
         for v,(arrival,departure) in zip(route,times):
@@ -197,12 +200,6 @@ def validate_solution(data,solution,require_feasible=True):
                 assert max(abs(p-np.array(v['position'])))<2e-6
                 assert max(abs(vel-np.array(v['velocity'])))<2e-6
             if departure>arrival+2e-6:assert v['velocity']==[0,0]
-            declared[v['id']]=(m,v,arrival,departure)
-    for meeting in solution['meetings']:
-        m,a,ta,da=declared[meeting['left']];n,b,tb,db=declared[meeting['right']]
-        assert m!=n and a['velocity']==b['velocity']==[0,0]
-        assert np.linalg.norm(np.array(a['position'])-b['position'])<=c['comm_range']+2e-6
-        assert min(da,db)-max(ta,tb)>=c['handshake_time']-2e-6
     recomputed=[]
     for m in range(M):
         for n in range(m+1,M):

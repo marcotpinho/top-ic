@@ -1,4 +1,4 @@
-"""Record a controlled ICC free-waypoint comparison without optimizer starts."""
+"""Record a controlled route waypoint comparison without optimizer starts."""
 
 import json
 from dataclasses import asdict
@@ -7,7 +7,7 @@ from pathlib import Path
 from topcc.config import Config, MotionLimits, Problem, Task
 from topcc.environment import problem_to_dict
 from topcc.evaluation_core.evaluator import Evaluator
-from topcc.solution import Meeting, Solution, Visit, direct_solution
+from topcc.solution import Solution, Visit, direct_solution
 from topcc.solver import solution_to_dict
 from topcc.viz_icc import plot_communication
 
@@ -26,18 +26,18 @@ def _variants(problem: Problem, evaluator: Evaluator) -> dict[str, Solution]:
         )
         for agent, task in enumerate(problem.tasks)
     ]
-    variants = {"no_meeting": evaluator.evaluate(Solution(tuple(routes)))}
+    variants = {"direct": evaluator.evaluate(Solution(tuple(routes)))}
     locations = (
-        ("free", (5.0, 0.0), None),
+        ("free_waypoint", (5.0, 0.0), None),
         ("task_a", problem.tasks[0].position, "a"),
         ("task_b", problem.tasks[1].position, "b"),
     )
     for name, position, task_id in locations:
-        meeting_routes = tuple(
+        waypoint_routes = tuple(
             route[:-1]
             + (
                 Visit(
-                    f"meet{agent}",
+                    f"waypoint{agent}",
                     "TASK" if task_id else "FREE",
                     position,
                     task_id=task_id,
@@ -46,8 +46,7 @@ def _variants(problem: Problem, evaluator: Evaluator) -> dict[str, Solution]:
             )
             for agent, route in enumerate(routes)
         )
-        decision = Solution(meeting_routes, meetings=(Meeting("meet0", "meet1"),))
-        variants[name] = evaluator.evaluate(decision)
+        variants[name] = evaluator.evaluate(Solution(waypoint_routes))
     return variants
 
 
@@ -62,7 +61,7 @@ def save_fixture(directory: str | Path) -> dict[str, dict]:
         (20, 20),
         (MotionLimits(),) * 2,
         ((0, 0),) * 2,
-        "controlled-free-rendezvous",
+        "controlled-free-waypoints",
     )
     config = Config(
         comm_range=1,
@@ -76,7 +75,7 @@ def save_fixture(directory: str | Path) -> dict[str, dict]:
         for name, solution in scored.items()
     }
     reference = {
-        "schema_version": 4,
+        "schema_version": 5,
         "reward_policy": "explicit_task_visits",
         "problem": problem_to_dict(problem),
         "config": asdict(config),
@@ -88,14 +87,9 @@ def save_fixture(directory: str | Path) -> dict[str, dict]:
         name: validate_solution(reference, solution, require_feasible=False)
         for name, solution in variants.items()
     }
-    assert variants["free"]["comm_violation"] == 0
-    assert all(
-        variants[name]["comm_violation"] > 0
-        for name in ("no_meeting", "task_a", "task_b")
-    )
     record = {
         **reference,
-        "method": "fixed states/order/assignment, spatial alternatives only",
+        "method": "fixed states/order/assignment, route waypoint alternatives only",
         "variants": variants,
         "validation": checks,
     }
@@ -104,7 +98,7 @@ def save_fixture(directory: str | Path) -> dict[str, dict]:
     plot_communication(
         {**reference, "front": [variants["free"]]},
         destination,
-        prefix="controlled-free",
+        prefix="controlled-waypoint",
     )
     return variants
 

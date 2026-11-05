@@ -79,7 +79,7 @@ def _instance_hash(arguments: list[str]) -> dict[str, str] | None:
 
 
 def _generate_plots(result_path: Path, output_dir: Path) -> list[str]:
-    """Generate standard analysis plots and the best saved Tc-feasible path."""
+    """Generate plots, the path animation, and the best saved Tc-feasible path."""
     from topcc.viz import draw_solution_paths, plot_result
 
     data = json.loads(result_path.read_text())
@@ -107,7 +107,7 @@ def _generate_plots(result_path: Path, output_dir: Path) -> list[str]:
     return sorted(
         path.name
         for path in output_dir.iterdir()
-        if path.suffix.lower() in {".png", ".svg", ".pdf"}
+        if path.suffix.lower() in {".png", ".svg", ".pdf", ".gif"}
     )
 
 
@@ -200,16 +200,19 @@ def _search_replacements(config: dict, stats: dict) -> dict[str, str]:
             {
                 "reward": config["eps_reward"],
                 "time": config["eps_time"],
-                "violation": stats["effective_epsilon"][2],
             }
         ),
         "{HV_REFERENCE_POINT}": _format(stats["hypervolume_reference_point"]),
         "{HV_SCALES}": _format(stats["hypervolume_scales"]),
         "{WAYPOINT_STEPS}": _format(config["waypoint_steps"]),
         "{WAIT_STEPS}": _format(config["wait_steps"]),
-        "{MAX_FREE_WAYPOINTS}": str(config["max_free_waypoints"]),
+        "{VELOCITY_SEGMENT_LENGTHS}": _format(config["velocity_segment_lengths"]),
+        "{MAX_FREE_WAYPOINTS}": "unlimited",
         "{NEIGHBORHOOD_CANDIDATES}": str(config["neighborhood_candidates"]),
         "{DISABLED_NEIGHBORHOODS}": _format(config["disabled"]),
+        "{FREE_SEGMENT_RADIUS}": _format(
+            config["free_segment_radius"] or config["comm_range"]
+        ),
         "{NEIGHBORHOOD_PASS_COUNTS}": _format(passes),
     }
 
@@ -225,10 +228,20 @@ def _outcome_replacements(data: dict) -> dict[str, str]:
         key=lambda solution: (solution["reward"], -solution["objectives"][1]),
         default=None,
     )
+    metrics_history = stats.get("metrics_history", [])
+    final_metrics = metrics_history[-1] if metrics_history else {}
+    repair_calls = stats.get("communication_repair_calls", 0)
+    repair_reduced = stats.get("communication_repair_reduced", 0)
+    repair_zeroed = stats.get("communication_repair_zeroed", 0)
+    repair_front_entries = (
+        stats.get("operator_counts", {})
+        .get("communication_repair", {})
+        .get("accepted_front", 0)
+    )
     return {
         "{STATUS}": data["status"],
         "{ELAPSED_SECONDS}": f"{data['elapsed_seconds']:.3f}",
-        "{EVALUATION_COUNT}": str(stats.get("evaluated", 0)),
+        "{EVALUATION_COUNT}": str(stats.get("exact_evaluations", 0)),
         "{OUTER_ITERATION_COUNT}": str(stats.get("iterations", 0)),
         "{ARCHIVE_SIZE}": str(len(data["front"])),
         "{TC_FEASIBLE_ARCHIVE_SIZE}": str(len(feasible)),
@@ -236,10 +249,22 @@ def _outcome_replacements(data: dict) -> dict[str, str]:
         "{BEST_FEASIBLE_MEAN_TIME}": _format(best["objectives"][1] if best else None),
         "{BEST_FEASIBLE_DELTA}": _format(best["peak_staleness"] if best else None),
         "{FINAL_HYPERVOLUME}": _format(stats["archive_hypervolume"]),
+        "{POOL_BASE_FRACTION}": _format(stats.get("pool_base_fraction", 0.0)),
+        "{POOL_TO_FRONT}": str(stats.get("pool_to_front", 0)),
+        "{POOL_TO_FRONT_FROM_REPAIR}": str(stats.get("pool_to_front_from_repair", 0)),
+        "{REPAIR_CALLS}": str(repair_calls),
+        "{REPAIR_REDUCED}": str(repair_reduced),
+        "{REPAIR_ZEROED}": str(repair_zeroed),
+        "{REPAIR_FRONT_ENTRIES}": str(repair_front_entries),
+        "{MEAN_TASK_JACCARD}": _format(stats.get("mean_front_task_jaccard", 0.0)),
         "{CONCISE_EVIDENCE_BASED_OBSERVATIONS}": (
-            f"The run produced {len(data['front'])} archive solutions, "
-            f"{len(feasible)} satisfying Tc, and generated "
-            f"{stats.get('neighborhood_execution_count', 0)} neighborhood calls"
+            f"F contains {len(data['front'])} feasible points and reaches reward "
+            f"{stats.get('maximum_reward', 0)}. P supplied "
+            f"{stats.get('pool_base_fraction', 0):.1%} of bases; repair reduced "
+            f"CV in {repair_reduced}/{repair_calls} calls and reached CV=0 in "
+            f"{repair_zeroed}. The final cache-hit rate was "
+            f"{final_metrics.get('cache_hit_rate', 0):.1%}, and mean task-set "
+            f"Jaccard in F was {stats.get('mean_front_task_jaccard', 0):.3f}"
         ),
         "{RELEVANT_LIMITATIONS_OR_NONE}": (
             "wall-clock stopping can change the final candidate count under different CPU load"
@@ -264,6 +289,81 @@ def _artifact_replacements() -> dict[str, str]:
         "{NEIGHBORHOOD_LOG_LINK}": "result_neighborhoods.json",
     }
     return files
+
+
+def _write_metrics(result_path: Path, output_dir: Path) -> None:
+    """Save mechanism, search health, front quality, cost, and convoy metrics."""
+    data = json.loads(result_path.read_text())
+    stats = data["statistics"]
+    calls = stats.get("communication_repair_calls", 0)
+    exact = stats.get("exact_evaluations", 0)
+    accepted = sum(
+        row.get("accepted_front", 0)
+        for row in stats.get("operator_counts", {}).values()
+    )
+    repair_front_entries = (
+        stats.get("operator_counts", {})
+        .get("communication_repair", {})
+        .get("accepted_front", 0)
+    )
+    metrics = {
+        "schema_version": 1,
+        "mechanism": {
+            "history": stats.get("metrics_history", []),
+            "pool_to_front": stats.get("pool_to_front", 0),
+            "pool_to_front_from_repair": stats.get("pool_to_front_from_repair", 0),
+            "repair_calls": calls,
+            "repair_reduced_cv": stats.get("communication_repair_reduced", 0),
+            "repair_zeroed_cv": stats.get("communication_repair_zeroed", 0),
+            "repair_front_entries": repair_front_entries,
+            "repair_reduction_rate": stats.get("communication_repair_reduced", 0)
+            / calls
+            if calls
+            else 0,
+            "repair_zero_rate": stats.get("communication_repair_zeroed", 0) / calls
+            if calls
+            else 0,
+            "pool_base_fraction": stats.get("pool_base_fraction", 0),
+            "selection_history": stats.get("selection_history", []),
+        },
+        "search_health": {
+            "history": stats.get("metrics_history", []),
+            "operator_counts": stats.get("operator_counts", {}),
+            "pool": stats.get("pool", {}),
+            "cache_hits": stats.get("cache_hits", 0),
+            "exact_evaluations": exact,
+            "initialization_history": stats.get("initialization_history", []),
+        },
+        "front_quality": {
+            "hypervolume": stats.get("archive_hypervolume", 0),
+            "history": [
+                {
+                    "exact_evaluations": row.get("exact_evaluations", 0),
+                    "hypervolume": row.get("hypervolume", 0),
+                    "front_size": row.get("front_size", 0),
+                    "maximum_reward": row.get("maximum_reward", 0),
+                }
+                for row in stats.get("metrics_history", [])
+            ],
+            "front_size": len(data.get("front", [])),
+            "maximum_reward": stats.get("maximum_reward", 0),
+            "minimum_mean_time_at_maximum_reward": stats.get(
+                "minimum_mean_time_at_maximum_reward"
+            ),
+        },
+        "cost_and_convoy": {
+            "elapsed_seconds": data.get("elapsed_seconds"),
+            "exact_evaluations": exact,
+            "new_front_members": accepted,
+            "evaluations_per_new_front_member": stats.get(
+                "evaluations_per_new_front_member"
+            ),
+            "mean_front_task_jaccard": stats.get("mean_front_task_jaccard", 0),
+        },
+    }
+    (output_dir / "metrics.json").write_text(
+        json.dumps(metrics, indent=2, allow_nan=False) + "\n"
+    )
 
 
 def _reproduction_replacements(run_info: dict, output_dir: Path) -> dict[str, str]:
@@ -306,6 +406,7 @@ def _write_readme(output_dir: Path, run_info: dict) -> None:
     artifact_names = [
         "result.json",
         "result_neighborhoods.json",
+        "metrics.json",
         "run-info.json",
         "run.log",
         "reproduce.sh",
@@ -384,6 +485,7 @@ def _complete_run(
     started_utc: str,
 ) -> dict:
     """Generate plots, metadata, and the completed results README."""
+    _write_metrics(result_path, output_dir)
     plot_files = _generate_plots(result_path, output_dir)
     run_info = {
         "schema_version": 1,

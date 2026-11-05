@@ -20,7 +20,7 @@ from scripts.validate_icc import validate
 PROTOCOL=[
     ('tc2-seed42',2,42,[],3),('tc5-seed42',5,42,[],3),('tc10-seed42',10,42,[],3),
     ('tc5-seed7',5,7,[],3),
-    *[(f'without-{family}',5,42,[family],3) for family in ('wait','meeting','free_move','free_remove')],
+    *[(f'without-{family}',5,42,[family],3) for family in ('relay', 'unlink')],
     ('task-only-seed42',5,42,[],0),('task-only-seed7',5,7,[],0),
 ]
 
