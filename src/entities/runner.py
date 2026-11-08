@@ -31,7 +31,7 @@ class Runner:
         self.config = config
         self.rng = Random(config.seed)
         self.evaluator = Evaluator(problem, config)
-        self.archive = Archive(problem, config, self.rng)
+        self.archive = Archive(config, self.rng)
         self.neighborhood = Neighborhood(problem, config, self.rng)
         self.profile = SearchProfile.for_neighborhoods(self.neighborhood.names)
         self.counts: Counter[str] = Counter()

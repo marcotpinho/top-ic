@@ -3,7 +3,7 @@
 from random import Random
 
 from ..archive import Archive as EpsilonArchive
-from ..config import Config, Problem
+from ..config import Config
 from ..solution import Solution
 from .pool import ParetoPool
 from .selection import select_base
@@ -12,7 +12,7 @@ from .selection import select_base
 class Archive:
     """Maintain feasible Pareto representatives and every other valid candidate."""
 
-    def __init__(self, problem: Problem, config: Config, rng: Random) -> None:
+    def __init__(self, config: Config, rng: Random) -> None:
         self.rng = rng
         self.pool_selection_enabled = config.pool_selection_enabled
         self.selection_policy = config.selection_policy
