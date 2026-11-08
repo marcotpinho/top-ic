@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from ..solution import Solution
 from .communication_repair import repair_communication
-from .selection import constrained_dominates
+from .selection import nondominated, pool_vector, vector_dominates
 from .shaking import ruin_recreate
 
 if TYPE_CHECKING:
@@ -92,6 +92,10 @@ def run_iterations(runner: "Runner") -> None:
             runner.active_base = base
             runner.active_base_source = runner.archive.selection_history[-1]["source"]
             initial_front_keys = {solution.key for solution in runner.archive.front}
+            initial_pool_vectors = {
+                pool_vector(solution)
+                for solution in nondominated(runner.archive.pool, pool_vector)
+            }
             shaken = ruin_recreate(base, runner.config, runner.rng, 1 + iteration // 4)
             working = runner.evaluate(shaken, "ruin_recreate")
             if working is None:
@@ -121,9 +125,15 @@ def run_iterations(runner: "Runner") -> None:
                 for solution in runner.archive.front
             )
             pool_improvement = any(
-                constrained_dominates(solution, base)
-                for solution in runner.archive.pool
-                if solution.key != base.key
+                vector not in initial_pool_vectors
+                and not any(
+                    vector_dominates(previous, vector)
+                    for previous in initial_pool_vectors
+                )
+                for vector in (
+                    pool_vector(solution)
+                    for solution in nondominated(runner.archive.pool, pool_vector)
+                )
             )
             runner.archive.mark_expansion(base, new_front or pool_improvement)
             runner.active_base = None
