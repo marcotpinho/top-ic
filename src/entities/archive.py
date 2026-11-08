@@ -1,11 +1,11 @@
-"""Feasible epsilon archive and C-TAEA-style coverage pool."""
+"""Feasible epsilon archive and three-objective Pareto pool."""
 
 from random import Random
 
 from ..archive import Archive as EpsilonArchive
 from ..config import Config, Problem
 from ..solution import Solution
-from .pool import CoveragePool
+from .pool import ParetoPool
 from .selection import select_base
 
 
@@ -22,12 +22,8 @@ class Archive:
             config.eps_reward,
             config.eps_time,
         )
-        self.coverage = CoveragePool(
-            config.dominated_archive_size,
-            config.subregion_divisions,
-            config.pool_max_age,
-            sum(task.reward for task in problem.tasks),
-            max(problem.time_budgets),
+        self.pareto_pool = ParetoPool(
+            config.dominated_archive_size, config.pool_max_age
         )
         self.selection_history: list[dict] = []
         self.last_addition = {"front": False, "pool": False, "displaced": 0}
@@ -38,7 +34,7 @@ class Archive:
 
     @property
     def pool(self) -> list[Solution]:
-        return self.coverage.solutions
+        return self.pareto_pool.solutions
 
     def _communication_feasible(self, solution: Solution) -> bool:
         return solution.evaluation.comm_violation <= self.tolerance
@@ -68,7 +64,7 @@ class Archive:
         if not retained:
             pool_candidates.append(solution)
         before_pool = {item.key for item in self.pool}
-        self.coverage.update(pool_candidates, self.front)
+        self.pareto_pool.update(pool_candidates, self.front)
         after_pool = {item.key for item in self.pool}
         self.last_addition = {
             "front": retained,
@@ -90,6 +86,6 @@ class Archive:
         return solution
 
     def mark_expansion(self, solution: Solution, improved: bool) -> None:
-        self.coverage.set_expansion_result(solution, improved)
+        self.pareto_pool.set_expansion_result(solution, improved)
         if self.selection_history:
             self.selection_history[-1]["improved"] = improved

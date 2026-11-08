@@ -127,13 +127,13 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--disable-pool-selection",
         action="store_true",
-        help="ablation: update the coverage pool but select search bases only from F",
+        help="ablation: update the Pareto pool but select search bases only from F",
     )
     parser.add_argument(
         "--selection-policy",
         choices=["nd_count", "legacy_fraction"],
         default="nd_count",
-        help="archive selection rule; legacy_fraction reproduces the pre-correction ablation",
+        help="archive selection probabilities; legacy_fraction uses nondominated fractions",
     )
     parser.add_argument(
         "--waypoint-workspace",

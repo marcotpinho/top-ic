@@ -112,18 +112,12 @@ class Runner:
         )
 
     def record_metrics(self, iteration: int) -> None:
-        """Record health, coverage, CV, cache, and quality against exact evaluations."""
+        """Record archive health, CV, cache, and quality against exact evaluations."""
         pool_cvs = [item.evaluation.comm_violation for item in self.archive.pool]
-        front_regions = {
-            self.archive.coverage.subregion(item) for item in self.archive.front
-        }
-        pool_regions = {
-            self.archive.coverage.subregion(item) for item in self.archive.pool
-        }
         requests = self.counts["cache_hits"] + self.counts["exact_evaluations"]
         selections = self.archive.selection_history
         pool_selections = sum(row["source"] == "pool" for row in selections)
-        diagnostics = self.archive.coverage.diagnostics()
+        diagnostics = self.archive.pareto_pool.diagnostics()
         last_selection = selections[-1] if selections else {}
         self.metrics_history.append(
             {
@@ -131,8 +125,6 @@ class Runner:
                 "exact_evaluations": self.counts["exact_evaluations"],
                 "front_size": len(self.archive.front),
                 "pool_size": len(self.archive.pool),
-                "front_occupied_subregions": len(front_regions),
-                "pool_occupied_subregions": len(pool_regions),
                 "pool_min_cv": min(pool_cvs, default=None),
                 "pool_median_cv": median(pool_cvs) if pool_cvs else None,
                 "pool_mean_age": (
@@ -142,6 +134,7 @@ class Runner:
                 ),
                 "pool_age_discards": diagnostics["age_discards"],
                 "pool_capacity_discards": diagnostics["capacity_discards"],
+                "pool_dominance_discards": diagnostics["dominance_discards"],
                 "pool_base_fraction": pool_selections / len(selections)
                 if selections
                 else 0.0,

@@ -66,7 +66,7 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "neighborhood_executions": list(runner.neighborhood.executions),
             "budget_repairs": list(runner.budget_repairs),
             "pool_size": len(runner.archive.pool),
-            "pool": runner.archive.coverage.diagnostics(),
+            "pool": runner.archive.pareto_pool.diagnostics(),
             "pool_base_fraction": (
                 sum(row["source"] == "pool" for row in runner.archive.selection_history)
                 / len(runner.archive.selection_history)

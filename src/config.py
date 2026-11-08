@@ -126,7 +126,6 @@ class Config:
     handshake_time: float = 0.5
     recurrence_bound: float = 5.0
     dominated_archive_size: int = 100
-    subregion_divisions: int = 20
     pool_max_age: int = 5
     communication_repair_rounds: int = 3
     pool_selection_enabled: bool = True
@@ -167,7 +166,6 @@ class Config:
                 self.neighborhood_max_passes,
                 self.archive_size,
                 self.dominated_archive_size,
-                self.subregion_divisions,
                 self.headings,
                 self.neighborhood_candidates,
                 self.recreate_sample_slots,
