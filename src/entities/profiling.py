@@ -40,6 +40,7 @@ class SearchProfile:
     evaluator_seconds: float = 0.0
     budget_repair_seconds: float = 0.0
     budget_precheck_seconds: float = 0.0
+    budget_contact_check_seconds: float = 0.0
     neighborhoods: dict[str, NeighborhoodTiming] = field(default_factory=dict)
 
     @classmethod
