@@ -48,11 +48,14 @@ def _search_family(
     iteration: int,
     pass_index: int,
 ) -> tuple[float, list[Solution]]:
-    """Run one family pass and return its gain and retained archive entrants."""
+    """Return CV reduction for an infeasible base, otherwise front hypervolume gain."""
     timing = runner.profile.neighborhoods[name]
     timing.calls += 1
     initial_keys = {solution.key for solution in runner.archive.front}
     initial_hypervolume = runner.archive_hypervolume()
+    base_cv = base.evaluation.comm_violation
+    best_cv = base_cv
+    cv_entrants = []
     started = perf_counter()
     try:
         candidates = list(_timed_candidates(runner, name, base, iteration, pass_index))
@@ -63,7 +66,14 @@ def _search_family(
                 break
             evaluation_started = perf_counter()
             try:
-                runner.evaluate(candidate, name)
+                scored = runner.evaluate(candidate, name)
+                if scored is not None and scored.evaluation.valid:
+                    cv = scored.evaluation.comm_violation
+                    if cv < best_cv:
+                        best_cv = cv
+                        cv_entrants = [scored]
+                    elif cv == best_cv and cv < base_cv:
+                        cv_entrants.append(scored)
             finally:
                 timing.evaluation_seconds += perf_counter() - evaluation_started
         execution["candidates_evaluated"] = (
@@ -71,6 +81,8 @@ def _search_family(
         )
     finally:
         timing.total_seconds += perf_counter() - started
+    if base_cv > runner.config.numerical_tolerance:
+        return base_cv - best_cv, cv_entrants
     entrants = [
         solution
         for solution in runner.archive.front
@@ -113,13 +125,18 @@ def run_iterations(runner: "Runner") -> None:
                 for pass_index in range(runner.config.neighborhood_max_passes):
                     if runner.exhausted():
                         break
+                    threshold = (
+                        runner.config.numerical_tolerance
+                        if pass_base.evaluation.comm_violation # Is from unfeasible base, so we want to reduce CV
+                        > runner.config.numerical_tolerance
+                        else runner.config.neighborhood_hv_tau # Is from feasible base, so we want to improve hypervolume
+                    )
                     improvement, entrants = _search_family(
                         runner, name, pass_base, iteration, pass_index
                     )
-                    if improvement <= runner.config.neighborhood_hv_tau or not entrants:
+                    if improvement <= threshold or not entrants:
                         break
-                    if pass_index + 1 < runner.config.neighborhood_max_passes:
-                        pass_base = runner.rng.choice(entrants)
+                    working = pass_base = runner.rng.choice(entrants)
             new_front = any(
                 solution.key not in initial_front_keys
                 for solution in runner.archive.front
