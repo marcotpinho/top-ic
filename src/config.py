@@ -123,7 +123,6 @@ class Config:
     velocity_segment_lengths: tuple[int, ...] = (2, 3)
     disabled: tuple[str, ...] = ()
     comm_range: float = 2.0
-    handshake_time: float = 0.5
     recurrence_bound: float = 5.0
     dominated_archive_size: int = 100
     pool_max_age: int = 5
@@ -212,14 +211,10 @@ class Config:
         if (
             not isfinite(self.comm_range)
             or self.comm_range <= 0
-            or not isfinite(self.handshake_time)
-            or self.handshake_time < 0
             or not isfinite(self.recurrence_bound)
             or self.recurrence_bound <= 0
         ):
-            raise ValueError(
-                "Communication range/window must be positive, handshake nonnegative"
-            )
+            raise ValueError("Communication range/window must be positive")
         if not all(isfinite(s) and s > 0 for s in self.waypoint_steps):
             raise ValueError("Neighborhood step sizes must be positive")
         if self.waypoint_workspace is not None and (

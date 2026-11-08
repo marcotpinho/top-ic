@@ -31,7 +31,7 @@ def plot_communication(data,directory,prefix='full'):
     for i,record in enumerate(records):
         for s,e in record['raw']:axes[0].plot([s,e],[i,i],color='lightgray',linewidth=7)
         for s,e in record['effective']:axes[0].plot([s,e],[i,i],color='tab:blue',linewidth=3,marker='.' if s==e else None)
-    axes[0].set(yticks=range(len(records)),yticklabels=[f"{r['agents'][0]+1}–{r['agents'][1]+1}" for r in records],ylabel='Agent pair',title='Raw contacts (gray), usable links after handshake (blue)')
+    axes[0].set(yticks=range(len(records)),yticklabels=[f"{r['agents'][0]+1}–{r['agents'][1]+1}" for r in records],ylabel='Agent pair',title='Instantaneous in-range links (blue)')
     trace=chosen['communication']['history'];times=[];ages=[]
     for t,left,event in trace:times.extend([t,t]);ages.extend([left,event])
     axes[1].plot(times,ages,label='Peak instantaneous information age')

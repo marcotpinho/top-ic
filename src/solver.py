@@ -109,6 +109,7 @@ def result_to_dict(result: RunResult) -> dict:
         "reward_policy": "explicit_task_visits",
         "objective_policy": "reward_time_feasible_archive",
         "model": "box_double_integrator",
+        "communication_policy": "instantaneous_range",
         "connector_version": VERSION,
         "problem": problem_to_dict(result.problem),
         "config": asdict(result.config),

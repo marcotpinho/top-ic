@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .contacts import effective_intervals, pair_contacts
+from .contacts import pair_contacts
 from .trajectory import AgentTrajectory
 
 
@@ -74,9 +74,7 @@ def sweep(
         not (0 <= m < n < num_agents and 0 <= s <= e <= horizon) for m, n, s, e in links
     ):
         raise ValueError("Invalid effective link")
-    breakpoints = sorted(
-        set([0.0, horizon, *[t for _, _, s, e in links for t in (s, e)]])
-    )
+    breakpoints = sorted({0.0, horizon, *(t for _, _, s, e in links for t in (s, e))})
     clock = np.zeros((num_agents, num_agents))
     history = []
     delta = 0.0
@@ -147,7 +145,6 @@ def sweep(
 def evaluate_communication(
     trajectories: tuple[AgentTrajectory, ...],
     radius: float,
-    handshake: float,
     recurrence_bound: float | None = None,
 ) -> CommunicationResult:
     horizon = max(t.completion_time for t in trajectories)
@@ -155,7 +152,5 @@ def evaluate_communication(
     for m in range(len(trajectories)):
         for n in range(m + 1, len(trajectories)):
             raw = pair_contacts(trajectories[m], trajectories[n], horizon, radius)
-            records.append(
-                ContactRecord((m, n), raw, effective_intervals(raw, handshake))
-            )
+            records.append(ContactRecord((m, n), raw, raw))
     return sweep(len(trajectories), horizon, records, recurrence_bound)

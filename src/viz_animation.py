@@ -82,7 +82,7 @@ def save_path_animation(
     """Save a GIF of the plotted solution, with a shared mission clock for all agents.
 
     Saved motion pieces determine positions; arrival holds the agent at its end.
-    Effective links use the evaluator's intervals, including handshake semantics.
+    Links become active immediately within communication range.
     Rendering consumes no search randomness and runs after optimization finishes.
     """
     if fps <= 0 or playback_seconds <= 0:

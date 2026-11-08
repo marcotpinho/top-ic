@@ -107,12 +107,6 @@ def _parser() -> argparse.ArgumentParser:
         help="maximum Euclidean communication range in map distance units",
     )
     parser.add_argument(
-        "--handshake-time",
-        type=float,
-        default=0.5,
-        help="continuous contact time required before a later link becomes effective",
-    )
-    parser.add_argument(
         "--recurrence-bound",
         type=float,
         default=5.0,
@@ -181,7 +175,6 @@ def _config(args: argparse.Namespace) -> Config:
         velocity_segment_lengths=tuple(args.velocity_segment_lengths),
         disabled=tuple(args.disable),
         comm_range=args.comm_range,
-        handshake_time=args.handshake_time,
         recurrence_bound=args.recurrence_bound,
         dominated_archive_size=args.dominated_archive_size,
         pool_selection_enabled=not args.disable_pool_selection,

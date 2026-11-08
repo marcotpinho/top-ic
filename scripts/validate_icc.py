@@ -203,7 +203,7 @@ def validate_solution(data,solution,require_feasible=True):
     for m in range(M):
         for n in range(m+1,M):
             raw=independent_contacts(solution['trajectories'][m],solution['trajectories'][n],T,c['comm_range'])
-            effective=[(s,e) if s==0 else (s+c['handshake_time'],e) for s,e in raw if s==0 or e-s>=c['handshake_time']]
+            effective=raw
             recomputed.append({'agents':[m,n],'raw':raw,'effective':effective})
     original=solution['communication']['contacts']
     assert len(original)==len(recomputed)

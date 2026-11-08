@@ -39,7 +39,7 @@ def main():
         assert len(manifest['runs'])<10
         output=out/f'{label}.json'
         command=[sys.executable,'-m','topcc.main','--instance',str(ROOT/'benchmarks/tsiligirides/icc-20s.json'),
-                 '--recurrence-bound',str(tc),'--comm-range','2','--handshake-time','.5',
+                 '--recurrence-bound',str(tc),'--comm-range','2',
                  '--max-free-waypoints',str(cap),'--seed',str(seed),'--max-seconds','45','--max-evaluations','2000',
                  '--max-iterations','80','--eps-reward','1','--eps-time','.1','--output',str(output)]
         if disabled:command+=['--disable',*disabled]

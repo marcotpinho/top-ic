@@ -192,7 +192,6 @@ def _search_replacements(config: dict, stats: dict) -> dict[str, str]:
         "{ITERATION_CAP}": str(config["max_iterations"]),
         "{COMMUNICATION_RANGE}": _format(config["comm_range"]),
         "{DISTANCE_UNITS}": "m",
-        "{HANDSHAKE_TIME}": _format(config["handshake_time"]),
         "{RECURRENCE_BOUND}": _format(config["recurrence_bound"]),
         "{HV_THRESHOLD}": _format(config["neighborhood_hv_tau"]),
         "{MAX_NEIGHBORHOOD_PASSES}": str(config["neighborhood_max_passes"]),
@@ -401,7 +400,9 @@ def _write_readme(output_dir: Path, run_info: dict) -> None:
         **_reproduction_replacements(run_info, output_dir),
     }
     template = (ROOT / "docs/templates/README.md").read_text()
-    readme = template
+    readme = template.replace(
+        "handshake delta = `{HANDSHAKE_TIME}` s", "instantaneous in-range communication"
+    )
     for placeholder, value in replacements.items():
         readme = readme.replace(placeholder, value)
     artifact_names = [

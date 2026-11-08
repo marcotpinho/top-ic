@@ -167,7 +167,6 @@ class Evaluator:
         communication = evaluate_communication(
             trajectories,
             self.config.comm_range,
-            self.config.handshake_time,
             self.config.recurrence_bound,
         )
         violation = sum(

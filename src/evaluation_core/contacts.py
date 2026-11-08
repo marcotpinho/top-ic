@@ -199,17 +199,3 @@ def pair_contacts(
         if eb <= ea:
             j += 1
     return merge_intervals(intervals)
-
-
-def effective_intervals(
-    raw: tuple[Interval, ...], handshake: float
-) -> tuple[Interval, ...]:
-    if not math.isfinite(handshake) or handshake < 0:
-        raise ValueError("Invalid handshake")
-    effective = []
-    for start, end in raw:
-        if start == 0:
-            effective.append((start, end))
-        elif end - start >= handshake:
-            effective.append((start + handshake, end))
-    return tuple(effective)

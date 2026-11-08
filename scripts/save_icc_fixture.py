@@ -72,7 +72,6 @@ def save_fixture(directory: str | Path) -> dict[str, dict]:
     )
     config = Config(
         comm_range=1,
-        handshake_time=0.25,
         recurrence_bound=5.05,
         waypoint_workspace=(-1, 9, -4, 4),
     )
