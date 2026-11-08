@@ -45,12 +45,11 @@ The initial convention uses componentwise limits. A diagonal vector can have mag
 | $\iota_{mk}$ | Task ID when the visit is TASK | `visit.task_id` |
 | $z_{mk}$ | Visit position; fixed for tasks, adjustable for FREE | `visit.position` |
 | $v_{mk}$ | Arrival/departure boundary velocity | `visit.velocity` |
-| $w_{mk}$ | Pre-departure wait; positive only at zero velocity | `visit.wait_duration` |
 | $D_{mk}$ | Duration of motion connecting visit $k$ to $k+1$ | `connection.duration` |
 | $h_{mq}$ | Duration of constant-acceleration piece $q$ | `piece.duration` |
 | $a_{mq}$ | Acceleration vector on piece $q$ | `piece.acceleration` |
 
-Connector-generated durations/accelerations are derived from endpoint states in the initial implementation. If explicit duration/profile choices are later introduced, they become stored decisions and part of solution identity. Wait at terminal END is zero; post-arrival stationary presence is derived separately.
+Connector-generated durations/accelerations are derived from endpoint states in the initial implementation. If explicit duration/profile choices are later introduced, they become stored decisions and part of solution identity. Arrival and departure coincide at each visit; post-arrival stationary presence at END is derived separately.
 
 ## Derived trajectories, rewards, and expenditure
 
@@ -66,7 +65,7 @@ Connector-generated durations/accelerations are derived from endpoint states in 
 | $Q$ | Team reward over $\bigcup_m\mathcal Q_m$ | `total_reward` |
 | $L_m$ | Integrated path length; diagnostic only | `path_length[m]` |
 
-Use occurrence-indexed arrival times, never one time per task per agent. Waiting before final arrival counts toward $c_m$. Presence at the destination on $[c_m,T]$ contributes to communication without increasing $c_m$.
+Use occurrence-indexed arrival times, never one time per task per agent. There are no pauses before final arrival. Presence at the destination on $[c_m,T]$ contributes to communication without increasing $c_m$.
 
 ## Communication and evaluation
 
@@ -106,7 +105,7 @@ Keep handshake $\delta$ and staleness $\Delta$ distinct in code. Effective initi
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-A least-schedule difference-constraint solver schedules fixed route connections and explicit stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
+Consecutive fixed route connections determine visit times, with identical arrival and departure times at every visit. Travel is charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
 
 The current ICC archive publishes only movement-, budget-, and communication-feasible solutions in two objectives. `CV`, $P_{nm}$ and $A_c$ remain constraint values or diagnostics. A separate pool preserves objective-space coverage among valid candidates outside the feasible archive.
 

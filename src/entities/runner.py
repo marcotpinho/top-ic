@@ -27,8 +27,6 @@ class Runner:
     """Own one RNG and pass it through all stochastic search components."""
 
     def __init__(self, problem: Problem, config: Config) -> None:
-        if config.mode != "team_kop_icc":
-            raise ValueError("The rebuilt Runner supports team_kop_icc only")
         self.problem = problem
         self.config = config
         self.rng = Random(config.seed)

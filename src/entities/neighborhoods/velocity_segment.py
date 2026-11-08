@@ -14,14 +14,12 @@ name = "velocity_segment"
 def _segments(
     solution: Solution, lengths: tuple[int, ...]
 ) -> list[tuple[int, int, int]]:
-    """Return configured contiguous non-wait blocks."""
+    """Return configured contiguous interior visit blocks."""
     segments = []
     for agent, route in enumerate(solution.routes):
         for length in lengths:
             for start_index in range(1, len(route) - length):
-                block = route[start_index : start_index + length]
-                if all(visit.wait == 0 for visit in block):
-                    segments.append((agent, start_index, length))
+                segments.append((agent, start_index, length))
     return segments
 
 

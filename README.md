@@ -1,6 +1,6 @@
 # Acceleration-aware Kinematic Orienteering
 
-Staged implementation: MOVNS for single-agent KOP, multi-agent KOP, then intermittent communication. Flight-time budgets are seconds; pre-arrival waits count, terminal presence is free. Collisions are ignored. Objectives are reward maximization and mean completion-time minimization.
+Staged implementation: MOVNS for single-agent KOP, multi-agent KOP, then intermittent communication. Flight-time budgets are seconds; travel has no pre-arrival pauses; terminal presence is free. Collisions are ignored. Objectives are reward maximization and mean completion-time minimization.
 
 See [implementation status](docs/implementation.md) and [specification](spec/README.md).
 
@@ -44,7 +44,7 @@ Regenerate plots without running optimization:
 .venv/bin/python scripts/plot_results.py results/step3/full.json /tmp/kop-team-plots
 ```
 
-Communication and free waypoints are now available on `implementation/step4-intermittent-communication` via `--mode team_kop_icc`. Collisions remain ignored.
+Communication and free waypoints are now available on `implementation/step4-intermittent-communication`. Collisions remain ignored.
 
 ## Stage 4 results and data
 

@@ -9,13 +9,13 @@
 - **Flight-time budgets:** `{BUDGETS_SECONDS}`.
 - **Tasks and rewards:** `{TASK_COUNT}` tasks; total available reward `{TOTAL_REWARD}`; reward collection rule `{REWARD_RULE}`.
 - **Communication constraints:** range R = `{COMMUNICATION_RANGE}` `{DISTANCE_UNITS}`; handshake delta = `{HANDSHAKE_TIME}` s; recurrence bound Tc = `{RECURRENCE_BOUND}` s.
-- **Other model constraints and assumptions:** `{COLLISION_RULES}`, `{WAIT_RULES}`, `{OTHER_ASSUMPTIONS}`.
+- **Other model constraints and assumptions:** `{COLLISION_RULES}`, `{MOTION_RULES}`, `{OTHER_ASSUMPTIONS}`.
 - **Search:** algorithm `{ALGORITHM}`; seed `{SEED}`; time cap `{TIME_CAP_SECONDS}` s; evaluation cap `{EVALUATION_CAP}`; outer-iteration cap `{ITERATION_CAP}`.
 - **Neighborhood repetition:** normalized hypervolume threshold tau = `{HV_THRESHOLD}`; maximum passes p_max = `{MAX_NEIGHBORHOOD_PASSES}`.
 - **Communication violation:** `CV` is the sum of ordered-pair staleness excesses over Tc; it is a constraint and pool diagnostic, not an objective.
 - **Segment FREE moves:** insertion or relocation around an actual route connector, with lateral offsets within ±`{FREE_SEGMENT_RADIUS}` m; feasibility checked after each edit.
 - **Archive:** epsilon widths `{EPSILON_WIDTHS}`; normalized hypervolume reference point `{HV_REFERENCE_POINT}`; normalization scales `{HV_SCALES}`.
-- **Other search limits:** `{WAYPOINT_STEPS}`, `{WAIT_STEPS}`, velocity segment lengths `{VELOCITY_SEGMENT_LENGTHS}`, FREE visits per route `{MAX_FREE_WAYPOINTS}`, `{NEIGHBORHOOD_CANDIDATES}`, `{DISABLED_NEIGHBORHOODS}`.
+- **Other search limits:** `{WAYPOINT_STEPS}`, velocity segment lengths `{VELOCITY_SEGMENT_LENGTHS}`, FREE visits per route `{MAX_FREE_WAYPOINTS}`, `{NEIGHBORHOOD_CANDIDATES}`, `{DISABLED_NEIGHBORHOODS}`.
 
 ## Results and observations
 

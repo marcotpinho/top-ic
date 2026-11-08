@@ -1,11 +1,10 @@
 """Bounded communication repair driven by the current ordered-pair bottleneck."""
 
-from dataclasses import replace
 from math import atan2, cos, hypot, sin
 from typing import TYPE_CHECKING
 
 from ..solution import Solution, Visit
-from .neighborhoods.common import edited, fresh_id, in_workspace
+from .neighborhoods.common import fresh_id, in_workspace
 
 if TYPE_CHECKING:
     from .runner import Runner
@@ -36,30 +35,9 @@ def _ranked_visit_pairs(solution: Solution, limit: int = 8):
     return sorted(pairs)[:limit]
 
 
-def _link_candidates(runner: "Runner", solution: Solution):
-    wait = runner.config.handshake_time
-    for _, distance, host, host_index, guest, guest_index in _ranked_visit_pairs(
-        solution
-    ):
-        host_route = list(solution.routes[host])
-        guest_route = list(solution.routes[guest])
-        if distance <= runner.config.comm_range:
-            host_route[host_index] = replace(
-                host_route[host_index], velocity=(0.0, 0.0), wait=wait
-            )
-            guest_route[guest_index] = replace(
-                guest_route[guest_index], velocity=(0.0, 0.0), wait=wait
-            )
-            routes = list(solution.routes)
-            routes[host] = tuple(host_route)
-            routes[guest] = tuple(guest_route)
-            yield Solution(tuple(routes))
-
-
 def _invitation_candidates(runner: "Runner", solution: Solution):
     radius = 0.9 * runner.config.comm_range
     offsets = (-0.25, 0.0, 0.25)
-    durations = (0.5, 1.0, 1.5)
     for _, _, host, host_index, guest, guest_index in _ranked_visit_pairs(solution):
         host_visit = solution.routes[host][host_index]
         guest_visit = solution.routes[guest][guest_index]
@@ -74,50 +52,20 @@ def _invitation_candidates(runner: "Runner", solution: Solution):
             )
             if not in_workspace(point, runner.config.waypoint_workspace):
                 continue
-            for duration_factor in durations:
-                host_route = list(solution.routes[host])
-                host_route[host_index] = replace(
-                    host_visit,
-                    velocity=(0.0, 0.0),
-                    wait=duration_factor * runner.config.handshake_time,
-                )
-                guest_route = list(solution.routes[guest])
-                guest_route.insert(
-                    max(1, guest_index),
-                    Visit(fresh_id(solution, "invite"), "FREE", point),
-                )
-                routes = list(solution.routes)
-                routes[host] = tuple(host_route)
-                routes[guest] = tuple(guest_route)
-                yield Solution(tuple(routes))
-
-
-def _retiming_candidates(runner: "Runner", solution: Solution):
-    for agent, route in enumerate(solution.routes):
-        for visit_index, visit in enumerate(route[:-1]):
-            if visit.kind != "FREE" and visit.wait <= 0:
-                continue
-            for step in runner.config.wait_steps:
-                updated = replace(
-                    visit,
-                    velocity=(0.0, 0.0),
-                    wait=max(0.0, visit.wait + step),
-                )
-                changed = list(route)
-                changed[visit_index] = updated
-                yield edited(solution, agent, changed)
+            guest_route = list(solution.routes[guest])
+            guest_route.insert(
+                max(1, guest_index),
+                Visit(fresh_id(solution, "invite"), "FREE", point),
+            )
+            routes = list(solution.routes)
+            routes[guest] = tuple(guest_route)
+            yield Solution(tuple(routes))
 
 
 def _candidate_set(runner: "Runner", solution: Solution) -> list[Solution]:
     candidates = {}
-    generators = (
-        _link_candidates(runner, solution),
-        _invitation_candidates(runner, solution),
-        _retiming_candidates(runner, solution),
-    )
-    for generator in generators:
-        for candidate in generator:
-            candidates.setdefault(candidate.key, candidate)
+    for candidate in _invitation_candidates(runner, solution):
+        candidates.setdefault(candidate.key, candidate)
     values = list(candidates.values())
     runner.rng.shuffle(values)
     return values[: runner.config.neighborhood_candidates]

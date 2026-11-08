@@ -17,8 +17,6 @@ def _proposals(
     for agent, route in enumerate(solution.routes):
         menu = velocity_menu(problem.limits[agent], config)
         for visit_index, visit in enumerate(route[1:-1], 1):
-            if visit.wait > 0:
-                continue
             for velocity in menu:
                 if velocity != visit.velocity:
                     route_copy = list(route)
@@ -38,7 +36,7 @@ def generate(
     config: Config,
     rng: Random,
 ) -> Iterator[Solution]:
-    """Try alternative menu velocities at individual non-wait visits."""
+    """Try alternative menu velocities at individual interior visits."""
     for agent, visit_index, velocity in sample_candidates(
         _proposals(solution, problem, config),
         rng,

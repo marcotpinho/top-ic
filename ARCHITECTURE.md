@@ -62,7 +62,7 @@ The notation follows [docs/variables.md](docs/variables.md) and
 | Symbol | Code |
 |---|---|
 | $\pi_m$, $\kappa_{mk}$, $\iota_{mk}$ | `Solution.routes[m]`, `Visit.kind`, `Visit.task_id` |
-| $z_{mk}$, $v_{mk}$, $w_{mk}$ | `Visit.position`, `Visit.velocity`, `Visit.wait` |
+| $z_{mk}$, $v_{mk}$ | `Visit.position`, `Visit.velocity` |
 | $\mathcal P$ | `Solution.meetings` |
 | $p_m(t)$, $v_m(t)$, $a_m(t)$ | `AgentTrajectory`, `MotionPiece` |
 | $c_m$, $B_m$ | `Evaluation.completion_times[m]`, `Problem.time_budgets[m]` |

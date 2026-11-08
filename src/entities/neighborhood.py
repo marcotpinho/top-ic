@@ -33,8 +33,6 @@ class Neighborhood:
         self.problem = problem
         self.config = config
         self.rng = rng
-        if config.mode != "team_kop_icc":
-            raise ValueError("The rebuilt search supports team_kop_icc only")
         self.names = tuple(name for name in self.ICC if name not in config.disabled)
         self.executions: list[dict] = []
 

@@ -17,7 +17,7 @@ def validate_motion(data):
             route=solution['routes'][m]
             assert route[0]['kind']=='START' and route[-1]['kind']=='END'
             assert route[0]['position']==problem['start'] and route[-1]['position']==problem['end']
-            assert route[-1]['velocity']==[0.,0.] and route[-1]['wait']==0
+            assert route[-1]['velocity']==[0.,0.]
             agent=problem['agents'][m];position=np.array(problem['start']);velocity=np.array(agent['initial_velocity']);elapsed=0.;visits={}
             for piece in trajectory['pieces']:
                 count+=1;h=piece['duration'];assert h>0
@@ -51,8 +51,6 @@ def validate_motion(data):
                     assert visit['task_id'] is None
                     bounds=data['config']['waypoint_workspace']
                     if bounds: assert bounds[0]<=visit['position'][0]<=bounds[1] and bounds[2]<=visit['position'][1]<=bounds[3]
-                assert visit['wait']>=0
-                if visit['wait']>0:assert visit['velocity']==[0.,0.]
             if explicit_rewards:
                 for k,visit in enumerate(route):
                     if visit['kind']=='TASK':
@@ -194,12 +192,11 @@ def validate_solution(data,solution,require_feasible=True):
         assert len(route)==len(times)
         for v,(arrival,departure) in zip(route,times):
             assert 0<=arrival<=departure<=tr['completion_time']+2e-6
-            assert departure-arrival>=v['wait']-2e-6
+            assert abs(departure-arrival)<=2e-6
             for t in (arrival,departure):
                 p,vel=state_at(tr,t)
                 assert max(abs(p-np.array(v['position'])))<2e-6
                 assert max(abs(vel-np.array(v['velocity'])))<2e-6
-            if departure>arrival+2e-6:assert v['velocity']==[0,0]
     recomputed=[]
     for m in range(M):
         for n in range(m+1,M):

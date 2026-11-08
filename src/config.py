@@ -88,7 +88,6 @@ class Problem:
 
 @dataclass(frozen=True)
 class Config:
-    mode: str = "team_kop_icc"
     seed: int = 42
     max_seconds: float = 30.0
     max_evaluations: int = 2000
@@ -103,7 +102,6 @@ class Config:
     speed_fractions: tuple[float, ...] = (0.0, 0.5, 1.0)
     velocity_segment_lengths: tuple[int, ...] = (2, 3)
     disabled: tuple[str, ...] = ()
-    algorithm: str = "movns"
     comm_range: float = 2.0
     handshake_time: float = 0.5
     recurrence_bound: float = 5.0
@@ -115,7 +113,6 @@ class Config:
     selection_policy: str = "nd_count"
     waypoint_workspace: tuple[float, float, float, float] | None = None
     waypoint_steps: tuple[float, ...] = (1.0, 0.25)
-    wait_steps: tuple[float, ...] = (0.25, 1.0)
     neighborhood_candidates: int = 120
     free_segment_radius: float | None = None  # Lateral offset bound; None uses R.
     recreate_sample_slots: int = 8
@@ -126,7 +123,6 @@ class Config:
     contact_tolerance: float = 2e-7
     numerical_tolerance: float = 1e-13
     budget_tolerance: float = 1e-7
-    schedule_tolerance: float = 1e-8
 
     def __post_init__(self):
         # JSON arrays must not leave mutable containers inside a frozen config.
@@ -135,7 +131,6 @@ class Config:
             "velocity_segment_lengths",
             "disabled",
             "waypoint_steps",
-            "wait_steps",
             "relay_radius_fractions",
         ):
             object.__setattr__(self, name, tuple(getattr(self, name)))
@@ -143,10 +138,6 @@ class Config:
             object.__setattr__(
                 self, "waypoint_workspace", tuple(self.waypoint_workspace)
             )
-        if self.mode != "team_kop_icc":
-            raise ValueError("Only team_kop_icc is supported")
-        if self.algorithm != "movns":
-            raise ValueError("Only MOVNS is supported")
         if not isfinite(self.max_seconds) or not 0 < self.max_seconds <= 3600:
             raise ValueError("Runtime limit must be in (0,3600] seconds")
         if (
@@ -195,7 +186,6 @@ class Config:
                 self.contact_tolerance,
                 self.numerical_tolerance,
                 self.budget_tolerance,
-                self.schedule_tolerance,
             )
         ):
             raise ValueError("Tolerances must be positive and finite")
@@ -212,9 +202,7 @@ class Config:
             raise ValueError(
                 "Communication range/window must be positive, handshake nonnegative"
             )
-        if not all(
-            isfinite(s) and s > 0 for s in self.waypoint_steps + self.wait_steps
-        ):
+        if not all(isfinite(s) and s > 0 for s in self.waypoint_steps):
             raise ValueError("Neighborhood step sizes must be positive")
         if self.waypoint_workspace is not None and (
             len(self.waypoint_workspace) != 4

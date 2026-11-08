@@ -22,9 +22,9 @@ The proposed initial motion convention is KOP-compatible componentwise velocity 
 
 ## Flight-time budget and objectives
 
-Each agent has a flight-time budget measured in seconds. Expenditure is elapsed time from mission start to final arrival, including travel and all waiting before arrival. Waiting is possible only at zero velocity; stopping requires feasible deceleration.
+Each agent has a flight-time budget measured in seconds. Expenditure is elapsed time from mission start to final arrival, including travel without pauses before arrival. Visits have identical arrival and departure times.
 
-An agent stops consuming budget after final arrival, remains at the destination, and continues to communicate until the last agent arrives. Thus an early agent's terminal waiting affects communication but neither expenditure nor completion time. The mission horizon is the maximum individual completion time.
+An agent stops consuming budget after final arrival, remains at the destination, and continues to communicate until the last agent arrives. Thus an early agent's terminal presence affects communication but neither expenditure nor completion time. The mission horizon is the maximum individual completion time.
 
 The ICC stage reports two Pareto objectives:
 
@@ -52,7 +52,7 @@ No extra final-delivery requirement is imposed. A contact at the destination sti
 
 The communication stage adds actual visit positions that are not task locations. They can shape motion and have no intrinsic reward, even when their coordinates coincide with a task. These waypoints are visited positions, not spline control points that the trajectory need not traverse.
 
-MOVNS changes task selection/order/assignment, visit velocities, stopped waits, and, in the third stage, free positions. A deterministic connector constructs complete acceleration-feasible trajectories. Continuous contact extraction and temporal propagation then evaluate communication. Minimum-time connectors are a starting point; waiting and changed motion states allow communication-aware schedules.
+MOVNS changes task selection/order/assignment, visit velocities and, in the third stage, free positions. A deterministic connector constructs complete acceleration-feasible trajectories. Continuous contact extraction and temporal propagation then evaluate communication. Minimum-time connectors are a starting point; changed motion states allow communication-aware schedules.
 
 A general nonlinear inner optimizer is optional refinement, not a mandatory part of every candidate evaluation. The baseline uses visit-level motion states and continuous trajectories rather than a uniform time-expanded workspace graph. See [neighborhood structures](neighborhood_structures.md), [variables](variables.md), and [mathematical formulation](math_formulation.md).
 
@@ -62,13 +62,13 @@ See [implementation milestones](implementation.md) for supported stages, validat
 
 Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication is implemented on the step 4 branch.
 
-Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints remain ignored. Communication and FREE visits are enabled only in `team_kop_icc` mode. Contacts arise from trajectories; the solution model has no planned-meeting decisions.
+Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints remain ignored. Communication and FREE visits are always enabled. Contacts arise from trajectories; the solution model has no planned-meeting decisions.
 
 ## Step 4 implementation
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-A least-schedule difference-constraint solver schedules fixed route connections and explicit stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
+Consecutive fixed route connections determine visit times, with identical arrival and departure times at every visit. Travel is charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
 
 The feasible archive `F` contains only movement-, budget-, and communication-feasible solutions and applies epsilon-box Pareto filtering to negative reward and mean completion time. The coverage pool `P` contains valid candidates outside `F`, including infeasible and feasible dominated candidates, and uses fixed objective-space subregions rather than feasibility to preserve coverage. Full propagation is recomputed; pair-contact caching includes the mission horizon.
 

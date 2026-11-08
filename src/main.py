@@ -18,18 +18,6 @@ def _parser() -> argparse.ArgumentParser:
         help="instance JSON path; omitting it runs the built-in two-agent smoke map",
     )
     parser.add_argument(
-        "--mode",
-        choices=["team_kop_icc"],
-        default="team_kop_icc",
-        help="problem mode; only team KOP with intermittent communication is supported",
-    )
-    parser.add_argument(
-        "--algorithm",
-        choices=["movns"],
-        default="movns",
-        help="search algorithm; only sampled multi-objective VNS is supported",
-    )
-    parser.add_argument(
         "--seed", type=int, default=42, help="seed for the run's random generator"
     )
     parser.add_argument(
@@ -162,13 +150,6 @@ def _parser() -> argparse.ArgumentParser:
         help="distance steps used to propose or move free waypoints",
     )
     parser.add_argument(
-        "--wait-steps",
-        type=float,
-        nargs="+",
-        default=[0.25, 1.0],
-        help="time steps in seconds used for explicit stopped waits",
-    )
-    parser.add_argument(
         "--neighborhood-candidates",
         type=int,
         default=120,
@@ -185,8 +166,6 @@ def _parser() -> argparse.ArgumentParser:
 
 def _config(args: argparse.Namespace) -> Config:
     return Config(
-        mode=args.mode,
-        algorithm=args.algorithm,
         seed=args.seed,
         max_seconds=args.max_seconds,
         max_evaluations=args.max_evaluations,
@@ -211,7 +190,6 @@ def _config(args: argparse.Namespace) -> Config:
         if args.waypoint_workspace
         else None,
         waypoint_steps=tuple(args.waypoint_steps),
-        wait_steps=tuple(args.wait_steps),
         neighborhood_candidates=args.neighborhood_candidates,
         free_segment_radius=args.free_segment_radius,
     )

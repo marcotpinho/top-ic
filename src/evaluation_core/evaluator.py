@@ -8,7 +8,7 @@ from ..config import Config, Problem
 from ..solution import Solution, Visit
 from .communication import evaluate_communication
 from .scheduling import schedule
-from .trajectory import AgentTrajectory, MotionError, MotionPiece, State, connect
+from .trajectory import AgentTrajectory, MotionError, State, connect
 
 
 @dataclass(frozen=True)
@@ -116,7 +116,6 @@ class Evaluator:
             or start.velocity != self.problem.initial_velocities[agent]
             or end.position != self.problem.end
             or end.velocity != (0.0, 0.0)
-            or end.wait != 0
         ):
             raise ValueError("Invalid boundary states")
         if any(visit.kind not in ("TASK", "FREE") for visit in route[1:-1]):
@@ -140,11 +139,10 @@ class Evaluator:
         return xmin <= point[0] <= xmax and ymin <= point[1] <= ymax
 
     def schedule_solution(self, solution: Solution) -> tuple:
-        """Schedule fixed route waits and connection durations; implements eq. (2)."""
+        """Schedule fixed route connection durations; implements eq. (2)."""
         timing, _ = schedule(
             solution.routes,
             self.problem,
-            self.config.schedule_tolerance,
         )
         return timing
 
@@ -163,22 +161,12 @@ class Evaluator:
     def _build_route_trajectory(
         self, agent: int, route: tuple[Visit, ...], timing: tuple
     ) -> tuple:
-        """Connect one route; a scheduled wait requires zero velocity, eqs. (1)–(4)."""
+        """Connect consecutive visits without pauses, eqs. (1)–(4)."""
         pieces = []
         elapsed = 0.0
         times = []
         for visit_index, (start, end) in enumerate(pairwise(route)):
-            wait = timing[agent][visit_index][1] - timing[agent][visit_index][0]
-            times.append((elapsed, elapsed + wait))
-            if wait > self.config.numerical_tolerance:
-                if start.velocity != (0.0, 0.0):
-                    raise ValueError("Scheduled waiting requires a stopped state")
-                pieces.append(
-                    MotionPiece(
-                        start.position, start.velocity, (0.0, 0.0), wait, elapsed
-                    )
-                )
-                elapsed += wait
+            times.append(timing[agent][visit_index])
             connection = connect(
                 State(start.position, start.velocity),
                 State(end.position, end.velocity),

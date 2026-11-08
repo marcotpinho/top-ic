@@ -14,7 +14,7 @@ def random_feasible_route_velocities(
     config: Config,
     rng: Random,
 ) -> tuple[Visit, ...] | None:
-    """Sample a feasible menu path, preserving endpoints and waits.
+    """Sample a feasible menu path, preserving endpoints.
 
     Backward reachability guarantees every sampled velocity has a feasible
     continuation to END. The method implements the connector constraints in
@@ -52,8 +52,6 @@ def _velocity_choices(
     for visit_index, visit in enumerate(route):
         if visit_index in (0, len(route) - 1):
             choices.append((visit.velocity,))
-        elif visit.wait > 0:
-            choices.append(((0.0, 0.0),))
         else:
             choices.append(menu)
     return tuple(choices)

@@ -18,31 +18,29 @@ $$
 \pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1}),\qquad K_m\ge2.
 $$
 
-The first occurrence is START at $z_S$ and the last is END at $z_E$. Interior occurrences are TASK or, in the communication stage, FREE. Each visit has position $z_{mk}$, boundary velocity $v_{mk}$, and nonnegative wait $w_{mk}$. A TASK occurrence referencing $i$ satisfies $z_{mk}=z_i$; a FREE occurrence has adjustable coordinates and no intrinsic reward.
+The first occurrence is START at $z_S$ and the last is END at $z_E$. Interior occurrences are TASK or, in the communication stage, FREE. Each visit has position $z_{mk}$ and boundary velocity $v_{mk}$. A TASK occurrence referencing $i$ satisfies $z_{mk}=z_i$; a FREE occurrence has adjustable coordinates and no intrinsic reward.
 
 Repeated task occurrences and shared visits are allowed. Start and end are different occurrence kinds even when their coordinates coincide. The final END is terminal: agents cannot leave it afterward. A zero-task route still must reach END.
 
 $$
-v_{m0}=v_m^S,\qquad v_{m,K_m-1}=0,\qquad
-w_{m,K_m-1}=0,\qquad
-w_{mk}>0\Longrightarrow v_{mk}=0. \tag{1}
+v_{m0}=v_m^S,\qquad v_{m,K_m-1}=0. \tag{1}
 $$
 
 The initial search uses a finite admissible visit-velocity menu $v_{mk}\in\mathcal U_m$, apart from prescribed endpoints. This is an implementation restriction on the continuous problem. Free-position workspace bounds are likewise explicit search restrictions. The search imposes no cap on the number of FREE visits per agent.
 
 ## 3. Continuous trajectories and timing
 
-Connect consecutive visit states with feasible motion of duration $D_{mk}\ge0$. The initial constructor uses deterministic minimum-time connections; waits and edited velocity states provide timing flexibility. If a longer prescribed duration is introduced, its dynamics must be revalidated rather than obtained by naive time scaling.
+Connect consecutive visit states with feasible motion of duration $D_{mk}\ge0$. The initial constructor uses deterministic minimum-time connections; edited velocity states and route geometry provide timing flexibility. If a longer prescribed duration is introduced, its dynamics must be revalidated rather than obtained by naive time scaling.
 
 Arrival and departure satisfy
 
 $$
 \alpha_{m0}=0,\qquad
-\beta_{mk}=\alpha_{mk}+w_{mk},\qquad
+\beta_{mk}=\alpha_{mk},\qquad
 \alpha_{m,k+1}=\beta_{mk}+D_{mk}. \tag{2}
 $$
 
-On $[\alpha_{mk},\beta_{mk}]$, a positive wait has $p_m(t)=z_{mk}$ and $v_m(t)=0$. Each moving connection starts at $(z_{mk},v_{mk})$ and ends at $(z_{m,k+1},v_{m,k+1})$.
+Arrival and departure coincide at every visit. Each moving connection starts at $(z_{mk},v_{mk})$ and ends at $(z_{m,k+1},v_{m,k+1})$.
 
 Motion obeys
 
@@ -64,13 +62,13 @@ Adjacent pieces agree in position and velocity; acceleration may jump. Positive-
 ## 4. Expenditure and terminal presence
 
 $$
-c_m=\alpha_{m,K_m-1}=\sum_{k=0}^{K_m-2}(w_{mk}+D_{mk}),\qquad
+c_m=\alpha_{m,K_m-1}=\sum_{k=0}^{K_m-2}D_{mk},\qquad
 c_m\le B_m,\qquad
 T=\max_m c_m,\qquad
 \bar c=\frac1M\sum_m c_m. \tag{5}
 $$
 
-Thus movement and waiting before final arrival consume budget. For communication evaluation, extend each trajectory by
+Thus travel before final arrival consumes budget; routes contain no explicit pauses. For communication evaluation, extend each trajectory by
 
 $$
 p_m(t)=z_E,\qquad v_m(t)=0,\qquad a_m(t)=0
@@ -90,7 +88,7 @@ $$
 
 Stopping is not necessary for reward collection: an explicit TASK occurrence may have nonzero velocity. A task contributes once regardless of repeated/shared visits. Incidental trajectory crossings and FREE visits at a task's coordinates do not earn reward. TASK positions are checked exactly against the declared task coordinates; continuous motion must pass through each declared visit.
 
-In ICC mode the reported objective vector is
+The reported objective vector is
 
 $$
 f(S)=(-Q,\bar c). \tag{8}
@@ -189,7 +187,7 @@ See [implementation milestones](implementation.md) for supported stages, validat
 
 Single-agent implementation: MOVNS and the five named KOP neighborhoods are available; see [step 2 status](implementation.md#step-2--single-agent-movns-kop). Team assignment operators are now implemented on the step 3 branch; communication is implemented on the step 4 branch.
 
-Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints remain ignored. Communication and FREE visits are enabled only in `team_kop_icc` mode.
+Team implementation: individual time budgets, shared reward accounting, and cross-agent assignment moves are available; see [step 3 status](implementation.md#step-3--multi-agent-kop). Collision constraints remain ignored. Communication and FREE visits are always enabled.
 
 ## Epsilon-dominance archive policy
 
@@ -201,13 +199,13 @@ Normalize a candidate for coverage as $(1-Q/Q_{\mathrm{total}},\bar c/B_{\max})$
 
 For base selection, construct $ND_F$ by Pareto dominance in $(-Q,\bar c)$ inside `F`, and construct $ND_P$ by three-dimensional Pareto dominance in $(CV,-Q,\bar c)$ inside `P`. Let $n_F=|ND_F|$ and $n_P=|ND_P|$. Select `P` with probability $\rho_P=n_P/(n_F+n_P)$ and `F` with probability $\rho_F=1-\rho_P$; an empty archive has probability zero. Tournament participants are sampled only from the selected nondominated set. In `ND_F`, larger two-objective crowding wins. In `ND_P`, lower `CV` wins, breaking ties by larger $Q$, lower $\bar c$, and a stable decision key.
 
-One iteration applies a seeded 10–40% ruin to the selected base and regret-2 recreation, followed by at most three best-improvement communication-repair rounds when `CV` is positive. Repair considers bounded link, invitation and retiming candidates and stops when a round cannot strictly reduce `CV`. VND then evaluates each distinct candidate exactly and sends every valid result through the `F` and `P` updates. The primary comparison budget is the number of exact evaluator cache misses.
+One iteration applies a seeded 10–40% ruin to the selected base and regret-2 recreation, followed by at most three best-improvement communication-repair rounds when `CV` is positive. Repair considers bounded invitation candidates that insert FREE visits without pauses and stops when a round cannot strictly reduce `CV`. VND then evaluates each distinct candidate exactly and sends every valid result through the `F` and `P` updates. The primary comparison budget is the number of exact evaluator cache misses.
 
 ## Step 4 implementation
 
 `team_kop_icc` implements quartic range-contact extraction, maximal-interval handshake handling, initial synchronization, simultaneous connected-component relay, and vector-clock staleness with left limits. An independent reverse temporal-reachability oracle validates propagation. Near-multiple roots that cannot be resolved under the numerical policy are rejected rather than admitted as feasible.
 
-A least-schedule difference-constraint solver schedules fixed route connections and explicit stopped waits, charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
+Consecutive fixed route connections determine visit times, with identical arrival and departure times at every visit. Travel is charged until each agent's final arrival. Free positions are bounded by the configured workspace and per-agent visit cap.
 
 The current ICC search uses the feasible archive `F` and coverage pool `P` defined above. Ruin-and-recreate precedes bounded communication repair and VND. Every distinct candidate is evaluated exactly and routed through both archive update rules.
 

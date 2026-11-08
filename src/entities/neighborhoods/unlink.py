@@ -1,7 +1,6 @@
-"""Sample free-visit and wait removals; implements N11."""
+"""Sample free-visit removals; implements N11."""
 
 from collections.abc import Iterator
-from dataclasses import replace
 from random import Random
 
 from ...config import Config, Problem
@@ -11,26 +10,21 @@ from .common import edited, sample_candidates
 name = "unlink"
 
 
-def _free_and_wait_proposals(solution: Solution):
+def _free_proposals(solution: Solution):
     for agent, route in enumerate(solution.routes):
         for visit_index, visit in enumerate(route[:-1]):
             if visit.kind == "FREE":
-                yield "free", agent, visit_index
-            if visit.wait > 0:
-                yield "wait", agent, visit_index
+                yield agent, visit_index
 
 
 def generate(
     solution: Solution, problem: Problem, config: Config, rng: Random
 ) -> Iterator[Solution]:
-    """Remove one FREE visit or explicit wait from a route."""
-    proposals = _free_and_wait_proposals(solution)
-    for kind, agent, visit_index in sample_candidates(
+    """Remove one FREE visit from a route."""
+    proposals = _free_proposals(solution)
+    for agent, visit_index in sample_candidates(
         proposals, rng, config.neighborhood_candidates
     ):
         route = list(solution.routes[agent])
-        if kind == "free":
-            route.pop(visit_index)
-        else:
-            route[visit_index] = replace(route[visit_index], wait=0.0)
+        route.pop(visit_index)
         yield edited(solution, agent, route)

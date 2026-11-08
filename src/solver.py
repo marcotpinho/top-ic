@@ -1,4 +1,4 @@
-"""Explicit stage gating and portable full-trajectory output."""
+"""Team ICC optimization and portable full-trajectory output."""
 
 import json
 from dataclasses import asdict, replace
@@ -14,9 +14,7 @@ from .solution import Solution
 
 def run_optimization(problem: Problem, config: Config | None = None):
     """Run only the team ICC search with a bounded waypoint workspace."""
-    config = config or Config(mode="team_kop_icc")
-    if config.mode != "team_kop_icc" or config.algorithm != "movns":
-        raise ValueError("Only team_kop_icc MOVNS is supported")
+    config = config or Config()
     if problem.num_agents < 2:
         raise ValueError("team_kop_icc requires at least two agents")
     if config.waypoint_workspace is None:

@@ -174,7 +174,7 @@ def _problem_replacements(problem: dict) -> dict[str, str]:
         "{TOTAL_REWARD}": _format(sum(task["reward"] for task in problem["tasks"])),
         "{REWARD_RULE}": "rewards are collected by explicit TASK visits",
         "{COLLISION_RULES}": "collisions are ignored",
-        "{WAIT_RULES}": "waiting visits are stationary",
+        "{MOTION_RULES}": "visits have coincident arrival and departure; no pauses before final arrival",
         "{OTHER_ASSUMPTIONS}": "continuous box double-integrator motion",
     }
 
@@ -185,7 +185,7 @@ def _search_replacements(config: dict, stats: dict) -> dict[str, str]:
         name: row["calls"] for name, row in stats["profiling"]["neighborhoods"].items()
     }
     return {
-        "{ALGORITHM}": f"{config['mode']} {config['algorithm']}",
+        "{ALGORITHM}": "team_kop_icc movns",
         "{SEED}": str(config["seed"]),
         "{TIME_CAP_SECONDS}": _format(config["max_seconds"]),
         "{EVALUATION_CAP}": str(config["max_evaluations"]),
@@ -205,7 +205,6 @@ def _search_replacements(config: dict, stats: dict) -> dict[str, str]:
         "{HV_REFERENCE_POINT}": _format(stats["hypervolume_reference_point"]),
         "{HV_SCALES}": _format(stats["hypervolume_scales"]),
         "{WAYPOINT_STEPS}": _format(config["waypoint_steps"]),
-        "{WAIT_STEPS}": _format(config["wait_steps"]),
         "{VELOCITY_SEGMENT_LENGTHS}": _format(config["velocity_segment_lengths"]),
         "{MAX_FREE_WAYPOINTS}": "unlimited",
         "{NEIGHBORHOOD_CANDIDATES}": str(config["neighborhood_candidates"]),

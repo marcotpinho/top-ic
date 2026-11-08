@@ -179,7 +179,6 @@ def _recreate(solution, removed, config, rng):
                 visit,
                 id=fresh_id(rebuilt, "recreate"),
                 velocity=(0.0, 0.0),
-                wait=0.0,
             ),
         )
         rebuilt = normalize(routes)

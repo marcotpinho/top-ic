@@ -70,7 +70,7 @@ def generate(
 ) -> Iterator[Solution]:
     """Sample N19 insertions/relocations; preserve tasks and endpoint states.
 
-    New FREE visits start stopped. Relocation preserves velocity and wait.
+    New FREE visits start stopped. Relocation preserves velocity.
     Both adjacent connectors must be feasible; all randomness uses the run RNG.
     """
     choices = _choices(solution)
