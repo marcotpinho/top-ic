@@ -8,12 +8,59 @@ import platform
 import shlex
 import subprocess
 import sys
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from threading import Event, Thread
 from time import perf_counter
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+@contextmanager
+def _search_progress(max_seconds: float):
+    """Display the search's elapsed-time budget until its process finishes."""
+    stopped = Event()
+    started = perf_counter()
+    interactive = sys.stderr.isatty()
+
+    def render(finished: bool = False, status: str = "") -> None:
+        elapsed = perf_counter() - started
+        fraction = min(elapsed / max_seconds, 0.99) if max_seconds > 0 else 0.0
+        if finished:
+            fraction = 1.0
+        width = 24
+        filled = int(width * fraction)
+        bar = "#" * filled + "-" * (width - filled)
+        line = (
+            f"[{bar}] {fraction:6.1%} | TOP-ICC search "
+            f"| {elapsed:.1f}/{max_seconds:g}s (time budget) {status}"
+        )
+        print(
+            f"\r{line}\033[K" if interactive else line,
+            end="" if interactive else "\n",
+            file=sys.stderr,
+            flush=True,
+        )
+
+    def refresh() -> None:
+        while not stopped.wait(0.2 if interactive else 5.0):
+            render()
+
+    render()
+    worker = Thread(target=refresh, daemon=True)
+    worker.start()
+    succeeded = False
+    try:
+        yield
+        succeeded = True
+    finally:
+        stopped.set()
+        worker.join()
+        render(succeeded, "done" if succeeded else "failed")
+        if interactive:
+            print(file=sys.stderr, flush=True)
 
 
 def _parse_arguments() -> tuple[Path, list[str]]:
@@ -78,11 +125,14 @@ def _instance_hash(arguments: list[str]) -> dict[str, str] | None:
     return {"path": os.path.relpath(instance_path, ROOT), "sha256": digest}
 
 
-def _generate_plots(result_path: Path, output_dir: Path) -> list[str]:
+def _generate_plots(
+    result_path: Path, output_dir: Path, elapsed_seconds: float
+) -> list[str]:
     """Generate plots, the path animation, and the best saved Tc-feasible path."""
-    from topcc.viz import draw_solution_paths, plot_result
+    from topcc.viz import draw_solution_paths, plot_execution_time, plot_result
 
     data = json.loads(result_path.read_text())
+    plot_execution_time(data, output_dir, elapsed_seconds)
     plot_result(data, output_dir)
     recurrence_bound = data["config"]["recurrence_bound"]
     slice_row = next(
@@ -449,6 +499,9 @@ def _execute_search(
     output_dir: Path, arguments: list[str]
 ) -> tuple[Path, list[str], float]:
     """Save the reproduction command and execute the TOP-ICC CLI."""
+    from topcc.main import _parser
+
+    max_seconds = _parser().parse_args(arguments).max_seconds
     reproduction_path = output_dir / "reproduce.sh"
     reproduction_path.write_text(_reproduction_script(output_dir, arguments))
     reproduction_path.chmod(0o755)
@@ -462,20 +515,21 @@ def _execute_search(
         _relative_to_root(result_path),
     ]
     started = perf_counter()
-    process = subprocess.run(
-        command,
-        check=False,
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-    )
-    elapsed_seconds = perf_counter() - started
-    (output_dir / "run.log").write_text(process.stdout + process.stderr)
-    if process.returncode != 0:
-        raise SystemExit(
-            f"TOP-ICC exited with status {process.returncode}; see "
-            f"{_relative_to_root(output_dir / 'run.log')}"
+    with _search_progress(max_seconds):
+        process = subprocess.run(
+            command,
+            check=False,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
         )
+        elapsed_seconds = perf_counter() - started
+        (output_dir / "run.log").write_text(process.stdout + process.stderr)
+        if process.returncode != 0:
+            raise SystemExit(
+                f"TOP-ICC exited with status {process.returncode}; see "
+                f"{_relative_to_root(output_dir / 'run.log')}"
+            )
     return result_path, command, elapsed_seconds
 
 
@@ -488,7 +542,7 @@ def _complete_run(
 ) -> dict:
     """Generate plots, metadata, and the completed results README."""
     _write_metrics(result_path, output_dir)
-    plot_files = _generate_plots(result_path, output_dir)
+    plot_files = _generate_plots(result_path, output_dir, elapsed_seconds)
     run_info = {
         "schema_version": 1,
         "started_utc": started_utc,

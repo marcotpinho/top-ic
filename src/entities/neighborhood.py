@@ -10,6 +10,9 @@ from ..solution import Solution
 from .profiling import profiling
 
 ICC_NEIGHBORHOODS = (
+    "velocity_agent",
+    "velocity_change",
+    "velocity_segment",
     "remove",
     "replace",
     "assignment",
@@ -19,8 +22,6 @@ ICC_NEIGHBORHOODS = (
     "free_near_visit",
     "free_segment",
     "unlink",
-    "velocity_change",
-    "velocity_segment",
 )
 
 

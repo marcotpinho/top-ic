@@ -13,6 +13,103 @@ from .viz_paths import (
 )
 
 
+def plot_execution_time(data: dict, output_dir: Path, elapsed_seconds: float) -> None:
+    """Draw disjoint timing regions with area and color proportional to seconds."""
+    from matplotlib import pyplot as plt
+    from matplotlib.colors import Normalize
+    from matplotlib.patches import Rectangle
+
+    profile = data.get("statistics", {}).get("profiling", {})
+    timings = [
+        (name, float(row.get("total_seconds", 0)))
+        for name, row in profile.get("neighborhoods", {}).items()
+        if row.get("total_seconds", 0) > 0
+    ]
+    neighborhood_seconds = sum(seconds for _, seconds in timings)
+    loop_seconds = max(
+        float(profile.get("search_loop_seconds", 0)), neighborhood_seconds
+    )
+    timings.extend(
+        [
+            ("Other search work", max(0.0, loop_seconds - neighborhood_seconds)),
+            (
+                "Initialization / CLI / result serialization",
+                max(0.0, elapsed_seconds - loop_seconds),
+            ),
+        ]
+    )
+    timings = sorted(
+        [(name, seconds) for name, seconds in timings if seconds > 0],
+        key=lambda row: row[1], reverse=True,
+    )
+    fig, (ax, legend) = plt.subplots(
+        1, 2, figsize=(15, 8), gridspec_kw={"width_ratios": [1.5, 1]},
+        layout="constrained",
+    )
+    ax.set(xlim=(0, 1), ylim=(0, 1), aspect="equal")
+    ax.axis("off")
+    legend.axis("off")
+    fig.suptitle("Execution time — area and color proportional to duration")
+    if not timings:
+        ax.text(0.5, 0.5, "No execution timing available", ha="center", va="center")
+    else:
+        total_seconds = sum(seconds for _, seconds in timings)
+        norm = Normalize(vmin=0, vmax=timings[0][1])
+        cmap = plt.get_cmap("YlOrRd")
+
+        def draw(rows, x, y, width, height):
+            if len(rows) == 1:
+                index, (_, seconds) = rows[0]
+                color = cmap(norm(seconds))
+                ax.add_patch(Rectangle(
+                    (x, y), width, height, facecolor=color,
+                    edgecolor="white", linewidth=1.5,
+                ))
+                if width > 0.055 and height > 0.055:
+                    ax.text(
+                        x + width / 2, y + height / 2, str(index),
+                        ha="center", va="center", fontsize=11,
+                        color="white" if norm(seconds) > 0.55 else "black",
+                    )
+                return
+            subtotal = sum(row[1][1] for row in rows)
+            split = min(
+                range(1, len(rows)),
+                key=lambda i: abs(sum(row[1][1] for row in rows[:i]) - subtotal / 2),
+            )
+            fraction = sum(row[1][1] for row in rows[:split]) / subtotal
+            if width >= height:
+                draw(rows[:split], x, y, width * fraction, height)
+                draw(rows[split:], x + width * fraction, y, width * (1 - fraction), height)
+            else:
+                draw(rows[:split], x, y, width, height * fraction)
+                draw(rows[split:], x, y + height * fraction, width, height * (1 - fraction))
+
+        draw(list(enumerate(timings, 1)), 0, 0, 1, 1)
+        for index, (name, seconds) in enumerate(timings, 1):
+            y = 1 - index / (len(timings) + 1)
+            legend.add_patch(Rectangle(
+                (0, y - 0.012), 0.035, 0.025,
+                facecolor=cmap(norm(seconds)), transform=legend.transAxes,
+            ))
+            legend.text(
+                0.05, y, f"{index}. {name}\n{seconds:.3f} s ({seconds / total_seconds:.1%})",
+                va="center", transform=legend.transAxes, fontsize=9,
+            )
+        fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax,
+                     shrink=0.7, label="Duration (s)")
+        fig.supxlabel(
+            f"CLI total: {elapsed_seconds:.3f} s. "
+            "Neighborhood totals include generation and evaluation.\n"
+            "Other search work includes repair and archive management; plot generation is excluded.",
+            fontsize=9,
+        )
+    try:
+        fig.savefig(output_dir / "execution-time-heatmap.png", dpi=180)
+    finally:
+        plt.close(fig)
+
+
 def select_path_representatives(data):
     """Choose three reproducible views from the configured-Tc reward/time front."""
     front = data["front"]

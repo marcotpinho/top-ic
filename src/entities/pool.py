@@ -3,6 +3,7 @@
 from dataclasses import dataclass
 
 from ..solution import Solution
+from .profiling import SearchProfile, profiling
 from .selection import crowding_distances, nondominated, pool_vector
 
 
@@ -13,7 +14,10 @@ class PoolMember:
 
 
 class ParetoPool:
-    def __init__(self, capacity: int, max_age: int):
+    def __init__(
+        self, capacity: int, max_age: int, profile: SearchProfile | None = None
+    ):
+        self.profile = profile if profile is not None else SearchProfile()
         self.capacity = capacity
         self.max_age = max_age
         self.members: list[PoolMember] = []
@@ -29,31 +33,41 @@ class ParetoPool:
         return [member.solution for member in self.members]
 
     def update(self, candidates: list[Solution], front: list[Solution]) -> None:
-        front_keys = {solution.key for solution in front}
-        existing = {member.solution.key: member for member in self.members}
-        merged = {}
-        for solution in [*self.solutions, *candidates]:
-            if solution.key not in front_keys and solution.key not in merged:
-                merged[solution.key] = existing.get(solution.key, PoolMember(solution))
-        eligible = [member for member in merged.values() if member.age <= self.max_age]
-        aged_out = len(merged) - len(eligible)
-        survivors = nondominated([member.solution for member in eligible], pool_vector)
-        dominance_discards = len(eligible) - len(survivors)
-        capacity_discards = max(0, len(survivors) - self.capacity)
-        if capacity_discards:
-            crowding = crowding_distances(survivors, pool_vector)
-            survivors.sort(
-                key=lambda solution: (-crowding[solution.key], repr(solution.key))
+        with profiling(self.profile, "pool_merge_seconds"):
+            front_keys = {solution.key for solution in front}
+            existing = {member.solution.key: member for member in self.members}
+            merged = {}
+            for solution in [*self.solutions, *candidates]:
+                if solution.key not in front_keys and solution.key not in merged:
+                    merged[solution.key] = existing.get(
+                        solution.key, PoolMember(solution)
+                    )
+            eligible = [
+                member for member in merged.values() if member.age <= self.max_age
+            ]
+            aged_out = len(merged) - len(eligible)
+        with profiling(self.profile, "pool_dominance_seconds"):
+            survivors = nondominated(
+                [member.solution for member in eligible], pool_vector
             )
-            survivors = survivors[: self.capacity]
-        selected_keys = {solution.key for solution in survivors}
-        self.entries += len(selected_keys - existing.keys())
-        self.age_discards += aged_out
-        self.dominance_discards += dominance_discards
-        self.capacity_discards += capacity_discards
-        self.front_transfers += len(existing.keys() & front_keys)
-        self.discards += aged_out + dominance_discards + capacity_discards
-        self.members = [merged[solution.key] for solution in survivors]
+            dominance_discards = len(eligible) - len(survivors)
+        with profiling(self.profile, "pool_crowding_seconds"):
+            capacity_discards = max(0, len(survivors) - self.capacity)
+            if capacity_discards:
+                crowding = crowding_distances(survivors, pool_vector)
+                survivors.sort(
+                    key=lambda solution: (-crowding[solution.key], repr(solution.key))
+                )
+                survivors = survivors[: self.capacity]
+        with profiling(self.profile, "pool_bookkeeping_seconds"):
+            selected_keys = {solution.key for solution in survivors}
+            self.entries += len(selected_keys - existing.keys())
+            self.age_discards += aged_out
+            self.dominance_discards += dominance_discards
+            self.capacity_discards += capacity_discards
+            self.front_transfers += len(existing.keys() & front_keys)
+            self.discards += aged_out + dominance_discards + capacity_discards
+            self.members = [merged[solution.key] for solution in survivors]
 
     def set_expansion_result(self, solution: Solution, improved: bool) -> None:
         for member in self.members:

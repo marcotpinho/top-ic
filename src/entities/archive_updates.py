@@ -1,13 +1,11 @@
 """Candidate evaluation and epsilon-front/pool updates for the new Runner."""
 
 from collections import Counter
-from dataclasses import replace
 from math import isfinite
 from typing import TYPE_CHECKING
 
 from ..evaluation_core.trajectory import MotionError
 from ..solution import Solution
-from ..velocity_initialization import initialize_solution_velocities
 from .budget_repair import preview_solution, repair_over_budget
 from .profiling import profiling
 
@@ -32,93 +30,82 @@ def _record_initialization(
     """Record every initialization proposal before search conclusions are drawn."""
     if family not in INITIALIZATION_FAMILIES:
         return
-    evaluation = solution.evaluation
-    task_ids = {
-        visit.task_id
-        for route in solution.routes
-        for visit in route
-        if visit.kind == "TASK"
-    }
-    declared_reward = sum(
-        task.reward for task in runner.problem.tasks if task.id in task_ids
-    )
-    reward = evaluation.reward if evaluation is not None else None
-    cv = evaluation.comm_violation if evaluation is not None else None
-    runner.initialization_history.append(
-        {
-            "sequence": len(runner.initialization_history) + 1,
-            "family": family,
-            "exact_evaluations": runner.counts["exact_evaluations"],
-            "outcome": outcome,
-            "valid": evaluation.valid if evaluation is not None else False,
-            "declared_reward": declared_reward,
-            "evaluated_reward": reward
-            if reward is not None and isfinite(reward)
-            else None,
-            "cv": cv if cv is not None and isfinite(cv) else None,
-            "objectives": list(evaluation.objectives)
-            if evaluation is not None
-            and all(isfinite(value) for value in evaluation.objectives)
-            else None,
-            "reason": evaluation.reason if evaluation is not None else "",
+    with profiling(runner.profile, "recording_seconds"):
+        evaluation = solution.evaluation
+        task_ids = {
+            visit.task_id
+            for route in solution.routes
+            for visit in route
+            if visit.kind == "TASK"
         }
-    )
-
-
-def _initialize_velocities(runner: "Runner", solution: Solution) -> Solution | None:
-    routes = initialize_solution_velocities(
-        solution.routes,
-        runner.problem.limits,
-        runner.config,
-        runner.rng,
-    )
-    if routes is None:
-        return None
-    return replace(solution, routes=routes, evaluation=None)
+        declared_reward = sum(
+            task.reward for task in runner.problem.tasks if task.id in task_ids
+        )
+        reward = evaluation.reward if evaluation is not None else None
+        cv = evaluation.comm_violation if evaluation is not None else None
+        runner.initialization_history.append(
+            {
+                "sequence": len(runner.initialization_history) + 1,
+                "family": family,
+                "exact_evaluations": runner.counts["exact_evaluations"],
+                "outcome": outcome,
+                "valid": evaluation.valid if evaluation is not None else False,
+                "declared_reward": declared_reward,
+                "evaluated_reward": reward
+                if reward is not None and isfinite(reward)
+                else None,
+                "cv": cv if cv is not None and isfinite(cv) else None,
+                "objectives": list(evaluation.objectives)
+                if evaluation is not None
+                and all(isfinite(value) for value in evaluation.objectives)
+                else None,
+                "reason": evaluation.reason if evaluation is not None else "",
+            }
+        )
 
 
 def _record_acceptance(runner: "Runner", scored: Solution, row) -> None:
-    runner.counts["accepted"] += 1
-    row["accepted"] += 1
-    row["accepted_front"] += 1
-    runner.history.append(
-        {
-            "evaluations": runner.counts["evaluated"],
-            "front": len(runner.archive.front),
-            "reward": max(item.evaluation.reward for item in runner.archive.front),
-        }
-    )
+    with profiling(runner.profile, "recording_seconds"):
+        runner.counts["accepted"] += 1
+        row["accepted"] += 1
+        row["accepted_front"] += 1
+        runner.history.append(
+            {
+                "evaluations": runner.counts["evaluated"],
+                "front": len(runner.archive.front),
+                "reward": max(item.evaluation.reward for item in runner.archive.front),
+            }
+        )
 
 
 def _prepare_candidate(
     runner: "Runner", solution: Solution, family: str, row: Counter
 ) -> Solution | None:
-    runner.counts["generated"] += 1
-    row["generated"] += 1
-    if runner.active_base is not None:
-        for agent, (candidate_route, base_route) in enumerate(
-            zip(solution.routes, runner.active_base.routes)
-        ):
-            if candidate_route != base_route:
-                row[f"agent_{agent}_candidates"] += 1
-    candidate = solution
-    if family in INITIALIZATION_FAMILIES:
-        candidate = _initialize_velocities(runner, solution)
-    if candidate is None:
-        runner.counts["initial_velocity_sampling_failed"] += 1
-        runner.counts["invalid"] += 1
-        row["invalid"] += 1
-        row["invalid_reason:initial velocity sampling failed"] += 1
-        _record_initialization(runner, family, solution, "velocity_sampling_failed")
+    with profiling(runner.profile, "candidate_preparation_seconds"):
+        runner.counts["generated"] += 1
+        row["generated"] += 1
+        if runner.active_base is not None:
+            for agent, (candidate_route, base_route) in enumerate(
+                zip(solution.routes, runner.active_base.routes)
+            ):
+                if candidate_route != base_route:
+                    row[f"agent_{agent}_candidates"] += 1
+    if _is_duplicate(runner, solution, row):
+        _record_initialization(runner, family, solution, "duplicate")
         return None
-    if candidate.key in runner.seen:
-        runner.counts["duplicate"] += 1
-        runner.counts["cache_hits"] += 1
-        row["cache_hits"] += 1
-        _record_initialization(runner, family, candidate, "duplicate")
-        return None
-    runner.seen.add(candidate.key)
-    return candidate
+    return solution
+
+
+def _is_duplicate(runner: "Runner", solution: Solution, row: Counter) -> bool:
+    with profiling(runner.profile, "duplicate_check_seconds"):
+        key = solution.key
+        if key in runner.seen:
+            runner.counts["duplicate"] += 1
+            runner.counts["cache_hits"] += 1
+            row["cache_hits"] += 1
+            return True
+        runner.seen.add(key)
+        return False
 
 
 def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
@@ -126,14 +113,15 @@ def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
     hits_before = runner.evaluator.cache_hits
     with profiling(runner.profile, "evaluator_seconds"):
         scored = runner.evaluator.evaluate(candidate)
-    runner.counts["evaluated"] += 1
-    row["evaluated"] += 1
-    exact = runner.evaluator.cache_misses - misses_before
-    cache_hits = runner.evaluator.cache_hits - hits_before
-    runner.counts["exact_evaluations"] += exact
-    runner.counts["cache_hits"] += cache_hits
-    row["exact_evaluations"] += exact
-    row["cache_hits"] += cache_hits
+    with profiling(runner.profile, "candidate_counters_seconds"):
+        runner.counts["evaluated"] += 1
+        row["evaluated"] += 1
+        exact = runner.evaluator.cache_misses - misses_before
+        cache_hits = runner.evaluator.cache_hits - hits_before
+        runner.counts["exact_evaluations"] += exact
+        runner.counts["cache_hits"] += cache_hits
+        row["exact_evaluations"] += exact
+        row["cache_hits"] += cache_hits
     return scored
 
 
@@ -164,13 +152,9 @@ def _repair_candidate(
     if repaired is None or runner.exhausted():
         _record_initialization(runner, family, candidate, "budget_repair_failed")
         return None, repair_row
-    if repaired.key in runner.seen:
-        runner.counts["duplicate"] += 1
-        runner.counts["cache_hits"] += 1
-        repair_row["cache_hits"] += 1
+    if _is_duplicate(runner, repaired, repair_row):
         _record_initialization(runner, family, repaired, "duplicate_after_repair")
         return None, repair_row
-    runner.seen.add(repaired.key)
     return repaired, repair_row
 
 
@@ -185,7 +169,9 @@ def _update_archives(
     acceptance_row = repair_row if repair_row is not None else row
     acceptance_row["valid"] += 1
     was_pool_base = runner.active_base_source == "pool"
-    if runner.archive.add(scored):
+    with profiling(runner.profile, "archive_update_seconds"):
+        retained = runner.archive.add(scored)
+    if retained:
         _record_acceptance(runner, scored, acceptance_row)
         _record_initialization(runner, family, scored, "front")
         if was_pool_base:
@@ -209,7 +195,7 @@ def evaluate_candidate(
         return None
     row = runner.by_family.setdefault(family, Counter())
 
-    # Prepare velocities and reject duplicate candidates.
+    # Record the candidate and reject duplicates.
     candidate = _prepare_candidate(runner, solution, family, row)
     if candidate is None:
         return None

@@ -31,9 +31,9 @@ class Runner:
         self.config = config
         self.rng = Random(config.seed)
         self.evaluator = Evaluator(problem, config)
-        self.archive = Archive(config, self.rng)
         self.neighborhood = Neighborhood(problem, config, self.rng)
         self.profile = SearchProfile.for_neighborhoods(self.neighborhood.names)
+        self.archive = Archive(config, self.rng, self.profile)
         self.counts: Counter[str] = Counter()
         self.by_family: dict[str, Counter[str]] = {}
         self.seen: set[object] = set()
@@ -91,64 +91,68 @@ class Runner:
 
     def record_archive_objectives(self, iteration: int) -> None:
         """Save every current archive objective vector at an iteration boundary."""
-        scales = self.hypervolume_scales()
-        objective_vectors = []
-        for solution in self.archive.front:
-            objectives = solution.objectives
-            if objectives is not None:
-                objective_vectors.append(objectives)
-        self.objective_history.append(
-            {
-                "iteration": iteration,
-                "objectives": [list(objectives) for objectives in objective_vectors],
-                "hypervolume": hypervolume_2d(
-                    self._normalize_objectives(objectives, scales)
-                    for objectives in objective_vectors
-                ),
-            }
-        )
+        with profiling(self.profile, "recording_seconds"):
+            scales = self.hypervolume_scales()
+            objective_vectors = []
+            for solution in self.archive.front:
+                objectives = solution.objectives
+                if objectives is not None:
+                    objective_vectors.append(objectives)
+            self.objective_history.append(
+                {
+                    "iteration": iteration,
+                    "objectives": [
+                        list(objectives) for objectives in objective_vectors
+                    ],
+                    "hypervolume": hypervolume_2d(
+                        self._normalize_objectives(objectives, scales)
+                        for objectives in objective_vectors
+                    ),
+                }
+            )
 
     def record_metrics(self, iteration: int) -> None:
         """Record archive health, CV, cache, and quality against exact evaluations."""
-        pool_cvs = [item.evaluation.comm_violation for item in self.archive.pool]
-        requests = self.counts["cache_hits"] + self.counts["exact_evaluations"]
-        selections = self.archive.selection_history
-        pool_selections = sum(row["source"] == "pool" for row in selections)
-        diagnostics = self.archive.pareto_pool.diagnostics()
-        last_selection = selections[-1] if selections else {}
-        self.metrics_history.append(
-            {
-                "iteration": iteration,
-                "exact_evaluations": self.counts["exact_evaluations"],
-                "front_size": len(self.archive.front),
-                "pool_size": len(self.archive.pool),
-                "pool_min_cv": min(pool_cvs, default=None),
-                "pool_median_cv": median(pool_cvs) if pool_cvs else None,
-                "pool_mean_age": (
-                    sum(diagnostics["ages"]) / len(diagnostics["ages"])
-                    if diagnostics["ages"]
-                    else 0.0
-                ),
-                "pool_age_discards": diagnostics["age_discards"],
-                "pool_capacity_discards": diagnostics["capacity_discards"],
-                "pool_dominance_discards": diagnostics["dominance_discards"],
-                "pool_base_fraction": pool_selections / len(selections)
-                if selections
-                else 0.0,
-                "rho_front": last_selection.get("rho_front"),
-                "rho_pool": last_selection.get("rho_pool"),
-                "nd_front_size": last_selection.get("nd_front_size"),
-                "nd_pool_size": last_selection.get("nd_pool_size"),
-                "cache_hit_rate": self.counts["cache_hits"] / requests
-                if requests
-                else 0.0,
-                "hypervolume": self.archive_hypervolume(),
-                "maximum_reward": max(
-                    (item.evaluation.reward for item in self.archive.front),
-                    default=0.0,
-                ),
-            }
-        )
+        with profiling(self.profile, "recording_seconds"):
+            pool_cvs = [item.evaluation.comm_violation for item in self.archive.pool]
+            requests = self.counts["cache_hits"] + self.counts["exact_evaluations"]
+            selections = self.archive.selection_history
+            pool_selections = sum(row["source"] == "pool" for row in selections)
+            diagnostics = self.archive.pareto_pool.diagnostics()
+            last_selection = selections[-1] if selections else {}
+            self.metrics_history.append(
+                {
+                    "iteration": iteration,
+                    "exact_evaluations": self.counts["exact_evaluations"],
+                    "front_size": len(self.archive.front),
+                    "pool_size": len(self.archive.pool),
+                    "pool_min_cv": min(pool_cvs, default=None),
+                    "pool_median_cv": median(pool_cvs) if pool_cvs else None,
+                    "pool_mean_age": (
+                        sum(diagnostics["ages"]) / len(diagnostics["ages"])
+                        if diagnostics["ages"]
+                        else 0.0
+                    ),
+                    "pool_age_discards": diagnostics["age_discards"],
+                    "pool_capacity_discards": diagnostics["capacity_discards"],
+                    "pool_dominance_discards": diagnostics["dominance_discards"],
+                    "pool_base_fraction": pool_selections / len(selections)
+                    if selections
+                    else 0.0,
+                    "rho_front": last_selection.get("rho_front"),
+                    "rho_pool": last_selection.get("rho_pool"),
+                    "nd_front_size": last_selection.get("nd_front_size"),
+                    "nd_pool_size": last_selection.get("nd_pool_size"),
+                    "cache_hit_rate": self.counts["cache_hits"] / requests
+                    if requests
+                    else 0.0,
+                    "hypervolume": self.archive_hypervolume(),
+                    "maximum_reward": max(
+                        (item.evaluation.reward for item in self.archive.front),
+                        default=0.0,
+                    ),
+                }
+            )
 
     def archive_hypervolume(self) -> float:
         """Return normalized feasible-front hypervolume against reference (1, 1)."""
