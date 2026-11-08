@@ -23,14 +23,14 @@ def vector_dominates(first: tuple, second: tuple) -> bool:
 
 def nondominated(source: list[Solution], vector) -> list[Solution]:
     """Return members not dominated by another member of the same archive."""
-    vectors = {solution.key: vector(solution) for solution in source}
+    points = [(solution, solution.key, vector(solution)) for solution in source]
     return [
         solution
-        for solution in source
+        for solution, key, point in points
         if not any(
-            vector_dominates(vectors[other.key], vectors[solution.key])
-            for other in source
-            if other.key != solution.key
+            vector_dominates(other_point, point)
+            for _, other_key, other_point in points
+            if other_key != key
         )
     ]
 

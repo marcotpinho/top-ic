@@ -30,18 +30,23 @@ class Visit:
 class Solution:
     routes: tuple[tuple[Visit, ...], ...]
     evaluation: object = field(default=None, compare=False, repr=False)
+    _key: tuple = field(init=False, compare=False, repr=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "routes", tuple(tuple(r) for r in self.routes))
+        object.__setattr__(
+            self,
+            "_key",
+            tuple(
+                tuple((v.kind, v.position, v.velocity, v.task_id) for v in route)
+                for route in self.routes
+            ),
+        )
 
     @property
     def key(self) -> tuple:
         """Return physical decisions independent of occurrence labels."""
-        physical = tuple(
-            tuple((v.kind, v.position, v.velocity, v.task_id) for v in route)
-            for route in self.routes
-        )
-        return physical
+        return self._key
 
     @property
     def objectives(self) -> tuple[float, ...] | None:

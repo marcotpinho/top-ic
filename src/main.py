@@ -21,6 +21,28 @@ def _parser() -> argparse.ArgumentParser:
         "--seed", type=int, default=42, help="seed for the run's random generator"
     )
     parser.add_argument(
+        "--evaluation-workers",
+        type=int,
+        default=1,
+        help="worker processes for independent candidate evaluations; 1 runs serially",
+    )
+    parser.add_argument(
+        "--evaluation-batch-size",
+        type=int,
+        default=8,
+        help="maximum candidates prepared per parallel batch",
+    )
+    parser.add_argument(
+        "--disable-incremental-evaluation",
+        action="store_true",
+        help="evaluate complete candidate trajectories without reusing their parent",
+    )
+    parser.add_argument(
+        "--verify-incremental",
+        action="store_true",
+        help="compare incremental evaluations with an independent complete evaluation",
+    )
+    parser.add_argument(
         "--max-seconds",
         type=float,
         default=30.0,
@@ -161,6 +183,10 @@ def _parser() -> argparse.ArgumentParser:
 def _config(args: argparse.Namespace) -> Config:
     return Config(
         seed=args.seed,
+        evaluation_workers=args.evaluation_workers,
+        evaluation_batch_size=args.evaluation_batch_size,
+        incremental_evaluation=not args.disable_incremental_evaluation,
+        verify_incremental=args.verify_incremental,
         max_seconds=args.max_seconds,
         max_evaluations=args.max_evaluations,
         max_iterations=args.max_iterations,

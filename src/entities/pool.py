@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from ..solution import Solution
 from .profiling import SearchProfile, profiling
-from .selection import crowding_distances, nondominated, pool_vector
+from .selection import crowding_distances, pool_vector, vector_dominates
 
 
 @dataclass
@@ -47,9 +47,29 @@ class ParetoPool:
             ]
             aged_out = len(merged) - len(eligible)
         with profiling(self.profile, "pool_dominance_seconds"):
-            survivors = nondominated(
-                [member.solution for member in eligible], pool_vector
-            )
+            survivors = [
+                member.solution
+                for member in eligible
+                if member.solution.key in existing
+            ]
+            vectors = {solution.key: pool_vector(solution) for solution in survivors}
+            for member in eligible:
+                candidate = member.solution
+                if candidate.key in existing:
+                    continue
+                point = pool_vector(candidate)
+                if any(vector_dominates(other, point) for other in vectors.values()):
+                    continue
+                survivors = [
+                    solution
+                    for solution in survivors
+                    if not vector_dominates(point, vectors[solution.key])
+                ]
+                vectors = {
+                    solution.key: vectors[solution.key] for solution in survivors
+                }
+                survivors.append(candidate)
+                vectors[candidate.key] = point
             dominance_discards = len(eligible) - len(survivors)
         with profiling(self.profile, "pool_crowding_seconds"):
             capacity_discards = max(0, len(survivors) - self.capacity)

@@ -109,6 +109,10 @@ class Problem:
 @dataclass(frozen=True)
 class Config:
     seed: int = 42
+    evaluation_workers: int = 1
+    evaluation_batch_size: int = 8
+    incremental_evaluation: bool = True
+    verify_incremental: bool = False
     max_seconds: float = 30.0
     max_evaluations: int = 2000
     max_iterations: int = 100
@@ -161,6 +165,8 @@ class Config:
         if (
             min(
                 self.max_evaluations,
+                self.evaluation_workers,
+                self.evaluation_batch_size,
                 self.max_iterations,
                 self.neighborhood_max_passes,
                 self.archive_size,
