@@ -5,9 +5,10 @@ from dataclasses import replace
 from math import isfinite
 from typing import TYPE_CHECKING
 
+from ..evaluation_core.trajectory import MotionError
 from ..solution import Solution
 from ..velocity_initialization import initialize_solution_velocities
-from .budget_repair import repair_over_budget
+from .budget_repair import preview_solution, repair_over_budget
 from .profiling import profiling
 
 if TYPE_CHECKING:
@@ -137,47 +138,40 @@ def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
 
 
 def _repair_candidate(
-    runner: "Runner", scored: Solution, family: str, row: Counter
-) -> tuple[Solution | None, Counter | None, bool]:
-    repair_row = None
-    repair_attempted = False
-    if (
-        not scored.evaluation.valid
-        and not scored.evaluation.motion_budget_valid
-        and scored.evaluation.completion_times
-        and scored.evaluation.trajectories
-    ):
-        repair_attempted = True
+    runner: "Runner", candidate: Solution, family: str, row: Counter
+) -> tuple[Solution | None, Counter | None]:
+    try:
+        preview = preview_solution(runner, candidate)
+    except (MotionError, ValueError) as exc:
         runner.counts["invalid"] += 1
         row["invalid"] += 1
-        reason = scored.evaluation.reason or scored.evaluation.validation_status
-        row[f"invalid_reason:{reason}"] += 1
-        preview_count = runner.counts["budget_repair_probes"]
-        repaired, repair_record = repair_over_budget(runner, scored)
-        repair_record["source_family"] = family
-        runner.budget_repairs.append(repair_record)
-        repair_row = runner.by_family.setdefault("budget_repair_drop", Counter())
-        repair_row["generated"] += runner.counts["budget_repair_probes"] - preview_count
-        repair_row["dropped_tasks"] += len(repair_record["tasks_dropped"])
-        if repaired is not None and not runner.exhausted():
-            if repaired.key in runner.seen:
-                runner.counts["duplicate"] += 1
-                runner.counts["cache_hits"] += 1
-                repair_row["cache_hits"] += 1
-                _record_initialization(
-                    runner, family, repaired, "duplicate_after_repair"
-                )
-                return None, repair_row, repair_attempted
-            runner.seen.add(repaired.key)
-            scored = _evaluate(runner, repaired, repair_row)
-            if scored.evaluation.valid:
-                repair_row["valid"] += 1
-            else:
-                runner.counts["invalid"] += 1
-                repair_row["invalid"] += 1
-                reason = scored.evaluation.reason or scored.evaluation.validation_status
-                repair_row[f"invalid_reason:{reason}"] += 1
-    return scored, repair_row, repair_attempted
+        row[f"invalid_reason:{exc}"] += 1
+        _record_initialization(runner, family, candidate, "invalid")
+        return None, None
+    if runner.evaluator.check_budgets(preview.completion_times):
+        return candidate, None
+    runner.counts["invalid"] += 1
+    row["invalid"] += 1
+    row["invalid_reason:Individual flight-time budget exceeded"] += 1
+    preview_count = runner.counts["budget_repair_probes"]
+    repaired, repair_record = repair_over_budget(runner, candidate, preview)
+    repair_record["source_family"] = family
+    runner.budget_repairs.append(repair_record)
+    repair_row = runner.by_family.setdefault("budget_repair_drop", Counter())
+    repair_row["generated"] += runner.counts["budget_repair_probes"] - preview_count
+    repair_row["dropped_tasks"] += len(repair_record["tasks_dropped"])
+    repair_row["dropped_free_waypoints"] += len(repair_record["free_waypoints_dropped"])
+    if repaired is None or runner.exhausted():
+        _record_initialization(runner, family, candidate, "budget_repair_failed")
+        return None, repair_row
+    if repaired.key in runner.seen:
+        runner.counts["duplicate"] += 1
+        runner.counts["cache_hits"] += 1
+        repair_row["cache_hits"] += 1
+        _record_initialization(runner, family, repaired, "duplicate_after_repair")
+        return None, repair_row
+    runner.seen.add(repaired.key)
+    return repaired, repair_row
 
 
 def _update_archives(
@@ -188,9 +182,8 @@ def _update_archives(
     repair_row: Counter | None,
 ) -> Solution:
     runner.counts["valid"] += 1
-    acceptance_row = repair_row or row
-    if repair_row is None:
-        row["valid"] += 1
+    acceptance_row = repair_row if repair_row is not None else row
+    acceptance_row["valid"] += 1
     was_pool_base = runner.active_base_source == "pool"
     if runner.archive.add(scored):
         _record_acceptance(runner, scored, acceptance_row)
@@ -221,22 +214,19 @@ def evaluate_candidate(
     if candidate is None:
         return None
 
-    # Evaluate the candidate and record time and cache usage.
-    scored = _evaluate(runner, candidate, row)
-
-    # Repair budget violations and evaluate the repaired candidate.
-    scored, repair_row, repair_attempted = _repair_candidate(
-        runner, scored, family, row
-    )
-    if scored is None:
+    # Enforce the time budgets before evaluating communication.
+    candidate, repair_row = _repair_candidate(runner, candidate, family, row)
+    if candidate is None or runner.exhausted():
         return None
 
-    # Discard invalid candidates without counting a repair twice.
+    # Fully evaluate only the candidate that fits every budget.
+    evaluation_row = repair_row if repair_row is not None else row
+    scored = _evaluate(runner, candidate, evaluation_row)
     if not scored.evaluation.valid:
-        if not repair_attempted:
-            runner.counts["invalid"] += 1
-            reason = scored.evaluation.reason or scored.evaluation.validation_status
-            row[f"invalid_reason:{reason}"] += 1
+        runner.counts["invalid"] += 1
+        evaluation_row["invalid"] += 1
+        reason = scored.evaluation.reason or scored.evaluation.validation_status
+        evaluation_row[f"invalid_reason:{reason}"] += 1
         _record_initialization(runner, family, scored, "invalid")
         return None
 

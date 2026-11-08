@@ -1,9 +1,11 @@
-"""Restore flight budgets by dropping tasks at minimum reward/time loss."""
+"""Restore flight budgets by dropping visits at minimum reward/time loss."""
 
+from collections import Counter
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from ..evaluation_core.trajectory import MotionError
+from ..evaluation_core.scheduling import schedule
+from ..evaluation_core.trajectory import MotionError, State, connect
 from ..solution import Solution
 from .neighborhoods.common import edited
 from .profiling import profiling
@@ -14,27 +16,50 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class RoutePreview:
-    """Reward and exact route completion times without communication scoring."""
+    """Route completion times and cached durations of consecutive connections."""
 
-    reward: float
     completion_times: tuple[float, ...]
+    connection_times: tuple[tuple[float, ...], ...]
 
 
-def _preview(runner: "Runner", solution: Solution) -> RoutePreview | None:
-    """Build exact schedules and routes for a reward/time repair comparison."""
-    evaluator = runner.evaluator
-    evaluator.validate_structure(solution)
-    timing = evaluator.schedule_solution(solution)
-    trajectories, visit_times = evaluator.build_trajectories(solution, timing)
-    _, _, reward = evaluator.credit_rewards(solution, visit_times)
-    return RoutePreview(reward, tuple(route.completion_time for route in trajectories))
+def preview_solution(runner: "Runner", solution: Solution) -> RoutePreview:
+    """Compute route times once without reward or communication evaluation."""
+    with profiling(runner.profile, "budget_precheck_seconds"):
+        timing, durations = schedule(solution.routes, runner.problem)
+        return RoutePreview(tuple(route[-1][0] for route in timing), durations)
+
+
+def _preview_removal(
+    runner: "Runner", solution: Solution, current: RoutePreview, agent: int, index: int
+) -> RoutePreview:
+    with profiling(runner.profile, "budget_precheck_seconds"):
+        route = solution.routes[agent]
+        before, after = route[index - 1], route[index + 1]
+        duration = connect(
+            State(before.position, before.velocity),
+            State(after.position, after.velocity),
+            runner.problem.limits[agent],
+        ).duration
+        old = current.connection_times[agent]
+        completions = list(current.completion_times)
+        completions[agent] += duration - old[index - 1] - old[index]
+        durations = list(current.connection_times)
+        durations[agent] = (*old[: index - 1], duration, *old[index + 1 :])
+        return RoutePreview(tuple(completions), tuple(durations))
 
 
 def _drop_choices(
     runner: "Runner", solution: Solution, current: RoutePreview
 ) -> list[tuple[float, float, float, int, int, Solution, RoutePreview]]:
-    """Rank feasible single TASK deletions by team reward lost per saved second."""
+    """Rank TASK and FREE deletions by team reward lost per saved second."""
     choices: list[tuple[float, float, float, int, int, Solution, RoutePreview]] = []
+    task_counts = Counter(
+        visit.task_id
+        for route in solution.routes
+        for visit in route
+        if visit.kind == "TASK"
+    )
+    rewards = {task.id: task.reward for task in runner.problem.tasks}
     for agent, route in enumerate(solution.routes):
         budget = runner.problem.time_budgets[agent]
         if current.completion_times[agent] <= budget + runner.config.budget_tolerance:
@@ -42,13 +67,14 @@ def _drop_choices(
         for visit_index, visit in enumerate(route[1:-1], 1):
             if runner.exhausted():
                 return choices
-            if visit.kind != "TASK":
+            if visit.kind not in ("TASK", "FREE"):
                 continue
             candidate_route = (*route[:visit_index], *route[visit_index + 1 :])
             candidate = edited(solution, agent, candidate_route)
             try:
-                with profiling(runner.profile, "evaluator_seconds"):
-                    preview = _preview(runner, candidate)
+                preview = _preview_removal(
+                    runner, solution, current, agent, visit_index
+                )
             except (MotionError, ValueError):
                 preview = None
             finally:
@@ -60,7 +86,11 @@ def _drop_choices(
             )
             if time_saved <= runner.config.budget_tolerance:
                 continue
-            reward_lost = max(0.0, current.reward - preview.reward)
+            reward_lost = (
+                rewards[visit.task_id]
+                if visit.kind == "TASK" and task_counts[visit.task_id] == 1
+                else 0.0
+            )
             ratio = reward_lost / time_saved
             choices.append(
                 (
@@ -77,22 +107,21 @@ def _drop_choices(
 
 
 def repair_over_budget(
-    runner: "Runner", solution: Solution
+    runner: "Runner", solution: Solution, preview: RoutePreview
 ) -> tuple[Solution | None, dict]:
-    """Drop TASK visits until each flight budget fits; leave FREE visits intact.
+    """Drop TASK or FREE visits until each flight budget fits.
 
-    At each step, remove the feasible TASK occurrence with minimum team reward
+    At each step, remove the feasible visit occurrence with minimum team reward
     lost per second saved on an over-budget route. Duplicate task occurrences
-    have zero team reward loss while another route still serves that task.
+    have zero team reward loss while another route still serves that task;
+    FREE deletions always have zero reward loss.
     Exact evaluator scheduling and continuous connectors determine each saving.
     """
     with profiling(runner.profile, "budget_repair_seconds"):
         current_solution = solution
-        current = RoutePreview(
-            solution.evaluation.reward,
-            tuple(solution.evaluation.completion_times),
-        )
+        current = preview
         dropped: list[str] = []
+        free_dropped: list[str] = []
         total_reward_lost = 0.0
         while any(
             completion > budget + runner.config.budget_tolerance
@@ -105,10 +134,16 @@ def repair_over_budget(
             choices = _drop_choices(runner, current_solution, current)
             if not choices:
                 break
-            _, reward_lost, _, agent, visit_index, candidate, preview = min(choices)
-            dropped.append(current_solution.routes[agent][visit_index].task_id)
+            _, reward_lost, _, agent, visit_index, candidate, candidate_preview = min(
+                choices
+            )
+            visit = current_solution.routes[agent][visit_index]
+            if visit.kind == "TASK":
+                dropped.append(visit.task_id)
+            else:
+                free_dropped.append(visit.id)
             total_reward_lost += reward_lost
-            current_solution, current = candidate, preview
+            current_solution, current = candidate, candidate_preview
         within_budgets = all(
             completion <= budget + runner.config.budget_tolerance
             for completion, budget in zip(
@@ -116,9 +151,10 @@ def repair_over_budget(
             )
         )
     record = {
-        "initial_completion_times": list(solution.evaluation.completion_times),
+        "initial_completion_times": list(preview.completion_times),
         "final_completion_times": list(current.completion_times),
         "tasks_dropped": dropped,
+        "free_waypoints_dropped": free_dropped,
         "team_reward_lost": total_reward_lost,
         "within_budgets": within_budgets,
     }

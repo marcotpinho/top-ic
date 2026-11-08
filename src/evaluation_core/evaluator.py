@@ -45,18 +45,6 @@ class Evaluator:
 
     def evaluate(self, solution: Solution) -> Solution:
         """Return a scored immutable solution; invalid input has infinite objectives."""
-        identities = [visit.id for route in solution.routes for visit in route]
-        if len(identities) != len(set(identities)):
-            result = Evaluation(
-                False,
-                (inf, inf),
-                (),
-                (),
-                (),
-                "Visit occurrence IDs must be unique",
-                validation_status="invalid",
-            )
-            return replace(solution, evaluation=result)
         key = solution.key
         if key in self.cache:
             self.cache_hits += 1
@@ -75,8 +63,7 @@ class Evaluator:
         return replace(solution, evaluation=result)
 
     def _evaluate(self, solution: Solution) -> Evaluation:
-        """Run validation through objective assembly; implements eqs. (1)–(15)."""
-        self.validate_structure(solution)
+        """Build trajectories and assemble objectives; implements eqs. (1)–(15)."""
         timing = self.schedule_solution(solution)
         trajectories, visit_times = self.build_trajectories(solution, timing)
         reached, owners, reward = self.credit_rewards(solution, visit_times)
@@ -94,49 +81,6 @@ class Evaluator:
             communication,
             violation,
         )
-
-    def validate_structure(self, solution: Solution) -> None:
-        """Validate route and occurrence invariants of eq. (1)."""
-        problem = self.problem
-        if problem.num_agents < 2 or len(solution.routes) != problem.num_agents:
-            raise ValueError("ICC requires matching routes for at least two agents")
-        identities = [visit.id for route in solution.routes for visit in route]
-        if len(identities) != len(set(identities)):
-            raise ValueError("Visit occurrence IDs must be unique")
-        for agent, route in enumerate(solution.routes):
-            self._validate_route(agent, route)
-
-    def _validate_route(self, agent: int, route: tuple[Visit, ...]) -> None:
-        """Check fixed boundary states and visit geometry in eq. (1)."""
-        if len(route) < 2 or route[0].kind != "START" or route[-1].kind != "END":
-            raise ValueError("Route must begin START and terminate END")
-        start, end = route[0], route[-1]
-        if (
-            start.position != self.problem.start
-            or start.velocity != self.problem.initial_velocities[agent]
-            or end.position != self.problem.end
-            or end.velocity == (0.0, 0.0)
-        ):
-            raise ValueError("Invalid boundary states")
-        if any(visit.kind not in ("TASK", "FREE") for visit in route[1:-1]):
-            raise ValueError("Invalid interior visit")
-        task_map = self.problem.task_map
-        for visit in route:
-            if visit.kind == "FREE" and not self._in_workspace(visit.position):
-                raise ValueError("Free waypoint outside configured workspace")
-            if visit.kind == "TASK" and (
-                visit.task_id not in task_map
-                or visit.position != task_map[visit.task_id].position
-            ):
-                raise ValueError("Invalid fixed task position")
-
-    def _in_workspace(self, point: tuple[float, float]) -> bool:
-        """Check search workspace membership; None admits all points."""
-        workspace = self.config.waypoint_workspace
-        if workspace is None:
-            return True
-        xmin, xmax, ymin, ymax = workspace
-        return xmin <= point[0] <= xmax and ymin <= point[1] <= ymax
 
     def schedule_solution(self, solution: Solution) -> tuple:
         """Schedule fixed route connection durations; implements eq. (2)."""
