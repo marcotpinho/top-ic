@@ -5,7 +5,23 @@ generation, and evaluation. The shake duration covers perturbation only;
 its later candidate evaluation is included in evaluation_seconds.
 """
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
+from time import perf_counter
+
+
+@contextmanager
+def profiling(target, field: str) -> Iterator[None]:
+    started = perf_counter()
+    try:
+        yield
+    finally:
+        elapsed = perf_counter() - started
+        if isinstance(target, dict):
+            target[field] = target.get(field, 0.0) + elapsed
+        else:
+            setattr(target, field, getattr(target, field) + elapsed)
 
 
 @dataclass

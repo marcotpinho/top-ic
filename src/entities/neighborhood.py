@@ -4,10 +4,10 @@ from collections.abc import Iterator
 from importlib import import_module
 from itertools import islice
 from random import Random
-from time import perf_counter
 
 from ..config import Config, Problem
 from ..solution import Solution
+from .profiling import profiling
 
 ICC_NEIGHBORHOODS = (
     "remove",
@@ -59,10 +59,7 @@ class Neighborhood:
             "candidates_generated": 0,
         }
         self.executions.append(execution)
-        started = perf_counter()
-        try:
+        with profiling(execution, "generation_seconds"):
             for candidate in islice(candidates, self.config.neighborhood_candidates):
                 execution["candidates_generated"] += 1
                 yield candidate
-        finally:
-            execution["generation_seconds"] = perf_counter() - started

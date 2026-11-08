@@ -1,12 +1,12 @@
 """Restore flight budgets by dropping tasks at minimum reward/time loss."""
 
 from dataclasses import dataclass
-from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..evaluation_core.trajectory import MotionError
 from ..solution import Solution
 from .neighborhoods.common import edited
+from .profiling import profiling
 
 if TYPE_CHECKING:
     from .runner import Runner
@@ -46,13 +46,12 @@ def _drop_choices(
                 continue
             candidate_route = (*route[:visit_index], *route[visit_index + 1 :])
             candidate = edited(solution, agent, candidate_route)
-            started = perf_counter()
             try:
-                preview = _preview(runner, candidate)
+                with profiling(runner.profile, "evaluator_seconds"):
+                    preview = _preview(runner, candidate)
             except (MotionError, ValueError):
                 preview = None
             finally:
-                runner.profile.evaluator_seconds += perf_counter() - started
                 runner.counts["budget_repair_probes"] += 1
             if preview is None:
                 continue
@@ -87,36 +86,35 @@ def repair_over_budget(
     have zero team reward loss while another route still serves that task.
     Exact evaluator scheduling and continuous connectors determine each saving.
     """
-    started = perf_counter()
-    current_solution = solution
-    current = RoutePreview(
-        solution.evaluation.reward,
-        tuple(solution.evaluation.completion_times),
-    )
-    dropped: list[str] = []
-    total_reward_lost = 0.0
-    while any(
-        completion > budget + runner.config.budget_tolerance
-        for completion, budget in zip(
-            current.completion_times, runner.problem.time_budgets
+    with profiling(runner.profile, "budget_repair_seconds"):
+        current_solution = solution
+        current = RoutePreview(
+            solution.evaluation.reward,
+            tuple(solution.evaluation.completion_times),
         )
-    ):
-        if runner.exhausted():
-            break
-        choices = _drop_choices(runner, current_solution, current)
-        if not choices:
-            break
-        _, reward_lost, _, agent, visit_index, candidate, preview = min(choices)
-        dropped.append(current_solution.routes[agent][visit_index].task_id)
-        total_reward_lost += reward_lost
-        current_solution, current = candidate, preview
-    within_budgets = all(
-        completion <= budget + runner.config.budget_tolerance
-        for completion, budget in zip(
-            current.completion_times, runner.problem.time_budgets
+        dropped: list[str] = []
+        total_reward_lost = 0.0
+        while any(
+            completion > budget + runner.config.budget_tolerance
+            for completion, budget in zip(
+                current.completion_times, runner.problem.time_budgets
+            )
+        ):
+            if runner.exhausted():
+                break
+            choices = _drop_choices(runner, current_solution, current)
+            if not choices:
+                break
+            _, reward_lost, _, agent, visit_index, candidate, preview = min(choices)
+            dropped.append(current_solution.routes[agent][visit_index].task_id)
+            total_reward_lost += reward_lost
+            current_solution, current = candidate, preview
+        within_budgets = all(
+            completion <= budget + runner.config.budget_tolerance
+            for completion, budget in zip(
+                current.completion_times, runner.problem.time_budgets
+            )
         )
-    )
-    runner.profile.budget_repair_seconds += perf_counter() - started
     record = {
         "initial_completion_times": list(solution.evaluation.completion_times),
         "final_completion_times": list(current.completion_times),

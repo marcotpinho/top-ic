@@ -13,7 +13,7 @@ from .archive_updates import evaluate_candidate
 from .evaluator import Evaluator
 from .hypervolume import hypervolume_2d
 from .neighborhood import Neighborhood
-from .profiling import SearchProfile
+from .profiling import SearchProfile, profiling
 from .search_loop import run_iterations
 from .seed_construction import (
     construct_reward_seed,
@@ -65,11 +65,8 @@ class Runner:
 
     def evaluate(self, solution: Solution, family: str) -> Solution | None:
         """Evaluate one complete decision and update archive/pool (eqs. 1–16)."""
-        started = perf_counter()
-        try:
+        with profiling(self.profile, "evaluation_seconds"):
             return evaluate_candidate(self, solution, family)
-        finally:
-            self.profile.evaluation_seconds += perf_counter() - started
 
     def run(self) -> RunResult:
         """Construct seeds, then run independent sampled family searches."""

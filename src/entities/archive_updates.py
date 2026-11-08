@@ -3,12 +3,12 @@
 from collections import Counter
 from dataclasses import replace
 from math import isfinite
-from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
 from ..velocity_initialization import initialize_solution_velocities
 from .budget_repair import repair_over_budget
+from .profiling import profiling
 
 if TYPE_CHECKING:
     from .runner import Runner
@@ -121,13 +121,10 @@ def _prepare_candidate(
 
 
 def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
-    started = perf_counter()
     misses_before = runner.evaluator.cache_misses
     hits_before = runner.evaluator.cache_hits
-    try:
+    with profiling(runner.profile, "evaluator_seconds"):
         scored = runner.evaluator.evaluate(candidate)
-    finally:
-        runner.profile.evaluator_seconds += perf_counter() - started
     runner.counts["evaluated"] += 1
     row["evaluated"] += 1
     exact = runner.evaluator.cache_misses - misses_before

@@ -1,11 +1,11 @@
 """Local-search control flow for sampled MOVNS families."""
 
 from collections.abc import Iterator
-from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
 from .communication_repair import repair_communication
+from .profiling import profiling
 from .selection import nondominated, pool_vector, vector_dominates
 from .shaking import ruin_recreate
 
@@ -31,13 +31,11 @@ def _timed_candidates(
     )
     timing = runner.profile.neighborhoods[name]
     while True:
-        started = perf_counter()
         try:
-            candidate = next(candidates)
+            with profiling(timing, "generation_seconds"):
+                candidate = next(candidates)
         except StopIteration:
-            timing.generation_seconds += perf_counter() - started
             return
-        timing.generation_seconds += perf_counter() - started
         yield candidate
 
 
@@ -56,16 +54,14 @@ def _search_family(
     base_cv = base.evaluation.comm_violation
     best_cv = base_cv
     cv_entrants = []
-    started = perf_counter()
-    try:
+    with profiling(timing, "total_seconds"):
         candidates = list(_timed_candidates(runner, name, base, iteration, pass_index))
         execution = runner.neighborhood.executions[-1]
         evaluated_before = runner.counts["evaluated"]
         for candidate in candidates:
             if runner.exhausted():
                 break
-            evaluation_started = perf_counter()
-            try:
+            with profiling(timing, "evaluation_seconds"):
                 scored = runner.evaluate(candidate, name)
                 if scored is not None and scored.evaluation.valid:
                     cv = scored.evaluation.comm_violation
@@ -74,13 +70,9 @@ def _search_family(
                         cv_entrants = [scored]
                     elif cv == best_cv and cv < base_cv:
                         cv_entrants.append(scored)
-            finally:
-                timing.evaluation_seconds += perf_counter() - evaluation_started
         execution["candidates_evaluated"] = (
             runner.counts["evaluated"] - evaluated_before
         )
-    finally:
-        timing.total_seconds += perf_counter() - started
     if base_cv > runner.config.numerical_tolerance:
         return base_cv - best_cv, cv_entrants
     entrants = [
@@ -94,8 +86,7 @@ def _search_family(
 
 def run_iterations(runner: "Runner") -> None:
     """Time the full local-search loop over independent sampled families."""
-    started = perf_counter()
-    try:
+    with profiling(runner.profile, "search_loop_seconds"):
         for iteration in range(runner.config.max_iterations):
             if runner.exhausted() or not (runner.archive.front or runner.archive.pool):
                 break
@@ -127,9 +118,9 @@ def run_iterations(runner: "Runner") -> None:
                         break
                     threshold = (
                         runner.config.numerical_tolerance
-                        if pass_base.evaluation.comm_violation # Is from unfeasible base, so we want to reduce CV
+                        if pass_base.evaluation.comm_violation  # Is from unfeasible base, so we want to reduce CV
                         > runner.config.numerical_tolerance
-                        else runner.config.neighborhood_hv_tau # Is from feasible base, so we want to improve hypervolume
+                        else runner.config.neighborhood_hv_tau  # Is from feasible base, so we want to improve hypervolume
                     )
                     improvement, entrants = _search_family(
                         runner, name, pass_base, iteration, pass_index
@@ -157,5 +148,3 @@ def run_iterations(runner: "Runner") -> None:
             runner.active_base_source = None
             runner.record_archive_objectives(iteration + 1)
             runner.record_metrics(iteration + 1)
-    finally:
-        runner.profile.search_loop_seconds += perf_counter() - started
