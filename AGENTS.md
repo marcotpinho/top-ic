@@ -3,6 +3,7 @@
 See modeling in `docs/modeling.md`, variable naming in `docs/variables.md` and the mathematical formulation for the problem in `docs/math_formulation.md`.
 
 - Never create new unit tests or try to run existing ones.
+- Never update `/docs` unless explicitly told to.
 - Specs are saved in `spec/`
 - After executing a test, save the results in `results/`
 - Each result must also contain a README.md with instructions to reproduce the test.
