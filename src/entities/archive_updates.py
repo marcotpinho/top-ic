@@ -89,13 +89,9 @@ def _record_acceptance(runner: "Runner", scored: Solution, row) -> None:
     )
 
 
-def evaluate_candidate(
-    runner: "Runner", solution: Solution, family: str
+def _prepare_candidate(
+    runner: "Runner", solution: Solution, family: str, row: Counter
 ) -> Solution | None:
-    """Score one complete solution and update front/pool (eqs. 1–16)."""
-    if runner.exhausted():
-        return None
-    row = runner.by_family.setdefault(family, Counter())
     runner.counts["generated"] += 1
     row["generated"] += 1
     if runner.active_base is not None:
@@ -121,6 +117,10 @@ def evaluate_candidate(
         _record_initialization(runner, family, candidate, "duplicate")
         return None
     runner.seen.add(candidate.key)
+    return candidate
+
+
+def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
     started = perf_counter()
     misses_before = runner.evaluator.cache_misses
     hits_before = runner.evaluator.cache_hits
@@ -136,6 +136,12 @@ def evaluate_candidate(
     runner.counts["cache_hits"] += cache_hits
     row["exact_evaluations"] += exact
     row["cache_hits"] += cache_hits
+    return scored
+
+
+def _repair_candidate(
+    runner: "Runner", scored: Solution, family: str, row: Counter
+) -> tuple[Solution | None, Counter | None, bool]:
     repair_row = None
     repair_attempted = False
     if (
@@ -164,24 +170,9 @@ def evaluate_candidate(
                 _record_initialization(
                     runner, family, repaired, "duplicate_after_repair"
                 )
-                return None
+                return None, repair_row, repair_attempted
             runner.seen.add(repaired.key)
-            repair_started = perf_counter()
-            misses_before = runner.evaluator.cache_misses
-            hits_before = runner.evaluator.cache_hits
-            try:
-                scored = runner.evaluator.evaluate(repaired)
-            finally:
-                runner.profile.evaluator_seconds += perf_counter() - repair_started
-            runner.counts["evaluated"] += 1
-            repair_row["evaluated"] += 1
-            exact = runner.evaluator.cache_misses - misses_before
-            cache_hits = runner.evaluator.cache_hits - hits_before
-            runner.counts["exact_evaluations"] += exact
-            runner.counts["cache_hits"] += cache_hits
-            repair_row["exact_evaluations"] += exact
-            repair_row["cache_hits"] += cache_hits
-            candidate = repaired
+            scored = _evaluate(runner, repaired, repair_row)
             if scored.evaluation.valid:
                 repair_row["valid"] += 1
             else:
@@ -189,13 +180,16 @@ def evaluate_candidate(
                 repair_row["invalid"] += 1
                 reason = scored.evaluation.reason or scored.evaluation.validation_status
                 repair_row[f"invalid_reason:{reason}"] += 1
-    if not scored.evaluation.valid:
-        if not repair_attempted:
-            runner.counts["invalid"] += 1
-            reason = scored.evaluation.reason or scored.evaluation.validation_status
-            row[f"invalid_reason:{reason}"] += 1
-        _record_initialization(runner, family, scored, "invalid")
-        return None
+    return scored, repair_row, repair_attempted
+
+
+def _update_archives(
+    runner: "Runner",
+    scored: Solution,
+    family: str,
+    row: Counter,
+    repair_row: Counter | None,
+) -> Solution:
     runner.counts["valid"] += 1
     acceptance_row = repair_row or row
     if repair_row is None:
@@ -215,3 +209,39 @@ def evaluate_candidate(
     else:
         _record_initialization(runner, family, scored, "discarded")
     return scored
+
+
+def evaluate_candidate(
+    runner: "Runner", solution: Solution, family: str
+) -> Solution | None:
+    """Score one complete solution and update front/pool (eqs. 1–16)."""
+    if runner.exhausted():
+        return None
+    row = runner.by_family.setdefault(family, Counter())
+
+    # Prepare velocities and reject duplicate candidates.
+    candidate = _prepare_candidate(runner, solution, family, row)
+    if candidate is None:
+        return None
+
+    # Evaluate the candidate and record time and cache usage.
+    scored = _evaluate(runner, candidate, row)
+
+    # Repair budget violations and evaluate the repaired candidate.
+    scored, repair_row, repair_attempted = _repair_candidate(
+        runner, scored, family, row
+    )
+    if scored is None:
+        return None
+
+    # Discard invalid candidates without counting a repair twice.
+    if not scored.evaluation.valid:
+        if not repair_attempted:
+            runner.counts["invalid"] += 1
+            reason = scored.evaluation.reason or scored.evaluation.validation_status
+            row[f"invalid_reason:{reason}"] += 1
+        _record_initialization(runner, family, scored, "invalid")
+        return None
+
+    # Update F and P and record the candidate's acceptance.
+    return _update_archives(runner, scored, family, row, repair_row)
