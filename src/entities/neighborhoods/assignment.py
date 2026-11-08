@@ -44,15 +44,15 @@ def _apply(solution: Solution, proposal: tuple[str, int, int, int, int]) -> Solu
         moved = replace(
             visit,
             id=fresh_id(solution, "transfer"),
-            velocity=(0.0, 0.0),
+            velocity=routes[other_agent][0].velocity,
         )
         routes[other_agent].insert(partner_index, moved)
     else:
         left = routes[agent][visit_index]
         right = routes[other_agent][partner_index]
-        routes[agent][visit_index] = replace(right, velocity=(0.0, 0.0))
+        routes[agent][visit_index] = replace(right, velocity=routes[agent][0].velocity)
         routes[other_agent][partner_index] = replace(
-            left, velocity=(0.0, 0.0)
+            left, velocity=routes[other_agent][0].velocity
         )
     return normalize(routes)
 

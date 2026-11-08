@@ -178,7 +178,7 @@ def _recreate(solution, removed, config, rng):
             replace(
                 visit,
                 id=fresh_id(rebuilt, "recreate"),
-                velocity=(0.0, 0.0),
+                velocity=routes[agent][0].velocity,
             ),
         )
         rebuilt = normalize(routes)

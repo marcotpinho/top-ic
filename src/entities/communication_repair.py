@@ -55,7 +55,12 @@ def _invitation_candidates(runner: "Runner", solution: Solution):
             guest_route = list(solution.routes[guest])
             guest_route.insert(
                 max(1, guest_index),
-                Visit(fresh_id(solution, "invite"), "FREE", point),
+                Visit(
+                    fresh_id(solution, "invite"),
+                    "FREE",
+                    point,
+                    guest_route[max(1, guest_index) - 1].velocity,
+                ),
             )
             routes = list(solution.routes)
             routes[guest] = tuple(guest_route)

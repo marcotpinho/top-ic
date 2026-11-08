@@ -175,7 +175,7 @@ def _problem_replacements(problem: dict) -> dict[str, str]:
         "{REWARD_RULE}": "rewards are collected by explicit TASK visits",
         "{COLLISION_RULES}": "collisions are ignored",
         "{MOTION_RULES}": "visits have coincident arrival and departure; no pauses before final arrival",
-        "{OTHER_ASSUMPTIONS}": "continuous box double-integrator motion",
+        "{OTHER_ASSUMPTIONS}": "continuous box double-integrator motion; nonzero visit velocities; intermediate connector velocities may pass through zero; stationary terminal presence only after completion",
     }
 
 
@@ -205,6 +205,8 @@ def _search_replacements(config: dict, stats: dict) -> dict[str, str]:
         "{HV_REFERENCE_POINT}": _format(stats["hypervolume_reference_point"]),
         "{HV_SCALES}": _format(stats["hypervolume_scales"]),
         "{WAYPOINT_STEPS}": _format(config["waypoint_steps"]),
+        "{VELOCITY_HEADINGS}": str(config["headings"]),
+        "{SPEED_FRACTIONS}": _format(config["speed_fractions"]),
         "{VELOCITY_SEGMENT_LENGTHS}": _format(config["velocity_segment_lengths"]),
         "{MAX_FREE_WAYPOINTS}": "unlimited",
         "{NEIGHBORHOOD_CANDIDATES}": str(config["neighborhood_candidates"]),

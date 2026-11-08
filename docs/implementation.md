@@ -107,3 +107,9 @@ Independent search best rewards are 125/150/190 for Tc=2/5/10 (seed42); fixed-ba
 The last candidate-bank validator initially disagreed about the owner of a near-simultaneous task visit. Diagnostic first-visitor attribution now requires an earliest arrival within 2e-6, while physical task union/reward and all contact/Delta checks remain independent. Its original validation error and validation-only recovery are preserved in the ledger. No optimizer was rerun.
 
 Outputs: schema-version-2 per-run JSON, JSON/CSV summaries, contact/staleness/path plots, independent-search and fixed-bank Tc frontier plots, controlled fixture, checksums, runtime/run ledger, and reconstruction/validation summaries. Incremental checkpoint propagation remains a later performance optimization; this stage deliberately verifies full propagation sweeps and caches pair contacts with the horizon in their keys. Collision constraints remain ignored.
+
+## Moving-only velocity policy
+
+The default menu now uses eight headings (45-degree spacing) and fractions `0.1, 0.25, 0.5, 0.75, 1`. Every visit, including START and END, has a nonzero velocity. The connector enforces the acceleration and axis-speed bounds; intermediate velocities may pass through zero between visits. Historical milestone descriptions and results above retain their original motion assumptions.
+
+Missing or zero initial velocities are converted to a fraction-0.1 moving state using the nearest 45-degree heading toward END (east for coincident depots). Generated END visits inherit the agent's initial velocity. Stationary destination presence applies only after completion and remains outside route expenditure.

@@ -10,7 +10,7 @@ class Visit:
     id: str
     kind: str
     position: Vector
-    velocity: Vector = (0.0, 0.0)
+    velocity: Vector
     task_id: str | None = None
 
     def __post_init__(self) -> None:
@@ -18,6 +18,8 @@ class Visit:
         object.__setattr__(self, "velocity", vector(self.velocity))
         if self.kind not in ("START", "TASK", "FREE", "END"):
             raise ValueError("Invalid visit kind")
+        if self.velocity == (0.0, 0.0):
+            raise ValueError("Visit velocity must be nonzero")
         if not self.id:
             raise ValueError("Visit needs a stable ID")
         if self.kind == "TASK" and not self.task_id:
@@ -61,7 +63,7 @@ def direct_solution(problem: Problem) -> Solution:
                 Visit(
                     f"{m}:start", "START", problem.start, problem.initial_velocities[m]
                 ),
-                Visit(f"{m}:end", "END", problem.end),
+                Visit(f"{m}:end", "END", problem.end, problem.initial_velocities[m]),
             )
             for m in range(problem.num_agents)
         )

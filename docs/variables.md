@@ -26,14 +26,14 @@ Visit occurrences have stable IDs separate from route positions. Repeated visits
 | $B_m$ | Flight-time budget | Time | `time_budget[m]` |
 | $\bar v_{md}$ | Maximum absolute velocity component | Distance/time | `velocity_axis_limit[m][d]` |
 | $\bar a_{md}$ | Maximum absolute acceleration component | Distance/time² | `acceleration_axis_limit[m][d]` |
-| $v_m^S$ | Initial velocity; zero default | 2D distance/time | `initial_velocity[m]` |
+| $v_m^S$ | Nonzero initial velocity; fraction 0.1 default | 2D distance/time | `initial_velocity[m]` |
 | $\mathcal U_m$ | Finite visit-velocity menu used initially by search | 2D vectors | `visit_velocity_states[m]` |
 | $\mathbb W$ | Configured free-waypoint search workspace | Bounds | `waypoint_workspace` |
 | $R$ | Euclidean communication range | Distance | `comm_range` |
 | $\delta$ | Required continuous handshake duration | Time | `handshake_time` |
 | $T_c$ | Sliding-window recurrence bound | Time | `recurrence_bound` |
 
-The initial convention uses componentwise limits. A diagonal vector can have magnitude greater than one axis limit. $\mathcal U_m$, $\mathbb W$, and $F_{\max}$ restrict the search representation; they are not assertions about the unrestricted continuous optimum. Budgets and bounds are identical initially but retain agent indexing. Final velocity is zero in this version.
+The initial convention uses componentwise limits. A diagonal vector can have magnitude greater than one axis limit. $\mathcal U_m$, $\mathbb W$, and $F_{\max}$ restrict the search representation; they are not assertions about the unrestricted continuous optimum. Budgets and bounds are identical initially but retain agent indexing. Arrival velocity is nonzero; stationary terminal presence starts only after route completion.
 
 ## Solution decisions
 
@@ -65,7 +65,7 @@ Connector-generated durations/accelerations are derived from endpoint states in 
 | $Q$ | Team reward over $\bigcup_m\mathcal Q_m$ | `total_reward` |
 | $L_m$ | Integrated path length; diagnostic only | `path_length[m]` |
 
-Use occurrence-indexed arrival times, never one time per task per agent. There are no pauses before final arrival. Presence at the destination on $[c_m,T]$ contributes to communication without increasing $c_m$.
+Use occurrence-indexed arrival times, never one time per task per agent. There are no pauses before final arrival. Presence at the destination on $(c_m,T]$ contributes to communication without increasing $c_m$.
 
 ## Communication and evaluation
 

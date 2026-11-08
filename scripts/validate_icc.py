@@ -17,7 +17,7 @@ def validate_motion(data):
             route=solution['routes'][m]
             assert route[0]['kind']=='START' and route[-1]['kind']=='END'
             assert route[0]['position']==problem['start'] and route[-1]['position']==problem['end']
-            assert route[-1]['velocity']==[0.,0.]
+            assert any(route[-1]['velocity'])
             agent=problem['agents'][m];position=np.array(problem['start']);velocity=np.array(agent['initial_velocity']);elapsed=0.;visits={}
             for piece in trajectory['pieces']:
                 count+=1;h=piece['duration'];assert h>0
@@ -35,7 +35,7 @@ def validate_motion(data):
                         if -1e-8<=t<=h+1e-8 and max(abs(position+velocity*t+.5*acceleration*t*t-target))<tolerance:
                             visits[task['id']]=min(visits.get(task['id'],math.inf),elapsed+max(0.,t))
                 position=position+velocity*h+.5*acceleration*h*h;velocity=tail_v;elapsed+=h
-            residual(position,problem['end']);residual(velocity,[0,0]);residual([elapsed],[trajectory['completion_time']]);residual([elapsed],[solution['completion_times'][m]])
+            residual(position,problem['end']);residual(velocity,route[-1]['velocity']);residual([elapsed],[trajectory['completion_time']]);residual([elapsed],[solution['completion_times'][m]])
             assert elapsed<=agent['time_budget']+tolerance
             for task in (() if explicit_rewards else problem['tasks']):
                 if max(abs(np.array(problem['start'])-task['position']))<tolerance:visits[task['id']]=0.
@@ -100,7 +100,9 @@ def validate_motion(data):
 
 
 def state_at(trajectory,time):
-    if time>=trajectory['completion_time']:
+    if time>trajectory['completion_time']:
+        return np.array(trajectory['end']['position']),np.zeros(2)
+    if time==trajectory['completion_time']:
         return np.array(trajectory['end']['position']),np.array(trajectory['end']['velocity'])
     for piece in trajectory['pieces']:
         if piece['start_time']<=time<=piece['start_time']+piece['duration']+1e-10:

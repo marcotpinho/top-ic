@@ -1,7 +1,7 @@
 """Validated, explicit physical inputs and search settings."""
 
 from dataclasses import dataclass
-from math import cos, isfinite, pi, sin
+from math import atan2, cos, isfinite, pi, sin
 
 Vector = tuple[float, float]
 
@@ -22,6 +22,18 @@ class MotionLimits:
         object.__setattr__(self, "acceleration", vector(self.acceleration))
         if min(*self.velocity, *self.acceleration) <= 0:
             raise ValueError("Axis limits must be positive")
+
+
+def moving_velocity(limits: MotionLimits, start: Vector, end: Vector) -> Vector:
+    """Use the nearest 45-degree heading at 10% of its axis-limited speed."""
+    angle = round(atan2(end[1] - start[1], end[0] - start[0]) / (pi / 4)) * (pi / 4)
+    direction = (cos(angle), sin(angle))
+    maximum = min(
+        limits.velocity[d] / abs(direction[d])
+        for d in range(2)
+        if abs(direction[d]) > 1e-12
+    )
+    return tuple(0.0 if abs(v) < 1e-12 else 0.1 * maximum * v for v in direction)
 
 
 @dataclass(frozen=True)
@@ -73,6 +85,14 @@ class Problem:
             raise ValueError("Per-agent array counts must match")
         if len({t.id for t in self.tasks}) != len(self.tasks):
             raise ValueError("Duplicate task IDs")
+        object.__setattr__(
+            self,
+            "initial_velocities",
+            tuple(
+                vel if vel != (0.0, 0.0) else moving_velocity(lim, self.start, self.end)
+                for vel, lim in zip(self.initial_velocities, self.limits)
+            ),
+        )
         for vel, lim in zip(self.initial_velocities, self.limits):
             if any(abs(v) > bound for v, bound in zip(vel, lim.velocity)):
                 raise ValueError("Initial velocity exceeds axis limit")
@@ -96,10 +116,10 @@ class Config:
     neighborhood_hv_tau: float = 0.0
     neighborhood_max_passes: int = 3
     archive_size: int = 100
-    headings: int = 4
+    headings: int = 8
     eps_reward: float = 1.0
     eps_time: float = 0.1
-    speed_fractions: tuple[float, ...] = (0.0, 0.5, 1.0)
+    speed_fractions: tuple[float, ...] = (0.1, 0.25, 0.5, 0.75, 1.0)
     velocity_segment_lengths: tuple[int, ...] = (2, 3)
     disabled: tuple[str, ...] = ()
     comm_range: float = 2.0
@@ -214,9 +234,9 @@ class Config:
         ):
             raise ValueError("Workspace must be xmin,xmax,ymin,ymax")
         if not self.speed_fractions or any(
-            not isfinite(f) or not 0 <= f <= 1 for f in self.speed_fractions
+            not isfinite(f) or not 0.1 <= f <= 1 for f in self.speed_fractions
         ):
-            raise ValueError("Speed fractions must be in [0,1]")
+            raise ValueError("Speed fractions must be in [0.1,1]")
         if (
             not self.velocity_segment_lengths
             or any(
@@ -230,7 +250,7 @@ class Config:
 
 
 def velocity_menu(limits: MotionLimits, config: Config):
-    states = {(0.0, 0.0)}
+    states = set()
     for h in range(config.headings):
         direction = (
             cos(2 * pi * h / config.headings),

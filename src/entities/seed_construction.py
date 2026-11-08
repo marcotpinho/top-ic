@@ -28,7 +28,13 @@ def _build_partition(
         agent = (task_index + shift) % len(routes)
         routes[agent].insert(
             -1,
-            Visit(f"{label}:{agent}:{task.id}", "TASK", task.position, task_id=task.id),
+            Visit(
+                f"{label}:{agent}:{task.id}",
+                "TASK",
+                task.position,
+                routes[agent][0].velocity,
+                task_id=task.id,
+            ),
         )
     return normalize(routes)
 
@@ -82,6 +88,7 @@ def _cooperative_subset(base: Solution, tasks: list[Task]) -> Solution:
                     f"cooperative:{agent}:{task.id}",
                     "TASK",
                     task.position,
+                    route[0].velocity,
                     task_id=task.id,
                 ),
             )

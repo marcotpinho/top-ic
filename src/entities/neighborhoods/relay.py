@@ -49,5 +49,7 @@ def generate(
     ):
         route = list(solution.routes[agent])
         # Another agent's TASK occurrence keeps the team reward.
-        route[visit_index] = Visit(fresh_id(solution, "relay"), "FREE", point)
+        route[visit_index] = Visit(
+            fresh_id(solution, "relay"), "FREE", point, route[visit_index].velocity
+        )
         yield edited(solution, agent, route)

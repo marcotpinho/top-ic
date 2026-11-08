@@ -115,7 +115,7 @@ class Evaluator:
             start.position != self.problem.start
             or start.velocity != self.problem.initial_velocities[agent]
             or end.position != self.problem.end
-            or end.velocity != (0.0, 0.0)
+            or end.velocity == (0.0, 0.0)
         ):
             raise ValueError("Invalid boundary states")
         if any(visit.kind not in ("TASK", "FREE") for visit in route[1:-1]):

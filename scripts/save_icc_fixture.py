@@ -21,7 +21,13 @@ def _variants(problem: Problem, evaluator: Evaluator) -> dict[str, Solution]:
     routes = [
         (
             base.routes[agent][0],
-            Visit(f"task{agent}", "TASK", task.position, task_id=task.id),
+            Visit(
+                f"task{agent}",
+                "TASK",
+                task.position,
+                base.routes[agent][0].velocity,
+                task_id=task.id,
+            ),
             base.routes[agent][-1],
         )
         for agent, task in enumerate(problem.tasks)
@@ -40,6 +46,7 @@ def _variants(problem: Problem, evaluator: Evaluator) -> dict[str, Solution]:
                     f"waypoint{agent}",
                     "TASK" if task_id else "FREE",
                     position,
+                    route[0].velocity,
                     task_id=task_id,
                 ),
                 route[-1],

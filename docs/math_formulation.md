@@ -4,9 +4,9 @@ Target formulation for a metaheuristic, following [variables](variables.md) and 
 
 ## 1. Inputs and motion convention
 
-Let $\mathcal V=\{1,\ldots,N\}$ be reward tasks with positions $z_i\in\mathbb R^2$ and rewards $r_i\ge0$. Agents $\mathcal A=\{1,\ldots,M\}$ share start $z_S$ and destination $z_E$. Each has flight-time budget $B_m>0$, initial velocity $v_m^S$, and positive axis bounds $\bar v_{md},\bar a_{md}$ for $d\in\{x,y\}$. Final velocity is zero.
+Let $\mathcal V=\{1,\ldots,N\}$ be reward tasks with positions $z_i\in\mathbb R^2$ and rewards $r_i\ge0$. Agents $\mathcal A=\{1,\ldots,M\}$ share start $z_S$ and destination $z_E$. Each has flight-time budget $B_m>0$, initial velocity $v_m^S$, and positive axis bounds $\bar v_{md},\bar a_{md}$ for $d\in\{x,y\}$. Arrival velocity is nonzero.
 
-The proposed KOP-compatible convention is componentwise bounds, not magnitude bounds. Default initial velocity is zero. Collisions are ignored; crossing and co-location are permitted. No obstacle or jerk constraints are imposed in this version.
+The proposed KOP-compatible convention is componentwise bounds, not magnitude bounds. A missing or zero initial velocity is converted to a nonzero moving state at fraction 0.1 along the nearest 45-degree START-to-END heading (east for coincident depots). Collisions are ignored; crossing and co-location are permitted. No obstacle or jerk constraints are imposed in this version.
 
 Communication parameters, required only in the final stage, are range $R>0$, handshake duration $\delta\ge0$, and window length $T_c>0$.
 
@@ -23,7 +23,7 @@ The first occurrence is START at $z_S$ and the last is END at $z_E$. Interior oc
 Repeated task occurrences and shared visits are allowed. Start and end are different occurrence kinds even when their coordinates coincide. The final END is terminal: agents cannot leave it afterward. A zero-task route still must reach END.
 
 $$
-v_{m0}=v_m^S,\qquad v_{m,K_m-1}=0. \tag{1}
+v_{m0}=v_m^S,\qquad \|v_{mk}\|_2>0\quad\text{for every }k. \tag{1}
 $$
 
 The initial search uses a finite admissible visit-velocity menu $v_{mk}\in\mathcal U_m$, apart from prescribed endpoints. This is an implementation restriction on the continuous problem. Free-position workspace bounds are likewise explicit search restrictions. The search imposes no cap on the number of FREE visits per agent.
@@ -57,7 +57,7 @@ p_m(\theta_{mq}+\tau)=p^0_{mq}+v^0_{mq}\tau+\tfrac12a_{mq}\tau^2,
 v_m(\theta_{mq}+\tau)=v^0_{mq}+a_{mq}\tau. \tag{4}
 $$
 
-Adjacent pieces agree in position and velocity; acceleration may jump. Positive-duration pieces have $h_{mq}>0$; canonical construction removes zero-duration pieces. A zero-duration connection between identical states is allowed, including a direct empty route at coincident start/end with zero velocity. All piece bounds and prescribed visit passages must hold continuously, not merely at sampled frames.
+Visit boundary velocities are nonzero; intermediate connector velocities may pass through zero. Adjacent pieces agree in position and velocity; acceleration may jump. Positive-duration pieces have $h_{mq}>0$; canonical construction removes zero-duration pieces. A zero-duration connection between identical states is allowed, including a direct empty route at coincident start/end with nonzero velocity. All piece bounds and prescribed visit passages must hold continuously, not merely at sampled frames.
 
 ## 4. Expenditure and terminal presence
 
@@ -72,7 +72,7 @@ Thus travel before final arrival consumes budget; routes contain no explicit pau
 
 $$
 p_m(t)=z_E,\qquad v_m(t)=0,\qquad a_m(t)=0
-\quad\text{for }t\in[c_m,T]. \tag{6}
+\quad\text{for }t\in(c_m,T]. \tag{6}
 $$
 
 This extension does not increase $c_m$ or budget expenditure. The mean $\bar c$ is different from mission duration $T$.
@@ -86,7 +86,7 @@ $$
 Q=\sum_{i\in\bigcup_m\mathcal Q_m}r_i. \tag{7}
 $$
 
-Stopping is not necessary for reward collection: an explicit TASK occurrence may have nonzero velocity. A task contributes once regardless of repeated/shared visits. Incidental trajectory crossings and FREE visits at a task's coordinates do not earn reward. TASK positions are checked exactly against the declared task coordinates; continuous motion must pass through each declared visit.
+Reward collection requires an explicit TASK occurrence with nonzero velocity. A task contributes once regardless of repeated/shared visits. Incidental trajectory crossings and FREE visits at a task's coordinates do not earn reward. TASK positions are checked exactly against the declared task coordinates; continuous motion must pass through each declared visit.
 
 The reported objective vector is
 

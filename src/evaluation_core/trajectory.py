@@ -15,7 +15,7 @@ from math import isfinite, sqrt
 
 from ..config import MotionLimits, Vector, vector
 
-VERSION = "envelope-1"
+VERSION = "envelope-2-moving"
 TOL = 1e-8
 
 
@@ -44,8 +44,12 @@ class MotionPiece:
     def state(self, t: float) -> State:
         return State(
             (
-                self.position[0] + self.velocity[0] * t + 0.5 * self.acceleration[0] * t * t,
-                self.position[1] + self.velocity[1] * t + 0.5 * self.acceleration[1] * t * t,
+                self.position[0]
+                + self.velocity[0] * t
+                + 0.5 * self.acceleration[0] * t * t,
+                self.position[1]
+                + self.velocity[1] * t
+                + 0.5 * self.acceleration[1] * t * t,
             ),
             (
                 self.velocity[0] + self.acceleration[0] * t,
@@ -70,7 +74,9 @@ class AgentTrajectory:
     def state(self, t: float) -> State:
         if t < 0:
             raise ValueError("Time must be nonnegative")
-        if t >= self.completion_time:
+        if t > self.completion_time:
+            return State(self.end.position, (0.0, 0.0))
+        if t == self.completion_time:
             return self.end
         for piece in self.pieces:
             if piece.start_time <= t <= piece.start_time + piece.duration + TOL:
@@ -146,6 +152,8 @@ def _axis_profile(T, x, v0, v1, V, A):
 @lru_cache(maxsize=50000)
 def connect(start: State, end: State, limits: MotionLimits) -> Connection:
     for vel in (start.velocity, end.velocity):
+        if vel == (0.0, 0.0):
+            raise MotionError("Boundary velocity must be nonzero")
         if any(abs(v) > V + 1e-10 for v, V in zip(vel, limits.velocity)):
             raise MotionError("Boundary velocity outside limits")
     if start == end:
@@ -213,6 +221,8 @@ def validate_connection(
     limits: MotionLimits,
     tolerance: float = 2e-7,
 ) -> None | bool:
+    if start.velocity == (0.0, 0.0) or end.velocity == (0.0, 0.0):
+        raise MotionError("Boundary velocity must be nonzero")
     state = start
     elapsed = 0.0
     for piece in connection.pieces:

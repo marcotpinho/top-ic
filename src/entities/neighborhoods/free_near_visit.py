@@ -28,7 +28,7 @@ def _connector_feasible(
     visit: Visit,
     limits: MotionLimits,
 ) -> bool:
-    """Check both connectors adjacent to an inserted stopped visit."""
+    """Check both connectors adjacent to an inserted moving visit."""
     previous = route[insertion_index - 1]
     following = route[insertion_index]
     try:
@@ -63,7 +63,9 @@ def _placements_for_anchor(
             point = _sample_nearby_point(anchor.position, config, rng)
             if not in_workspace(point, config.waypoint_workspace):
                 continue
-            candidate_visit = Visit("candidate", "FREE", point)
+            candidate_visit = Visit(
+                "candidate", "FREE", point, target_route[insertion_index - 1].velocity
+            )
             if _connector_feasible(
                 target_route,
                 insertion_index,
@@ -109,6 +111,11 @@ def generate(
         route = list(solution.routes[target_agent])
         route.insert(
             insertion_index,
-            Visit(fresh_id(solution, "nearby-free"), "FREE", point),
+            Visit(
+                fresh_id(solution, "nearby-free"),
+                "FREE",
+                point,
+                route[insertion_index - 1].velocity,
+            ),
         )
         yield edited(solution, target_agent, route)

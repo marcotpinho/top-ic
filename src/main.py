@@ -77,14 +77,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--headings",
         type=int,
-        default=4,
+        default=8,
         help="number of heading directions in the visit-velocity menu",
     )
     parser.add_argument(
         "--speed-fractions",
         type=float,
         nargs="+",
-        default=[0, 0.5, 1],
+        default=[0.1, 0.25, 0.5, 0.75, 1],
         help="fractions of each axis speed limit used in the velocity menu",
     )
     parser.add_argument(

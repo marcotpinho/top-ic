@@ -70,7 +70,7 @@ def generate(
 ) -> Iterator[Solution]:
     """Sample N19 insertions/relocations; preserve tasks and endpoint states.
 
-    New FREE visits start stopped. Relocation preserves velocity.
+    New FREE visits inherit the preceding visit velocity. Relocation preserves velocity.
     Both adjacent connectors must be feasible; all randomness uses the run RNG.
     """
     choices = _choices(solution)
@@ -83,7 +83,12 @@ def generate(
         visit = (
             route.pop(index)
             if relocate
-            else Visit(fresh_id(solution, "segment-free"), "FREE", (0.0, 0.0))
+            else Visit(
+                fresh_id(solution, "segment-free"),
+                "FREE",
+                (0.0, 0.0),
+                route[index - 1].velocity,
+            )
         )
         try:
             point = _sample_point(

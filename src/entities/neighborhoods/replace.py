@@ -26,6 +26,10 @@ def generate(
     ):
         route = list(solution.routes[agent])
         route[visit_index] = Visit(
-            fresh_id(solution, "replace"), "TASK", task.position, task_id=task.id
+            fresh_id(solution, "replace"),
+            "TASK",
+            task.position,
+            route[visit_index].velocity,
+            task_id=task.id,
         )
         yield edited(solution, agent, route)

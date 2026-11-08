@@ -16,13 +16,13 @@ Tasks are fixed 2D locations with nonnegative rewards. Each agent chooses which 
 
 Agents follow double-integrator dynamics: position changes with velocity, and velocity changes with bounded acceleration. Their velocities remain continuous; acceleration may change between motion pieces. A visit includes position and velocity, so task order alone does not specify a complete solution.
 
-The proposed initial motion convention is KOP-compatible componentwise velocity and acceleration bounds. These are axis bounds, not bounds on Euclidean speed or acceleration magnitude. Initial velocity is configurable, with zero as the default. Final velocity is zero so that agents can remain stationary after arrival. Declared TASK visits must match fixed task coordinates; there is no physical reward-collection radius.
+The proposed initial motion convention is KOP-compatible componentwise velocity and acceleration bounds. These are axis bounds, not bounds on Euclidean speed or acceleration magnitude. Initial velocity is configurable and nonzero. Missing or zero initial states are converted to 10% of the directional axis limit, using the nearest 45-degree heading from START toward END (east when depots coincide). Arrival velocity is nonzero; stationary terminal presence is applied only after route completion. Declared TASK visits must match fixed task coordinates; there is no physical reward-collection radius.
 
 **Collisions are ignored in this version.** Agents may cross or occupy the same position. Obstacles, jerk constraints, and detailed vehicle energy models are outside the initial scope. These motion conventions and the remaining configurable defaults are recorded in the [model contract](../spec/00-model-contract.md).
 
 ## Flight-time budget and objectives
 
-Each agent has a flight-time budget measured in seconds. Expenditure is elapsed time from mission start to final arrival, including travel without pauses before arrival. Visits have identical arrival and departure times.
+Each agent has a flight-time budget measured in seconds. Expenditure is elapsed time from mission start to final arrival, including travel without pauses before arrival. Visits have identical arrival and departure times. Visit velocities are nonzero; a connector may pass through zero velocity between visits.
 
 An agent stops consuming budget after final arrival, remains at the destination, and continues to communicate until the last agent arrives. Thus an early agent's terminal presence affects communication but neither expenditure nor completion time. The mission horizon is the maximum individual completion time.
 
@@ -73,3 +73,5 @@ Consecutive fixed route connections determine visit times, with identical arriva
 The feasible archive `F` contains only movement-, budget-, and communication-feasible solutions and applies epsilon-box Pareto filtering to negative reward and mean completion time. The coverage pool `P` contains valid candidates outside `F`, including infeasible and feasible dominated candidates, and uses fixed objective-space subregions rather than feasibility to preserve coverage. Full propagation is recomputed; pair-contact caching includes the mission horizon.
 
 Current ICC results use schema version 7 and publish only `F`. They include full routes, trajectories, contacts, staleness, two-objective archive snapshots, pool diagnostics, repair outcomes and evaluation-indexed health metrics. Historical schemas retain their original meaning.
+
+The default visit-velocity menu uses eight headings separated by 45 degrees and fractions `0.1, 0.25, 0.5, 0.75, 1` of the directional axis limit (40 nonzero states). Configured fractions must lie in `[0.1, 1]`.

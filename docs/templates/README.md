@@ -6,6 +6,7 @@
 - **Map scale and frame:** `{UNITS}`, `{MAP_BOUNDS_OR_SIZE}`.
 - **Agents:** `{AGENT_COUNT}`; starts: `{START_POSITIONS}`; destinations: `{END_POSITIONS}`; initial velocities: `{INITIAL_VELOCITIES}`.
 - **Motion limits:** per-axis velocity `{VELOCITY_LIMITS}`; per-axis acceleration `{ACCELERATION_LIMITS}`.
+- **Visit velocities:** `{VELOCITY_HEADINGS}` headings; directional speed fractions `{SPEED_FRACTIONS}`; nonzero visit velocities, including departure and arrival; intermediate connector velocities may pass through zero.
 - **Flight-time budgets:** `{BUDGETS_SECONDS}`.
 - **Tasks and rewards:** `{TASK_COUNT}` tasks; total available reward `{TOTAL_REWARD}`; reward collection rule `{REWARD_RULE}`.
 - **Communication constraints:** range R = `{COMMUNICATION_RANGE}` `{DISTANCE_UNITS}`; handshake delta = `{HANDSHAKE_TIME}` s; recurrence bound Tc = `{RECURRENCE_BOUND}` s.

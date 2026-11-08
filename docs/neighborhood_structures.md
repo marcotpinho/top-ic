@@ -23,7 +23,7 @@ Before each neighborhood family runs, the search perturbs the selected base with
 - **Spatially related removal** — Choose a TASK visit as an anchor and remove up to strength + 1 TASK visits nearest to it by Euclidean distance across the team.
 - **Noisy greedy recreation** — Reinsert removed visits in random order, sampling up to `recreate_sample_slots` route slots and choosing the lowest detour cost plus seeded random noise.
 
-The perturbation preserves route endpoints, assigns fresh occurrence IDs, and resets recreated visits to zero velocity with immediate departure. Each neighborhood family starts from its own perturbed copy of the selected base.
+The perturbation preserves route endpoints, assigns fresh occurrence IDs, and assigns recreated visits the receiving agent's nonzero initial velocity with immediate departure. Each neighborhood family starts from its own perturbed copy of the selected base.
 
 ## Budget repair
 
