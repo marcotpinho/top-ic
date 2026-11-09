@@ -1,50 +1,84 @@
-\subsection{Tasks, Routes, and Motion}
-Let $\mathcal V=\{1,\ldots,N\}$ contain task locations $z_i\in\mathbb R^2$ and nonnegative rewards $r_i$. Agents $m\in\mathcal A=\{1,\ldots,M\}$ share start $z_S$ and destination $z_E$. Agent $m$ has a flight-time budget $B_m$, initial velocity $v_m^S$, and componentwise velocity and acceleration bounds $\bar v_{md}$ and $\bar a_{md}$ for $d\in\{x,y\}$. We ignore collisions, obstacles, and jerk limits.
+\subsection{Informal description}
+TOP-ICC asks a team to collect valuable tasks and reach a common destination before individual flight-time limits expire. Routes may contain reward-free waypoints that create useful encounters. Communication is intermittent: agents exchange all currently held information whenever their continuous trajectories are within range, and received information may be forwarded at later encounters. A solution is communication-feasible when every directed source--receiver information age stays below a prescribed recurrence bound. Among feasible solutions, we seek the trade-off between collected team reward and mean completion time.
 
-An agent selects an ordered sequence of \emph{visit occurrences} $\pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1})$ beginning at START and ending at END. An interior occurrence is TASK, with fixed position $z_i$ and an associated task ID, or FREE, with a chosen position and no intrinsic reward. Occurrences have distinct identities even when positions or task IDs coincide. Each has a boundary velocity $v_{mk}$ and a nonnegative pre-departure wait $w_{mk}$. End velocity is zero and a positive wait requires zero velocity. An explicit TASK occurrence earns reward even if traversed at nonzero velocity; incidental flyovers and FREE visits at a task position do not.
+\subsection{Sets, parameters, and notation}
+Let $\mathcal A=\{1,\ldots,M\}$ index agents, $\mathcal V=\{1,\ldots,N\}$ index tasks, and $\mathcal D=\{x,y\}$ index spatial axes. Task $i$ has position $z_i\in\mathbb R^2$ and reward $r_i\ge0$. All agents share start $z_S$ and destination $z_E$. Agent $m$ has initial velocity $v_m^S$, flight-time budget $B_m$, and componentwise velocity and acceleration limits $\bar v_{md}$ and $\bar a_{md}$. Communication range is $R$ and the recurrence bound is $T_c$.
 
-The motion joining consecutive visits obeys
+\begin{table}[t]
+\centering
+\caption{Principal notation.}
+\label{tab:notation}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning\\
+\midrule
+$\mathcal A,\mathcal V$ & agent and task sets\\
+$z_i,r_i$ & task position and reward\\
+$B_m$ & flight-time budget of agent $m$\\
+$\pi_m$ & ordered visit sequence of agent $m$\\
+$p_m,v_m,a_m$ & continuous position, velocity, acceleration\\
+$c_m,\bar c,T$ & completion, mean completion, mission horizon\\
+$R,T_c$ & communication range and recurrence bound\\
+$h_{nm}(t)$ & newest source-$m$ timestamp held by receiver $n$\\
+$A_{nm}(t),P_{nm}$ & information age and its directed peak\\
+$Q(S),CV(S)$ & team reward and communication violation\\
+$\mathcal F,\mathcal P$ & feasible archive and auxiliary pool\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Decision variables}
+A solution $S$ assigns each agent an ordered sequence $\pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1})$. The first occurrence is START at $z_S$, the last is END at $z_E$, and each interior occurrence is either TASK, fixed at some $z_i$, or FREE, whose position is chosen by the search and earns no reward. Every occurrence has a nonzero boundary velocity $v_{mk}$. The route sequence, task assignment, free-waypoint coordinates, and boundary velocities are decisions. Arrival and departure coincide at every visit; routes contain no explicit waiting decision.
+
+\subsection{Objectives and Pareto concepts}
+Let $\mathcal Q_m$ be the task IDs represented by explicit TASK occurrences in $\pi_m$. Repeated or shared visits credit each task once:
+\begin{equation}
+ Q(S)=\sum_{i\in\cup_{m\in\mathcal A}\mathcal Q_m}r_i,
+ \qquad \bar c(S)=\frac{1}{M}\sum_{m\in\mathcal A}c_m.
+ \label{eq:reward}
+\end{equation}
+The reported minimization vector is
+\begin{equation}
+ f(S)=\bigl(-Q(S),\bar c(S)\bigr).
+ \label{eq:objectives}
+\end{equation}
+For feasible solutions $S$ and $S'$, $S$ dominates $S'$ when $f_j(S)\le f_j(S')$ for both objectives and the inequality is strict for at least one. The Pareto set contains feasible solutions not dominated by another feasible solution. We approximate it with an epsilon-box archive. Search progress is measured by normalized two-dimensional hypervolume with reference point $(1,1)$ after scaling reward by total available reward and time by the largest flight budget; larger hypervolume is better.
+
+\subsection{Motion, budget, and reward constraints}
+Consecutive visits are joined by a double-integrator trajectory:
 \begin{equation}
  \dot p_m(t)=v_m(t),\quad \dot v_m(t)=a_m(t),\quad
  |v_{md}(t)|\le\bar v_{md},\quad |a_{md}(t)|\le\bar a_{md}.
  \label{eq:dynamics}
 \end{equation}
-The implemented connector represents each connection by finitely many constant-acceleration pieces and chooses a minimum-time feasible connection for fixed endpoint states. If $D_{mk}$ is its duration, arrival and departure times satisfy
+These constraints enforce continuous position and velocity and bound each velocity and acceleration component. The implementation represents a connector by finitely many constant-acceleration pieces and computes a minimum-time connection for fixed endpoint states. If $D_{mk}$ is the duration from occurrence $k$ to $k+1$, then
 \begin{equation}
- \alpha_{m0}=0,\quad \beta_{mk}=\alpha_{mk}+w_{mk},\quad
- \alpha_{m,k+1}=\beta_{mk}+D_{mk}.
- \label{eq:timing}
-\end{equation}
-An agent's expenditure and the mission horizon are
-\begin{equation}
- c_m=\alpha_{m,K_m-1}\le B_m,\qquad
- \bar c=\frac1M\sum_m c_m,\qquad T=\max_m c_m.
+ \alpha_{m0}=0,\qquad \alpha_{m,k+1}=\alpha_{mk}+D_{mk},
+ \qquad c_m=\alpha_{m,K_m-1}\le B_m.
  \label{eq:budget}
 \end{equation}
-Waiting before END consumes budget. After arrival the agent remains at $z_E$ until $T$, contributing to communication without further expenditure. Flight time is a proxy for resource use, not a physical energy model.
+Thus each final arrival must respect its individual budget. The mission horizon is $T=\max_m c_m$. After completing its route, an agent remains at $z_E$ until $T$ for communication evaluation without increasing $c_m$. Reward is earned only by explicit TASK occurrences; incidental flyovers and FREE occurrences at task coordinates earn nothing.
 
-Let $\mathcal Q_m$ be the task IDs in agent $m$'s explicit TASK occurrences. Repeated or shared visits earn each reward once:
+\subsection{Temporal communication constraint}
+At time $t$, agents $m$ and $n$ communicate when
 \begin{equation}
- Q(S)=\sum_{i\in\cup_m\mathcal Q_m} r_i.
- \label{eq:reward}
+ \|p_m(t)-p_n(t)\|_2\le R.
+ \label{eq:contact}
 \end{equation}
-
-\subsection{Range Contacts and Information Propagation}
-At time $t$, a pair $(m,n)$ is within range if $\|p_m(t)-p_n(t)\|_2\le R$. For each maximal closed within-range interval $[s,e]$, the usable link interval is $[s+\delta,e]$ when $s>0$ and $e-s\ge\delta$, where $\delta$ is the continuous handshake duration. The initial interval beginning at zero is usable immediately because initial handshakes and synchronization are assumed complete. A later interruption resets the handshake. Thus communication can occur during movement, waits, or post-arrival presence; a planned meeting is sufficient but not necessary.
-
-Agents retain and forward information. Simultaneously linked agents exchange the latest data across each connected component, while links at different times must respect chronological order. Let $h_{nm}(t)$ be the latest timestamp of information originating at source $m$ available to receiver $n$ by $t$, with $h_{nm}(0)=0$ and $h_{mm}(t)=t$. The directed information age and its mission peak are
+Every connected component of the instantaneous range graph exchanges its newest information. Let $h_{nm}(t)$ be the newest timestamp originating at $m$ that receiver $n$ holds, with $h_{nm}(0)=0$ and $h_{mm}(t)=t$. Information is retained and may be forwarded at later contacts. Define
 \begin{equation}
  A_{nm}(t)=t-h_{nm}(t),\qquad
- \Delta(S)=\sup_{0\le t\le T}\max_{m\ne n} A_{nm}(t).
+ P_{nm}(S)=\sup_{0\le t\le T} A_{nm}(t).
  \label{eq:staleness}
 \end{equation}
-The supremum includes left limits immediately before a contact, when age may be larger than just after information exchange. For one agent we set $\Delta=0$. The communication requirement is $\Delta(S)\le T_c$. Equivalently, under initial synchronization, every full mission window of length $T_c$ must permit time-respecting propagation of every source's information to every other agent. If $T<T_c$, no full window is required. No additional delivery condition is imposed after $T$.
-
-\subsection{Objectives and Feasibility}
-We minimize the three-component vector
+The supremum includes the left limit immediately before an exchange. Communication feasibility is represented by
 \begin{equation}
- f_{T_c}(S)=\left(-Q(S),\;\bar c(S),\;V_c(S)\right),\quad
- V_c(S)=\max\{0,\Delta(S)-T_c\}.
- \label{eq:objectives}
+ CV(S)=\sum_{n\ne m}\max\{0,P_{nm}(S)-T_c\}=0.
+ \label{eq:communication_constraint}
 \end{equation}
-The flight-time bounds in~\eqref{eq:budget}, dynamics in~\eqref{eq:dynamics}, and visit rules are hard physical constraints. A physically valid candidate with $V_c>0$ may be retained during search as an infeasible communication stepping stone. The reported feasible reward--time front is the $V_c=0$ slice. All candidates below $T_c$ tie on the third objective, so the final front does not reward unnecessary communication margin.
+This constraint requires every directed information-age peak to remain within $T_c$. Equivalently, every full mission window of length $T_c$ admits time-respecting propagation between every ordered pair. When $M=1$, we define $CV=0$.
+
+\subsection{Assumptions and complexity}
+We assume known task positions and rewards, deterministic dynamics, perfect localization, isotropic range communication, instantaneous and lossless exchange while in range, and initial synchronization. Collisions, obstacles, jerk limits, bandwidth, and physical energy are outside the model. These assumptions isolate the coupling among reward allocation, bounded motion, and temporal information propagation; flight time is therefore a resource proxy rather than an energy claim. Visit velocities are selected from a finite menu and FREE positions from a bounded workspace, which makes the implemented search finite but does not imply global optimality for the underlying continuous problem.
+
+TOP-ICC is NP-hard. With one agent, communication constraint~\eqref{eq:communication_constraint} is vacuous and the model contains kinematic orienteering; fixing the motion model to the routing-cost special case recovers the classical orienteering problem, which is NP-hard~\cite{golden1987orienteering,meyer2022kop}. Additional agents and temporal contacts enlarge rather than simplify the decision space.

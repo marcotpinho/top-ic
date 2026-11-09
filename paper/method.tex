@@ -1,23 +1,95 @@
-\subsection{Representation and Initialization}
-A candidate stores each agent's ordered START/TASK/FREE/END occurrences, visit velocity and wait decisions, and optional pairs of planned meeting occurrences. A finite menu of headings and speed fractions supplies intermediate velocity states; zero velocity appears once. The route-state dynamic program finds the minimum connector-time velocity sequence for a fixed visit order and menu, with zero velocity forced at planned meeting endpoints and positive waits. It solves the route-time subproblem, not the coupled communication problem. The evaluator then constructs all trajectories, schedules any required meeting waits, and checks individual budgets.
+\subsection{Overview}
+The method combines four components: diverse seed construction, exact evaluation of the represented continuous trajectories, two archives with different roles, and a seeded multi-objective variable-neighborhood search. The feasible archive $\mathcal F$ approximates the Pareto front in~\eqref{eq:objectives}. The auxiliary pool $\mathcal P$ retains valid candidates that are outside $\mathcal F$, including communication-infeasible candidates that may be repaired. Every stochastic decision uses one seeded random stream in the coordinator; candidate evaluation may be batched, but integration into $\mathcal F$ and $\mathcal P$ follows generation order.
 
-Search begins with the direct depot-to-depot solution. Cooperative task insertion supplies a convoy-like seed; spatially partitioned and randomized unique-task assignments supply separated seeds. The latter are important because a search initialized solely from identical routes can have difficulty reaching split routes while preserving communication feasibility.
+\begin{figure}[t]
+\centering
+\fbox{\parbox{0.92\columnwidth}{\centering
+Seed construction $\rightarrow$ base selection $\rightarrow$ ruin-and-recreate\\[2pt]
+$\downarrow$\\[-2pt]
+budget repair $\rightarrow$ continuous evaluation $\rightarrow$ ordered archive update\\[2pt]
+$\downarrow$\\[-2pt]
+communication repair and neighborhood passes $\rightarrow$ $\mathcal F,\mathcal P$}}
+\caption{Method overview. Physical and budget checks precede communication evaluation; evaluated candidates enter the archives in generation order.}
+\label{fig:method_overview}
+\end{figure}
 
-\subsection{Multi-Objective Variable-Neighborhood Search}
-We use a seeded multi-objective variable-neighborhood search (MOVNS). Each outer iteration chooses a base from the epsilon front, objective-equal alternatives, or a bounded dominated-solution pool. Selection cycles reward, communication violation, auxiliary repair potential, and time criteria while visiting previously unexplored pool members before repeating. For each enabled family, a separate ruin-and-recreate perturbation is applied to the \emph{same} selected base. Ruin removes an agent route, a contiguous sequence, or spatially related visits. Recreation inserts tasks with noisy reward-per-detour scores and penalizes tasks already visited by another agent. Neighborhoods do not chain their outputs within an iteration.
+\subsection{Representation and seed construction}
+A candidate stores an ordered tuple of START/TASK/FREE/END occurrences for every agent. Each occurrence contains its position, nonzero boundary velocity, kind, and task identifier when applicable. A physical key excludes occurrence labels, so duplicate route decisions are detected independently of how a move names them. This representation directly supports route-order, assignment, velocity, relay, and free-waypoint edits.
 
-The current communication-stage families are task removal, replacement, cross-agent assignment, route reordering, task insertion, excursion, meeting, and unlink. The excursion family bypasses a shared segment on one route and can insert unreached reward tasks in the resulting branch. Meeting moves link stopped visits, retime an existing meeting, invite an agent to a free waypoint near a host, or add a paired unreached task visit. Unlink removes communication structure that no longer helps. Candidate streams are interleaved across agents or agent pairs, so a fixed cap of 120 proposals per family does not exhaust itself on the first route. Planned meetings are synchronized by a difference-constraint scheduler that adds waiting only when needed; waiting is charged to the affected agents' flight-time budgets.
+Initialization starts with direct START-to-END routes. Greedy construction repeatedly samples insertions of unvisited tasks, keeps candidates with the largest reward increase, ranks ties by mean completion time, and randomly chooses among the three best ranked candidates. For agents with identical motion limits and initial velocities, cooperative seeds assign the same distance-ordered task subsets to all agents. Partition seeds sort tasks by angle around the start and distribute them cyclically with every agent shift; one additional seed uses a seeded shuffle. Initialization stops after a configured fraction of the time or exact-evaluation budget. These seeds balance immediately communication-feasible convoy routes with geographically separated assignments.
 
-Every generated candidate undergoes route-state refinement and full physical evaluation. A sampled subset of meeting and excursion proposals is evaluated both before and after refinement; if both are valid, the variant with better feasibility-first communication/time rank is kept. This check guards against a minimum-time route state erasing an otherwise useful contact, without treating the route DP as communication-aware.
+If all possible insertions were enumerated, one greedy construction step would consider $O(NM\bar K)$ positions for average route length $\bar K$. The implementation caps each generated neighborhood stream at $K_N$, so initialization cost is bounded by its configured fraction of the global time and exact-evaluation budgets.
 
-The main archive uses epsilon-box dominance on~\eqref{eq:objectives}, with a dedicated zero-violation box layer; if capacity is exceeded, epsilon widths are coarsened. Crowding distance is used only to bound the separate dominated seed pool. That pool includes auxiliary axes for integrated excess information age and secondary directed-pair age, which help preserve partial communication repairs. These axes never enter the reported objective vector.
+\begin{algorithm}[t]
+\caption{TOP-ICC multi-objective variable-neighborhood search}
+\label{alg:movns}
+\begin{algorithmic}[1]
+\Require Problem data, search limits, neighborhood set $\mathcal N$, seed
+\Ensure Feasible epsilon archive $\mathcal F$
+\State Initialize seeded random stream, $\mathcal F\gets\emptyset$, $\mathcal P\gets\emptyset$
+\State Construct and evaluate direct, greedy, cooperative, and partition seeds
+\While{time, evaluation, and iteration limits are not exhausted}
+    \State Select base $S$ from $ND_{\mathcal F}$ or $ND_{\mathcal P}$
+    \State $S'\gets$ \Call{RuinRecreate}{$S$}
+    \State Evaluate and, if needed, communication-repair $S'$
+    \ForAll{$N\in\mathcal N$}
+        \State Apply $N$ to the current passage base and evaluate candidates in order
+        \State Repeat while $CV$ decreases, or feasible hypervolume improves, up to $p_{\max}$ passes
+    \EndFor
+    \State Update the age of the selected pool member and record metrics
+\EndWhile
+\State \Return $\mathcal F$
+\end{algorithmic}
+\end{algorithm}
 
-\subsection{Continuous-Time Communication Evaluation}
-For each pair of piecewise constant-acceleration trajectories, squared separation minus $R^2$ is a polynomial of degree at most four on each overlap of motion pieces. Its roots and sign intervals produce maximal raw range-contact intervals. Applying the handshake yields effective links. A chronological sweep then visits all link endpoints plus $0$ and $T$: it propagates the latest source timestamps through the steady graph on each open interval, records left-limit ages, and processes all links active at an exact endpoint simultaneously. The largest off-diagonal age is $\Delta$ in~\eqref{eq:staleness}. An independent reverse temporal-reachability validator checks saved solutions.
+\subsection{Feasible archive, auxiliary pool, and selection}
+A physically valid candidate with $CV=0$ is eligible for $\mathcal F$. The archive first removes Pareto-dominated solutions in $(-Q,\bar c)$ and then retains one representative per epsilon box; if capacity is exceeded, both epsilon widths are coarsened. This bounds memory while preserving reward--time coverage.
 
-For search guidance only, we also record each directed pair peak $P_{nm}=\sup_t A_{nm}(t)$ and the integrated age above the bound,
+Candidates not retained in $\mathcal F$, together with solutions displaced from $\mathcal F$, are considered for $\mathcal P$. Pool dominance uses
 \begin{equation}
- A_c(S)=\sum_{n\ne m}\int_0^T [A_{nm}(t)-T_c]_+\,dt.
- \label{eq:excess}
+ g(S)=\bigl(CV(S),-Q(S),\bar c(S)\bigr),
+ \label{eq:pool_vector}
 \end{equation}
-The latter falls when some over-bound gaps shrink even if the global maximum remains fixed. Meeting proposals focus on the current bottleneck pair and time and prioritize nearby guest route segments. These signals improve candidate targeting but cannot remove the discontinuity at the range and handshake thresholds. Complexity depends on the number of overlapping motion-piece pairs and resulting contact events; we do not discretize the mission into uniform time frames.
+so partial communication repair remains visible. The pool removes dominated and over-age members and, if necessary, truncates by crowding distance. Let $ND_{\mathcal F}$ and $ND_{\mathcal P}$ be the nondominated subsets of the two archives. The default probability of selecting $\mathcal P$ is $|ND_{\mathcal P}|/(|ND_{\mathcal F}|+|ND_{\mathcal P}|)$; a two-member crowding tournament then chooses a base within the selected archive. Keeping $CV$ in $\mathcal P$ rather than in the reported objective vector preserves useful stepping stones without rewarding excess connectivity in the final front.
+
+With archive capacities $C_{\mathcal F}$ and $C_{\mathcal P}$, one insertion costs $O(C_{\mathcal F}+C_{\mathcal P}^2)$ in the current implementation: feasible-front dominance is linear, whereas pool dominance is quadratic in the bounded pool size. Memory is $O(C_{\mathcal F}+C_{\mathcal P})$ solutions, excluding cached trajectory data.
+
+\subsection{Perturbation, repair, and neighborhoods}
+Ruin-and-recreate perturbs the selected base before local improvement. When the perturbed solution has $CV>0$, a bounded repair operator inserts or modifies FREE visits to reduce communication violation. Candidates that exceed a flight-time budget are repaired before full communication evaluation: removable FREE visits are considered first when their removal preserves local contacts, followed by TASK removals ranked by reward lost per second saved.
+
+The neighborhood set contains whole-agent velocity changes, individual visit-velocity changes, velocity-segment changes, task removal, replacement, cross-agent assignment, reordering, insertion, relay construction, free-waypoint insertion near a visit, free-waypoint insertion near a route segment, and unlinking. Each family samples at most $K_N$ candidates. For a communication-infeasible passage, a family repeats only after strict $CV$ reduction; for a feasible passage, it repeats only after normalized hypervolume gain greater than $\tau$. Both cases are capped at $p_{\max}$ passes. This rule spends additional evaluations only when the family makes measurable progress.
+
+For a batch of $b$ candidates, generation and repair remain sequential. With $w>1$ evaluator processes, at most $\min(b,2w)$ jobs are pending and results are integrated in input order. The default $w=1$ creates no subprocess. Parallel evaluation changes wall time rather than the logical archive order under an evaluation-count budget.
+
+\subsection{Continuous-time evaluator}
+For fixed endpoint states, the connector produces piecewise constant-acceleration motion. On each overlap of two motion pieces, relative position is quadratic in time, so squared separation minus $R^2$ has degree at most four. Real roots and interval signs yield maximal range-contact intervals without uniform time discretization. Unchanged routes and pair contacts may be reused from a parent solution when the evaluation context and mission horizon are compatible; otherwise they are rebuilt.
+
+Algorithm~\ref{alg:communication} processes all contact endpoints plus $0$ and $T$. It first records left-limit ages, then exchanges componentwise newest timestamps over every link active at the event. Processing all simultaneous links as a connected component permits instantaneous multi-hop relay. The output contains every $P_{nm}$ and hence $CV$ from~\eqref{eq:communication_constraint}.
+
+\begin{algorithm}[t]
+\caption{Event-based temporal communication evaluation}
+\label{alg:communication}
+\begin{algorithmic}[1]
+\Require Piecewise trajectories, range $R$, recurrence bound $T_c$
+\Ensure Directed peaks $P_{nm}$ and violation $CV$
+\State Extract and merge maximal range-contact intervals for every agent pair
+\State Sort unique contact endpoints together with $0$ and $T$
+\State Initialize $h_{nm}\gets0$ for $n\ne m$
+\ForAll{consecutive event times in chronological order}
+    \State Advance source timestamps through components active on the open interval
+    \State Update $P_{nm}$ using ages immediately before the event
+    \State Exchange newest timestamps through all links active at the event
+\EndFor
+\State $CV\gets\sum_{n\ne m}\max\{0,P_{nm}-T_c\}$
+\State \Return $P, CV$
+\end{algorithmic}
+\end{algorithm}
+
+\noindent\textbf{Proposition 1.} Given exact maximal range-contact intervals for the represented trajectories, Algorithm~\ref{alg:communication} returns the exact directed peaks $P_{nm}$.
+
+\noindent\emph{Proof sketch.} The instantaneous communication graph is constant on every open interval between consecutive contact endpoints. Within such an interval, each held source timestamp is either propagated through a fixed connected component or remains unchanged, so information age is affine with slope zero or one. Its maximum therefore occurs at an interval boundary, including the left limit before an exchange. At an endpoint, processing all active edges as connected components implements every simultaneous zero-delay relay. Induction over the ordered endpoints establishes the newest timestamp held by every receiver after each event; checking the corresponding left limits and the horizon yields every supremum in~\eqref{eq:staleness}.
+
+If pair $(m,n)$ contains $q_m$ and $q_n$ motion pieces, contact extraction examines $O(q_mq_n)$ overlaps. For $C$ resulting intervals, the chronological sweep has at most $2C+2$ event times; component propagation costs $O(M^2)$ per event in the implemented vector-clock representation. The total evaluation cost is therefore $O(\sum_{m<n}q_mq_n+CM^2)$, apart from constant-degree root solving.
+
+\subsection{Design choices and hyperparameters}
+The method uses exact event ordering because an aggregated contact graph can report a path that never exists in chronological order. It uses instantaneous in-range exchange to isolate recurrence from link-layer protocol modeling. The finite velocity menu and sampled neighborhoods make the search tractable, while the full continuous evaluator protects feasibility between visits. The main hyperparameters are the random seed, time and exact-evaluation limits, archive and pool capacities, epsilon widths, velocity headings and speed fractions, $K_N$, $p_{\max}$, hypervolume threshold $\tau$, communication-repair rounds, batch size, and evaluator workers. Section~\ref{sec:experiments} reports the values used in each saved run.
