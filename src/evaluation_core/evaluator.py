@@ -1,6 +1,7 @@
 """Validate a solution and assemble the TOP-ICC objectives in ordered stages."""
 
-from dataclasses import dataclass, replace
+from collections import Counter
+from dataclasses import dataclass, fields, replace
 from itertools import pairwise
 from math import inf
 
@@ -26,6 +27,7 @@ class Evaluation:
     communication: object = None
     visit_times: tuple = ()
     validation_status: str = "valid"
+    evaluation_context: tuple = ()
 
     @property
     def reward(self) -> float:
@@ -40,18 +42,71 @@ class Evaluator:
         self.problem = problem
         self.config = config
         self.cache: dict[object, Evaluation] = {}
+        self.cache_capacity = 512
         self.cache_hits = 0
         self.cache_misses = 0
+        self.incremental_metrics = Counter()
+        self.incremental_divergences = []
+        self.context = (
+            repr(problem),
+            config.comm_range,
+            config.recurrence_bound,
+            config.budget_tolerance,
+        )
 
-    def evaluate(self, solution: Solution) -> Solution:
+    def evaluate(self, solution: Solution, parent: Solution | None = None) -> Solution:
         """Return a scored immutable solution; invalid input has infinite objectives."""
         key = solution.key
         if key in self.cache:
             self.cache_hits += 1
             return replace(solution, evaluation=self.cache[key])
         self.cache_misses += 1
+        reusable = (
+            self.config.incremental_evaluation
+            and parent is not None
+            and isinstance(parent.evaluation, Evaluation)
+            and parent.evaluation.valid
+            and parent.evaluation.evaluation_context == self.context
+            and len(parent.routes) == len(solution.routes)
+        )
+        if reusable:
+            from ..entities.profiling import profiling
+
+            self.incremental_metrics["incremental_evaluations"] += 1
+            with profiling(self.incremental_metrics, "incremental_seconds"):
+                result = self._safe_evaluate(solution, parent)
+            if self.config.verify_incremental:
+                with profiling(self.incremental_metrics, "oracle_seconds"):
+                    oracle = self._safe_evaluate(solution)
+                self.incremental_metrics["oracle_evaluations"] += 1
+                differences = [
+                    item.name
+                    for item in fields(Evaluation)
+                    if getattr(result, item.name) != getattr(oracle, item.name)
+                ]
+                if differences:
+                    self.incremental_metrics["oracle_divergences"] += 1
+                    self.incremental_metrics["fallbacks"] += 1
+                    if len(self.incremental_divergences) < 20:
+                        self.incremental_divergences.append(
+                            {"key": repr(key), "fields": differences}
+                        )
+                    result = oracle
+        else:
+            if self.config.incremental_evaluation:
+                self.incremental_metrics["fallbacks"] += 1
+            result = self._safe_evaluate(solution)
+        if len(self.cache) >= self.cache_capacity:
+            self.cache.pop(next(iter(self.cache)))
+            self.incremental_metrics["evaluation_cache_evictions"] += 1
+        self.cache[key] = result
+        return replace(solution, evaluation=result)
+
+    def _safe_evaluate(
+        self, solution: Solution, parent: Solution | None = None
+    ) -> Evaluation:
         try:
-            result = self._evaluate(solution)
+            result = self._evaluate(solution, parent)
         except (MotionError, ValueError) as exc:
             status = (
                 "unresolved" if type(exc).__name__ == "ContactUncertain" else "invalid"
@@ -59,17 +114,36 @@ class Evaluator:
             result = Evaluation(
                 False, (inf, inf), (), (), (), str(exc), validation_status=status
             )
-        self.cache[key] = result
-        return replace(solution, evaluation=result)
+        return result
 
-    def _evaluate(self, solution: Solution) -> Evaluation:
+    def _evaluate(
+        self, solution: Solution, parent: Solution | None = None
+    ) -> Evaluation:
         """Build trajectories and assemble objectives; implements eqs. (1)–(15)."""
-        timing = self.schedule_solution(solution)
-        trajectories, visit_times = self.build_trajectories(solution, timing)
+        reusable_agents = set()
+        if parent is None:
+            timing = self.schedule_solution(solution)
+            trajectories, visit_times = self.build_trajectories(solution, timing)
+        else:
+            trajectories, visit_times = [], []
+            for agent, route in enumerate(solution.routes):
+                if solution.key[agent] == parent.key[agent]:
+                    trajectories.append(parent.evaluation.trajectories[agent])
+                    visit_times.append(parent.evaluation.visit_times[agent])
+                    reusable_agents.add(agent)
+                    self.incremental_metrics["routes_reused"] += 1
+                else:
+                    trajectory, times = self._build_route_trajectory(agent, route, None)
+                    trajectories.append(trajectory)
+                    visit_times.append(times)
+                    self.incremental_metrics["routes_rebuilt"] += 1
+            trajectories, visit_times = tuple(trajectories), tuple(visit_times)
         reached, owners, reward = self.credit_rewards(solution, visit_times)
         completions = tuple(trajectory.completion_time for trajectory in trajectories)
         feasible = self.check_budgets(completions)
-        communication, violation = self.evaluate_links(trajectories, feasible)
+        communication, violation = self.evaluate_links(
+            trajectories, feasible, parent, reusable_agents
+        )
         return self.assemble_objectives(
             feasible,
             completions,
@@ -103,14 +177,16 @@ class Evaluator:
         return tuple(trajectories), tuple(visit_times)
 
     def _build_route_trajectory(
-        self, agent: int, route: tuple[Visit, ...], timing: tuple
+        self, agent: int, route: tuple[Visit, ...], timing: tuple | None
     ) -> tuple:
         """Connect consecutive visits without pauses, eqs. (1)–(4)."""
         pieces = []
         elapsed = 0.0
         times = []
         for visit_index, (start, end) in enumerate(pairwise(route)):
-            times.append(timing[agent][visit_index])
+            times.append(
+                timing[agent][visit_index] if timing is not None else (elapsed, elapsed)
+            )
             connection = connect(
                 State(start.position, start.velocity),
                 State(end.position, end.velocity),
@@ -159,7 +235,11 @@ class Evaluator:
         )
 
     def evaluate_links(
-        self, trajectories: tuple, feasible: bool
+        self,
+        trajectories: tuple,
+        feasible: bool,
+        parent: Solution | None = None,
+        reusable_agents: set[int] | None = None,
     ) -> tuple[object | None, float]:
         """Evaluate contacts and ordered-pair constraint violation; eqs. (9)–(15)."""
         if not feasible:
@@ -168,6 +248,10 @@ class Evaluator:
             trajectories,
             self.config.comm_range,
             self.config.recurrence_bound,
+            parent_communication=parent.evaluation.communication if parent else None,
+            reusable_agents=reusable_agents,
+            parent_horizon=max(parent.evaluation.completion_times) if parent else None,
+            metrics=self.incremental_metrics if parent else None,
         )
         violation = sum(
             max(0.0, peak - self.config.recurrence_bound)
@@ -212,4 +296,5 @@ class Evaluator:
             violation,
             communication,
             visit_times,
+            evaluation_context=self.context,
         )

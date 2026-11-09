@@ -231,6 +231,10 @@ def main() -> int:
             "elapsed_seconds": result.elapsed_seconds,
             "evaluations": result.statistics.get("evaluated", 0),
             "profiling": result.statistics["profiling"],
+            "incremental_evaluation": result.statistics.get(
+                "incremental_evaluation", {}
+            ),
+            "parallel_evaluation": result.statistics.get("parallel_evaluation", {}),
             "front": [solution.objectives for solution in result.front],
         }
         print(json.dumps(summary, indent=2))

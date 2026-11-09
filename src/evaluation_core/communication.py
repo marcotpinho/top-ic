@@ -146,11 +146,29 @@ def evaluate_communication(
     trajectories: tuple[AgentTrajectory, ...],
     radius: float,
     recurrence_bound: float | None = None,
+    *,
+    parent_communication: CommunicationResult | None = None,
+    reusable_agents: set[int] | None = None,
+    parent_horizon: float | None = None,
+    metrics: dict | None = None,
 ) -> CommunicationResult:
     horizon = max(t.completion_time for t in trajectories)
     records = []
+    reusable = reusable_agents or set()
+    previous = (
+        {record.agents: record for record in parent_communication.contacts}
+        if parent_communication is not None and parent_horizon == horizon
+        else {}
+    )
     for m in range(len(trajectories)):
         for n in range(m + 1, len(trajectories)):
-            raw = pair_contacts(trajectories[m], trajectories[n], horizon, radius)
-            records.append(ContactRecord((m, n), raw, raw))
+            if m in reusable and n in reusable and (m, n) in previous:
+                records.append(previous[m, n])
+                if metrics is not None:
+                    metrics["pairs_reused"] += 1
+            else:
+                raw = pair_contacts(trajectories[m], trajectories[n], horizon, radius)
+                records.append(ContactRecord((m, n), raw, raw))
+                if metrics is not None:
+                    metrics["pairs_rebuilt"] += 1
     return sweep(len(trajectories), horizon, records, recurrence_bound)

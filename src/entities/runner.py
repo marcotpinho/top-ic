@@ -13,6 +13,7 @@ from .archive_updates import evaluate_candidate
 from .evaluator import Evaluator
 from .hypervolume import hypervolume_2d
 from .neighborhood import Neighborhood
+from .parallel_evaluation import ParallelEvaluation
 from .profiling import SearchProfile, profiling
 from .search_loop import run_iterations
 from .seed_construction import (
@@ -47,11 +48,14 @@ class Runner:
         self.initialization_history: list[dict] = []
         self.started = 0.0
         self.iterations = 0
+        self.reserved_evaluations = 0
+        self.parallel_evaluation = ParallelEvaluation(self)
 
     def exhausted(self) -> bool:
         """Stop after the evaluation or elapsed-time allowance."""
         return (
-            self.counts["exact_evaluations"] >= self.config.max_evaluations
+            self.counts["exact_evaluations"] + self.reserved_evaluations
+            >= self.config.max_evaluations
             or perf_counter() - self.started >= self.config.max_seconds
         )
 
@@ -63,17 +67,30 @@ class Runner:
             or perf_counter() - self.started >= self.config.max_seconds * fraction
         )
 
-    def evaluate(self, solution: Solution, family: str) -> Solution | None:
+    def evaluate(
+        self, solution: Solution, family: str, parent: Solution | None = None
+    ) -> Solution | None:
         """Evaluate one complete decision and update archive/pool (eqs. 1–16)."""
         with profiling(self.profile, "evaluation_seconds"):
-            return evaluate_candidate(self, solution, family)
+            return evaluate_candidate(self, solution, family, parent)
+
+    def evaluate_batch(self, candidates, family: str, parent: Solution):
+        with profiling(self.profile, "evaluation_seconds"):
+            return self.parallel_evaluation.evaluate_batch(candidates, family, parent)
 
     def run(self) -> RunResult:
+        try:
+            status = self._run_search()
+        finally:
+            self.parallel_evaluation.close()
+        return finish(self, status)
+
+    def _run_search(self) -> str:
         """Construct seeds, then run independent sampled family searches."""
         self.started = perf_counter()
         direct = self.evaluate(direct_solution(self.problem), "initialization")
         if direct is None:
-            return finish(self, "no_known_feasible_seed")
+            return "no_known_feasible_seed"
         construct_reward_seed(self, direct)
         for cooperative in cooperative_seeds(direct, self.problem):
             if self.initialization_exhausted():
@@ -87,7 +104,7 @@ class Runner:
         self.record_metrics(0)
         run_iterations(self)
         status = "ok" if self.archive.front else "no_physically_feasible_solution"
-        return finish(self, status)
+        return status
 
     def record_archive_objectives(self, iteration: int) -> None:
         """Save every current archive objective vector at an iteration boundary."""

@@ -108,11 +108,17 @@ def _is_duplicate(runner: "Runner", solution: Solution, row: Counter) -> bool:
         return False
 
 
-def _evaluate(runner: "Runner", candidate: Solution, row: Counter) -> Solution:
+def _evaluate(
+    runner: "Runner", candidate: Solution, row: Counter, parent: Solution | None = None
+) -> Solution:
     misses_before = runner.evaluator.cache_misses
     hits_before = runner.evaluator.cache_hits
+    oracle_before = runner.evaluator.incremental_metrics["oracle_seconds"]
     with profiling(runner.profile, "evaluator_seconds"):
-        scored = runner.evaluator.evaluate(candidate)
+        scored = runner.evaluator.evaluate(candidate, parent=parent)
+    runner.profile.oracle_seconds += (
+        runner.evaluator.incremental_metrics["oracle_seconds"] - oracle_before
+    )
     with profiling(runner.profile, "candidate_counters_seconds"):
         runner.counts["evaluated"] += 1
         row["evaluated"] += 1
@@ -187,27 +193,23 @@ def _update_archives(
     return scored
 
 
-def evaluate_candidate(
-    runner: "Runner", solution: Solution, family: str
-) -> Solution | None:
-    """Score one complete solution and update front/pool (eqs. 1–16)."""
+def prepare_candidate(runner: "Runner", solution: Solution, family: str):
     if runner.exhausted():
         return None
     row = runner.by_family.setdefault(family, Counter())
-
-    # Record the candidate and reject duplicates.
     candidate = _prepare_candidate(runner, solution, family, row)
     if candidate is None:
         return None
-
-    # Enforce the time budgets before evaluating communication.
     candidate, repair_row = _repair_candidate(runner, candidate, family, row)
     if candidate is None or runner.exhausted():
         return None
+    return candidate, row, repair_row
 
-    # Fully evaluate only the candidate that fits every budget.
+
+def integrate_candidate(
+    runner: "Runner", scored: Solution, family: str, row, repair_row
+):
     evaluation_row = repair_row if repair_row is not None else row
-    scored = _evaluate(runner, candidate, evaluation_row)
     if not scored.evaluation.valid:
         runner.counts["invalid"] += 1
         evaluation_row["invalid"] += 1
@@ -215,6 +217,16 @@ def evaluate_candidate(
         evaluation_row[f"invalid_reason:{reason}"] += 1
         _record_initialization(runner, family, scored, "invalid")
         return None
-
-    # Update F and P and record the candidate's acceptance.
     return _update_archives(runner, scored, family, row, repair_row)
+
+
+def evaluate_candidate(
+    runner: "Runner", solution: Solution, family: str, parent: Solution | None = None
+) -> Solution | None:
+    prepared = prepare_candidate(runner, solution, family)
+    if prepared is None:
+        return None
+    candidate, row, repair_row = prepared
+    evaluation_row = repair_row if repair_row is not None else row
+    scored = _evaluate(runner, candidate, evaluation_row, parent)
+    return integrate_candidate(runner, scored, family, row, repair_row)

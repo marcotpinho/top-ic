@@ -58,18 +58,16 @@ def _search_family(
         candidates = list(_timed_candidates(runner, name, base, iteration, pass_index))
         execution = runner.neighborhood.executions[-1]
         evaluated_before = runner.counts["evaluated"]
-        for candidate in candidates:
-            if runner.exhausted():
-                break
-            with profiling(timing, "evaluation_seconds"):
-                scored = runner.evaluate(candidate, name)
-                if scored is not None and scored.evaluation.valid:
-                    cv = scored.evaluation.comm_violation
-                    if cv < best_cv:
-                        best_cv = cv
-                        cv_entrants = [scored]
-                    elif cv == best_cv and cv < base_cv:
-                        cv_entrants.append(scored)
+        with profiling(timing, "evaluation_seconds"):
+            scored_candidates = runner.evaluate_batch(candidates, name, base)
+        for scored in scored_candidates:
+            if scored is not None and scored.evaluation.valid:
+                cv = scored.evaluation.comm_violation
+                if cv < best_cv:
+                    best_cv = cv
+                    cv_entrants = [scored]
+                elif cv == best_cv and cv < base_cv:
+                    cv_entrants.append(scored)
         execution["candidates_evaluated"] = (
             runner.counts["evaluated"] - evaluated_before
         )

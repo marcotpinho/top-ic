@@ -38,6 +38,10 @@ class SearchProfile:
     search_loop_seconds: float = 0.0
     evaluation_seconds: float = 0.0
     evaluator_seconds: float = 0.0
+    parallel_dispatch_seconds: float = 0.0
+    parallel_wait_seconds: float = 0.0
+    worker_evaluator_seconds: float = 0.0
+    oracle_seconds: float = 0.0
     candidate_preparation_seconds: float = 0.0
     duplicate_check_seconds: float = 0.0
     candidate_counters_seconds: float = 0.0

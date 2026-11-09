@@ -449,12 +449,29 @@ def _write_readme(output_dir: Path, run_info: dict) -> None:
         **_artifact_replacements(),
         **_reproduction_replacements(run_info, output_dir),
     }
+    execution = data["config"]
+    incremental = data["statistics"].get("incremental_evaluation", {})
+    if execution.get("verify_incremental"):
+        replacements["{VALIDATION_COMMAND_AND_OUTCOME_OR_NOT_RUN}"] = (
+            f"complete-evaluation oracle: {incremental.get('oracle_evaluations', 0)} "
+            f"comparisons, {incremental.get('oracle_divergences', 0)} divergences; "
+            "unit tests were not run"
+        )
     template = (ROOT / "docs/templates/README.md").read_text()
     readme = template.replace(
         "handshake delta = `{HANDSHAKE_TIME}` s", "instantaneous in-range communication"
     )
     for placeholder, value in replacements.items():
         readme = readme.replace(placeholder, value)
+    readme += (
+        "\n## Evaluation execution\n\n"
+        f"- Workers: `{execution.get('evaluation_workers', 1)}`; "
+        f"batch limit: `{execution.get('evaluation_batch_size', 8)}`.\n"
+        f"- Parent reuse: `{execution.get('incremental_evaluation', False)}`; "
+        f"complete-evaluation oracle: `{execution.get('verify_incremental', False)}`.\n"
+        "- Archive updates and search randomness remain sequential. "
+        "Worker time sums overlap coordinator wall time; do not add them.\n"
+    )
     artifact_names = [
         "result.json",
         "result_neighborhoods.json",

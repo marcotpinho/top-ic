@@ -1,6 +1,7 @@
 """Bounded Pareto archive in communication violation, negative reward, and time."""
 
 from dataclasses import dataclass
+from hashlib import sha256
 
 from ..solution import Solution
 from .profiling import SearchProfile, profiling
@@ -101,8 +102,20 @@ class ParetoPool:
         self.discards += removed
 
     def diagnostics(self) -> dict:
+        fingerprint = sha256(
+            repr(
+                tuple(
+                    (member.solution.key, pool_vector(member.solution), member.age)
+                    for member in self.members
+                )
+            ).encode()
+        ).hexdigest()
         return {
             "size": len(self.members),
+            "fingerprint": fingerprint,
+            "objective_vectors": [
+                pool_vector(member.solution) for member in self.members
+            ],
             "entries": self.entries,
             "discards": self.discards,
             "age_discards": self.age_discards,

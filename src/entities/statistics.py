@@ -83,6 +83,29 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "mean_front_task_jaccard": _mean_task_jaccard(runner),
             "rng_seed": runner.config.seed,
             "profiling": asdict(runner.profile),
+            "incremental_evaluation": {
+                "oracle_evaluations": 0,
+                "oracle_divergences": 0,
+                **dict(runner.evaluator.incremental_metrics),
+                "divergences": list(runner.evaluator.incremental_divergences),
+            },
+            "parallel_evaluation": {
+                "workers": runner.config.evaluation_workers,
+                "batch_size": runner.config.evaluation_batch_size,
+                "submitted": 0,
+                "completed": 0,
+                "cancelled": 0,
+                "discarded": 0,
+                "worker_cache_hits": 0,
+                "worker_cache_misses": 0,
+                "worker_cache_evictions": 0,
+                "worker_cache_peak_entries": 0,
+                "worker_peak_rss_bytes": None,
+                "worker_rss_unavailable": 0,
+                "coordinator_cache_entries": len(runner.evaluator.cache),
+                "max_pending": 0,
+                **dict(runner.parallel_evaluation.metrics),
+            },
         }
     )
     return RunResult(
