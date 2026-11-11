@@ -9,5 +9,6 @@ See modeling in `docs/modeling.md`, variable naming in `docs/variables.md` and t
 - Each result must also contain a README.md with instructions to reproduce the test.
 - Always create each results README from `docs/templates/README.md`, filling in the run-specific details and exact reproduction command.
 - Run every new TOP-ICC experiment with `scripts/run_experiment.py`; save its reproduction script, run log, run info, result JSON, neighborhood log, plots, agent-path animation, and template-based README together under `results/`.
+- On macOS, run long-lived experiments under `caffeinate -i` and bind it to the experiment process when possible so idle system sleep does not pause the run.
 - Do not add comments in the code unless it is required to explain obscure logic. In that case, add a brief one-line comment.
 - No scope creep: an agent must act solely on what is specified explicitly in a prompt
