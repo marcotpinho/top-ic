@@ -89,8 +89,18 @@ def finish(runner: "Runner", status: str) -> RunResult:
                 **dict(runner.evaluator.incremental_metrics),
                 "divergences": list(runner.evaluator.incremental_divergences),
             },
+            "batch_evaluation": {
+                "enabled": runner.config.batch_eval,
+                "batch_neighborhoods": runner.config.batch_neighborhoods,
+                "verify_all": runner.config.verify_batch_eval,
+                "verify_fraction": runner.config.batch_verify_fraction,
+                **dict(getattr(runner.evaluator, "batch_metrics", {})),
+            },
             "parallel_evaluation": {
                 "workers": runner.config.evaluation_workers,
+                "effective_workers": (
+                    1 if runner.config.batch_eval else runner.config.evaluation_workers
+                ),
                 "batch_size": runner.config.evaluation_batch_size,
                 "submitted": 0,
                 "completed": 0,

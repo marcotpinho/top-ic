@@ -79,6 +79,8 @@ class ParallelEvaluation:
 
     def evaluate_batch(self, candidates, family, parent):
         runner = self.runner
+        if runner.config.batch_eval:
+            return self._evaluate_tensor_batches(candidates, family, parent)
         if runner.config.evaluation_workers == 1:
             results = []
             for candidate in candidates:
@@ -218,6 +220,58 @@ class ParallelEvaluation:
                 raise
             finally:
                 runner.reserved_evaluations = 0
+        return results
+
+    def _evaluate_tensor_batches(self, candidates, family, parent):
+        runner = self.runner
+        candidates = iter(candidates)
+        results = []
+        done = False
+        while not done and not runner.exhausted():
+            pending = []
+            while len(pending) < runner.config.evaluation_batch_size:
+                if runner.exhausted():
+                    break
+                candidate = next(candidates, None)
+                if candidate is None:
+                    done = True
+                    break
+                prepared = prepare_candidate(runner, candidate, family)
+                if prepared is None:
+                    continue
+                candidate, row, repair_row = prepared
+                miss = candidate.key not in runner.evaluator.cache
+                runner.reserved_evaluations += int(miss)
+                pending.append((candidate, row, repair_row, miss))
+            if not pending:
+                continue
+            self.metrics["tensor_batches"] += 1
+            self.metrics["tensor_candidates"] += len(pending)
+            self.metrics["max_pending"] = max(self.metrics["max_pending"], len(pending))
+            batch_candidates = [item[0] for item in pending]
+            try:
+                with profiling(runner.profile, "evaluator_seconds"):
+                    scored_batch = runner.evaluator.evaluate_batch(
+                        batch_candidates, [parent] * len(batch_candidates)
+                    )
+            except BaseException:
+                runner.reserved_evaluations -= sum(item[3] for item in pending)
+                raise
+            if perf_counter() - runner.started >= runner.config.max_seconds:
+                runner.reserved_evaluations -= sum(item[3] for item in pending)
+                self.metrics["discarded"] += len(pending)
+                break
+            for scored, (_, row, repair_row, miss) in zip(scored_batch, pending):
+                runner.reserved_evaluations -= int(miss)
+                evaluation_row = repair_row if repair_row is not None else row
+                with profiling(runner.profile, "candidate_counters_seconds"):
+                    for counters in (runner.counts, evaluation_row):
+                        counters["evaluated"] += 1
+                        counters["exact_evaluations"] += int(miss)
+                        counters["cache_hits"] += int(not miss)
+                results.append(
+                    integrate_candidate(runner, scored, family, row, repair_row)
+                )
         return results
 
     def _discard(self, pending):

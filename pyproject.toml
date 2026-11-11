@@ -16,7 +16,7 @@ test = ["pytest>=8"]
 topcc = "topcc.main:main"
 
 [tool.setuptools]
-packages = ["topcc"]
+packages = ["topcc", "topcc.batch"]
 package-dir = {topcc = "src"}
 
 [tool.pytest.ini_options]

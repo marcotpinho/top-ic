@@ -210,6 +210,12 @@ def integrate_candidate(
     runner: "Runner", scored: Solution, family: str, row, repair_row
 ):
     evaluation_row = repair_row if repair_row is not None else row
+    if (
+        runner.config.batch_eval
+        and scored.evaluation.valid
+        and scored.evaluation.comm_violation <= runner.config.numerical_tolerance
+    ):
+        scored = runner.evaluator.verify(scored)
     if not scored.evaluation.valid:
         runner.counts["invalid"] += 1
         evaluation_row["invalid"] += 1

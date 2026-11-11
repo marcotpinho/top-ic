@@ -69,7 +69,18 @@ def _invitation_candidates(runner: "Runner", solution: Solution):
 
 def _candidate_set(runner: "Runner", solution: Solution) -> list[Solution]:
     candidates = {}
-    for candidate in _invitation_candidates(runner, solution):
+    if runner.config.batch_eval:
+        from ..batch.repair import invitation_candidates
+
+        generated = invitation_candidates(
+            solution,
+            _ranked_visit_pairs(solution),
+            runner.problem,
+            runner.config,
+        )
+    else:
+        generated = _invitation_candidates(runner, solution)
+    for candidate in generated:
         candidates.setdefault(candidate.key, candidate)
     values = list(candidates.values())
     runner.rng.shuffle(values)
@@ -86,12 +97,22 @@ def repair_communication(runner: "Runner", solution: Solution) -> Solution:
     reduced = False
     for round_index in range(runner.config.communication_repair_rounds):
         scored = []
-        for candidate in _candidate_set(runner, current):
-            if runner.exhausted():
-                break
-            evaluated = runner.evaluate(candidate, "communication_repair")
-            if evaluated is not None:
-                scored.append(evaluated)
+        candidates = _candidate_set(runner, current)
+        if runner.config.batch_eval:
+            scored.extend(
+                evaluated
+                for evaluated in runner.evaluate_batch(
+                    candidates, "communication_repair", current
+                )
+                if evaluated is not None
+            )
+        else:
+            for candidate in candidates:
+                if runner.exhausted():
+                    break
+                evaluated = runner.evaluate(candidate, "communication_repair")
+                if evaluated is not None:
+                    scored.append(evaluated)
         if not scored:
             break
         best = min(

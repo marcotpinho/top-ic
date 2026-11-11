@@ -97,9 +97,14 @@ def run_iterations(runner: "Runner") -> None:
                 pool_vector(solution)
                 for solution in nondominated(runner.archive.pool, pool_vector)
             }
-            shaken = ruin_recreate(base, runner.config, runner.rng, 1 + iteration // 4)
-            working = runner.evaluate(shaken, "ruin_recreate")
-            if working is None:
+            if runner.config.ruin_recreate_enabled:
+                shaken = ruin_recreate(
+                    base, runner.config, runner.rng, 1 + iteration // 4
+                )
+                working = runner.evaluate(shaken, "ruin_recreate")
+                if working is None:
+                    working = base
+            else:
                 working = base
             if (
                 working.evaluation.valid

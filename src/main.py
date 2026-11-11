@@ -21,6 +21,27 @@ def _parser() -> argparse.ArgumentParser:
         "--seed", type=int, default=42, help="seed for the run's random generator"
     )
     parser.add_argument(
+        "--batch-eval",
+        action="store_true",
+        help="evaluate candidate batches with NumPy tensor kernels",
+    )
+    parser.add_argument(
+        "--batch-neighborhoods",
+        action="store_true",
+        help="use tensor generators for supported neighborhood families",
+    )
+    parser.add_argument(
+        "--verify-batch-eval",
+        action="store_true",
+        help="verify every batch result with the scalar evaluator",
+    )
+    parser.add_argument(
+        "--batch-verify-fraction",
+        type=float,
+        default=0.0,
+        help="deterministic fraction of batch results checked by the scalar evaluator",
+    )
+    parser.add_argument(
         "--evaluation-workers",
         type=int,
         default=1,
@@ -141,6 +162,17 @@ def _parser() -> argparse.ArgumentParser:
         help="maximum physically valid dominated solutions kept for search bases",
     )
     parser.add_argument(
+        "--communication-repair-rounds",
+        type=int,
+        default=3,
+        help="maximum communication-repair rounds; 0 disables repair",
+    )
+    parser.add_argument(
+        "--disable-ruin-recreate",
+        action="store_true",
+        help="start each iteration from its selected base without ruin-and-recreate",
+    )
+    parser.add_argument(
         "--disable-pool-selection",
         action="store_true",
         help="ablation: update the Pareto pool but select search bases only from F",
@@ -183,6 +215,10 @@ def _parser() -> argparse.ArgumentParser:
 def _config(args: argparse.Namespace) -> Config:
     return Config(
         seed=args.seed,
+        batch_eval=args.batch_eval,
+        batch_neighborhoods=args.batch_neighborhoods or args.batch_eval,
+        verify_batch_eval=args.verify_batch_eval,
+        batch_verify_fraction=args.batch_verify_fraction,
         evaluation_workers=args.evaluation_workers,
         evaluation_batch_size=args.evaluation_batch_size,
         incremental_evaluation=not args.disable_incremental_evaluation,
@@ -203,6 +239,8 @@ def _config(args: argparse.Namespace) -> Config:
         comm_range=args.comm_range,
         recurrence_bound=args.recurrence_bound,
         dominated_archive_size=args.dominated_archive_size,
+        communication_repair_rounds=args.communication_repair_rounds,
+        ruin_recreate_enabled=not args.disable_ruin_recreate,
         pool_selection_enabled=not args.disable_pool_selection,
         selection_policy=args.selection_policy,
         waypoint_workspace=tuple(args.waypoint_workspace)
@@ -234,6 +272,7 @@ def main() -> int:
             "incremental_evaluation": result.statistics.get(
                 "incremental_evaluation", {}
             ),
+            "batch_evaluation": result.statistics.get("batch_evaluation", {}),
             "parallel_evaluation": result.statistics.get("parallel_evaluation", {}),
             "front": [solution.objectives for solution in result.front],
         }

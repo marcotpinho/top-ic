@@ -5,6 +5,7 @@ from random import Random
 from statistics import median
 from time import perf_counter
 
+from ..batch import BatchEvaluator
 from ..config import Config, Problem
 from ..runner_models import RunResult
 from ..solution import Solution, direct_solution
@@ -31,7 +32,11 @@ class Runner:
         self.problem = problem
         self.config = config
         self.rng = Random(config.seed)
-        self.evaluator = Evaluator(problem, config)
+        self.evaluator = (
+            BatchEvaluator(problem, config)
+            if config.batch_eval
+            else Evaluator(problem, config)
+        )
         self.neighborhood = Neighborhood(problem, config, self.rng)
         self.profile = SearchProfile.for_neighborhoods(self.neighborhood.names)
         self.archive = Archive(config, self.rng, self.profile)

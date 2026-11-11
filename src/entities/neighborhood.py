@@ -5,6 +5,8 @@ from importlib import import_module
 from itertools import islice
 from random import Random
 
+import numpy as np
+
 from ..config import Config, Problem
 from ..solution import Solution
 from .profiling import profiling
@@ -34,6 +36,9 @@ class Neighborhood:
         self.problem = problem
         self.config = config
         self.rng = rng
+        self.batch_rng = np.random.default_rng(
+            np.random.SeedSequence([config.seed, 0xB47C])
+        )
         self.names = tuple(name for name in self.ICC if name not in config.disabled)
         self.executions: list[dict] = []
 
@@ -49,8 +54,25 @@ class Neighborhood:
         """Run one family with the Runner RNG and configured candidate cap."""
         if name not in self.names:
             raise ValueError(f"Disabled or unknown neighborhood: {name}")
-        module = import_module(f".neighborhoods.{name}", package=__package__)
-        candidates = module.generate(solution, self.problem, self.config, self.rng)
+        if self.config.batch_neighborhoods:
+            from ..batch.neighborhoods import SUPPORTED, generate
+
+            if name in SUPPORTED:
+                candidates = generate(
+                    name,
+                    solution,
+                    self.problem,
+                    self.config,
+                    self.batch_rng,
+                )
+            else:
+                module = import_module(f".neighborhoods.{name}", package=__package__)
+                candidates = module.generate(
+                    solution, self.problem, self.config, self.rng
+                )
+        else:
+            module = import_module(f".neighborhoods.{name}", package=__package__)
+            candidates = module.generate(solution, self.problem, self.config, self.rng)
         execution = {
             "sequence": len(self.executions) + 1,
             "neighborhood": name,

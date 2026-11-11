@@ -145,6 +145,11 @@ class Config:
     contact_tolerance: float = 2e-7
     numerical_tolerance: float = 1e-13
     budget_tolerance: float = 1e-7
+    batch_eval: bool = False
+    batch_neighborhoods: bool = False
+    verify_batch_eval: bool = False
+    batch_verify_fraction: float = 0.0
+    ruin_recreate_enabled: bool = True
 
     def __post_init__(self):
         # JSON arrays must not leave mutable containers inside a frozen config.
@@ -184,6 +189,11 @@ class Config:
             raise ValueError("Unknown archive selection policy")
         if not isfinite(self.neighborhood_hv_tau) or self.neighborhood_hv_tau < 0:
             raise ValueError("Neighborhood hypervolume threshold must be nonnegative")
+        if (
+            not isfinite(self.batch_verify_fraction)
+            or not 0 <= self.batch_verify_fraction <= 1
+        ):
+            raise ValueError("Batch verification fraction must be in [0,1]")
         if (
             not isfinite(self.initialization_budget_fraction)
             or not 0 < self.initialization_budget_fraction < 1
