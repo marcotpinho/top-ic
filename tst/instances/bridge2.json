@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "budget_unit": "seconds",
+  "name": "bridge2",
+  "start": [
+    10.0,
+    0.0
+  ],
+  "end": [
+    10.0,
+    0.0
+  ],
+  "tasks": [
+    {
+      "id": "L",
+      "position": [
+        0.0,
+        0.0
+      ],
+      "reward": 50.0
+    },
+    {
+      "id": "R",
+      "position": [
+        20.0,
+        0.0
+      ],
+      "reward": 50.0
+    }
+  ],
+  "agents": [
+    {
+      "time_budget": 12.0,
+      "velocity_axis_limit": [
+        3.0,
+        3.0
+      ],
+      "acceleration_axis_limit": [
+        1.5,
+        1.5
+      ],
+      "initial_velocity": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "time_budget": 12.0,
+      "velocity_axis_limit": [
+        3.0,
+        3.0
+      ],
+      "acceleration_axis_limit": [
+        1.5,
+        1.5
+      ],
+      "initial_velocity": [
+        0.0,
+        0.0
+      ]
+    }
+  ]
+}
