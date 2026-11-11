@@ -20,6 +20,12 @@ class Archive:
         self.rng = rng
         self.pool_selection_enabled = config.pool_selection_enabled
         self.selection_policy = config.selection_policy
+        self.elite_selection_probability = config.elite_selection_probability
+        self.pool_selection_probability = config.pool_selection_probability
+        self.elite_cooldown_after = config.elite_cooldown_after
+        self.elite_cooldown_iterations = config.elite_cooldown_iterations
+        self.elite_failures = 0
+        self.elite_cooldown_remaining = 0
         self.tolerance = config.numerical_tolerance
         self.epsilon = EpsilonArchive(
             config.archive_size,
@@ -82,6 +88,9 @@ class Archive:
         return retained
 
     def select(self, iteration: int) -> Solution:
+        elite_enabled = self.elite_cooldown_remaining == 0
+        if self.elite_cooldown_remaining:
+            self.elite_cooldown_remaining -= 1
         with profiling(self.profile, "base_selection_seconds"):
             solution, record = select_base(
                 self.front,
@@ -89,6 +98,9 @@ class Archive:
                 self.rng,
                 self.selection_policy,
                 self.pool_selection_enabled,
+                self.elite_selection_probability,
+                self.pool_selection_probability,
+                elite_enabled,
             )
         with profiling(self.profile, "recording_seconds"):
             record["iteration"] = iteration + 1
@@ -100,3 +112,12 @@ class Archive:
             self.pareto_pool.set_expansion_result(solution, improved)
             if self.selection_history:
                 self.selection_history[-1]["improved"] = improved
+                if self.selection_history[-1]["source"] == "elite":
+                    self.elite_failures = 0 if improved else self.elite_failures + 1
+                    if self.elite_failures >= self.elite_cooldown_after:
+                        self.elite_failures = 0
+                        self.elite_cooldown_remaining = self.elite_cooldown_iterations
+                self.selection_history[-1]["elite_failures"] = self.elite_failures
+                self.selection_history[-1]["elite_cooldown_remaining"] = (
+                    self.elite_cooldown_remaining
+                )

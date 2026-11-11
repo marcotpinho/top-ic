@@ -132,7 +132,11 @@ class Config:
     pool_max_age: int = 5
     communication_repair_rounds: int = 3
     pool_selection_enabled: bool = True
-    selection_policy: str = "nd_count"
+    selection_policy: str = "elite_mixture"
+    elite_selection_probability: float = 0.3
+    pool_selection_probability: float = 0.3
+    elite_cooldown_after: int = 3
+    elite_cooldown_iterations: int = 3
     waypoint_workspace: tuple[float, float, float, float] | None = None
     waypoint_steps: tuple[float, ...] = (1.0, 0.25)
     neighborhood_candidates: int = 120
@@ -185,8 +189,24 @@ class Config:
             raise ValueError("Search counts must be positive")
         if self.pool_max_age < 0 or self.communication_repair_rounds < 0:
             raise ValueError("Pool age and repair rounds must be nonnegative")
-        if self.selection_policy not in ("nd_count", "legacy_fraction"):
+        if self.selection_policy not in (
+            "elite_mixture",
+            "nd_count",
+            "legacy_fraction",
+        ):
             raise ValueError("Unknown archive selection policy")
+        if (
+            not isfinite(self.elite_selection_probability)
+            or not isfinite(self.pool_selection_probability)
+            or self.elite_selection_probability < 0
+            or self.pool_selection_probability < 0
+            or self.elite_selection_probability + self.pool_selection_probability > 1
+        ):
+            raise ValueError(
+                "Elite and pool probabilities must be nonnegative and sum to at most 1"
+            )
+        if self.elite_cooldown_after < 1 or self.elite_cooldown_iterations < 0:
+            raise ValueError("Elite cooldown parameters must be nonnegative")
         if not isfinite(self.neighborhood_hv_tau) or self.neighborhood_hv_tau < 0:
             raise ValueError("Neighborhood hypervolume threshold must be nonnegative")
         if (

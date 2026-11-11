@@ -73,6 +73,14 @@ def finish(runner: "Runner", status: str) -> RunResult:
                 if runner.archive.selection_history
                 else 0.0
             ),
+            "elite_base_fraction": (
+                sum(
+                    row["source"] == "elite" for row in runner.archive.selection_history
+                )
+                / len(runner.archive.selection_history)
+                if runner.archive.selection_history
+                else 0.0
+            ),
             "evaluations_per_new_front_member": (
                 runner.counts["exact_evaluations"] / front_entries
                 if front_entries

@@ -1,5 +1,6 @@
 """Archive selection from explicit nondominated sets and seeded tournaments."""
 
+from hashlib import sha256
 from math import inf
 from random import Random
 
@@ -95,6 +96,17 @@ def _pool_tournament(source: list[Solution], rng: Random) -> Solution:
     return first if crowding[first.key] > crowding[second.key] else second
 
 
+def _elite(source: list[Solution]) -> Solution:
+    return min(
+        source,
+        key=lambda solution: (
+            -solution.evaluation.reward,
+            solution.objectives[1],
+            repr(solution.key),
+        ),
+    )
+
+
 def _selection_probability(
     front: list[Solution],
     pool: list[Solution],
@@ -120,34 +132,67 @@ def select_base(
     rng: Random,
     policy: str = "nd_count",
     pool_selection_enabled: bool = True,
+    elite_probability: float = 0.3,
+    fixed_pool_probability: float = 0.3,
+    elite_enabled: bool = True,
 ) -> tuple[Solution, dict]:
     """Choose an archive and run its configured two-member tournament."""
     if not (front or pool):
         raise ValueError("Cannot select from empty archives")
     nd_front = nondominated(front, lambda solution: solution.objectives[:2])
     nd_pool = nondominated(pool, pool_vector)
-    pool_probability = _selection_probability(
-        front,
-        pool,
-        nd_front,
-        nd_pool,
-        policy,
-    )
-    if not pool_selection_enabled and front:
-        pool_probability = 0.0
-    source_name = "pool" if rng.random() < pool_probability else "front"
-    solution = (
-        _pool_tournament(nd_pool, rng)
-        if source_name == "pool"
-        else _front_tournament(nd_front, rng)
-    )
+    if policy == "elite_mixture" and front:
+        pool_probability = fixed_pool_probability if pool else 0.0
+        if not pool_selection_enabled:
+            pool_probability = 0.0
+        effective_elite_probability = elite_probability if elite_enabled else 0.0
+        front_probability = 1.0 - pool_probability - effective_elite_probability
+        draw = rng.random()
+        elite = _elite(nd_front)
+        diverse = [candidate for candidate in nd_front if candidate.key != elite.key]
+        if draw < effective_elite_probability:
+            source_name = "elite"
+            solution = elite
+        elif draw < effective_elite_probability + front_probability:
+            if diverse:
+                source_name = "front"
+                solution = _front_tournament(diverse, rng)
+            else:
+                source_name = "elite"
+                solution = elite
+        else:
+            source_name = "pool"
+            solution = _pool_tournament(nd_pool, rng)
+    else:
+        effective_elite_probability = 0.0
+        pool_probability = _selection_probability(
+            front,
+            pool,
+            nd_front,
+            nd_pool,
+            policy,
+        )
+        if not pool_selection_enabled and front:
+            pool_probability = 0.0
+        front_probability = 1.0 - pool_probability
+        source_name = "pool" if rng.random() < pool_probability else "front"
+        solution = (
+            _pool_tournament(nd_pool, rng)
+            if source_name == "pool"
+            else _front_tournament(nd_front, rng)
+        )
     return solution, {
         "source": source_name,
-        "rho_front": 1.0 - pool_probability,
+        "rho_elite": effective_elite_probability,
+        "rho_front": front_probability,
         "rho_pool": pool_probability,
         "nd_front_size": len(nd_front),
         "nd_pool_size": len(nd_pool),
         "base_cv": solution.evaluation.comm_violation,
         "selection_policy": policy,
         "pool_selection_enabled": pool_selection_enabled,
+        "elite_enabled": elite_enabled,
+        "base_fingerprint": sha256(repr(solution.key).encode()).hexdigest(),
+        "base_reward": solution.evaluation.reward,
+        "base_mean_time": solution.objectives[1],
     }

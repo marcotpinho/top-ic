@@ -1,6 +1,7 @@
 """Local-search control flow for sampled MOVNS families."""
 
 from collections.abc import Iterator
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from ..solution import Solution
@@ -90,6 +91,10 @@ def run_iterations(runner: "Runner") -> None:
                 break
             runner.iterations = iteration + 1
             base = runner.archive.select(iteration)
+            selection = runner.archive.selection_history[-1]
+            selection_started = perf_counter()
+            evaluations_started = runner.counts["exact_evaluations"]
+            hypervolume_started = runner.archive_hypervolume()
             runner.active_base = base
             runner.active_base_source = runner.archive.selection_history[-1]["source"]
             initial_front_keys = {solution.key for solution in runner.archive.front}
@@ -147,6 +152,15 @@ def run_iterations(runner: "Runner") -> None:
                 )
             )
             runner.archive.mark_expansion(base, new_front or pool_improvement)
+            selection["exact_evaluations_spent"] = (
+                runner.counts["exact_evaluations"] - evaluations_started
+            )
+            selection["elapsed_seconds"] = perf_counter() - selection_started
+            selection["hypervolume_gain"] = (
+                runner.archive_hypervolume() - hypervolume_started
+            )
+            selection["front_changed"] = new_front
+            selection["pool_improved"] = pool_improvement
             runner.active_base = None
             runner.active_base_source = None
             runner.record_archive_objectives(iteration + 1)

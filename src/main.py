@@ -179,9 +179,33 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--selection-policy",
-        choices=["nd_count", "legacy_fraction"],
-        default="nd_count",
-        help="archive selection probabilities; legacy_fraction uses nondominated fractions",
+        choices=["elite_mixture", "nd_count", "legacy_fraction"],
+        default="elite_mixture",
+        help="archive selection policy; elite_mixture balances exploitation and diversity",
+    )
+    parser.add_argument(
+        "--elite-selection-probability",
+        type=float,
+        default=0.3,
+        help="probability of expanding the maximum-reward minimum-time elite",
+    )
+    parser.add_argument(
+        "--pool-selection-probability",
+        type=float,
+        default=0.3,
+        help="pool probability under elite_mixture",
+    )
+    parser.add_argument(
+        "--elite-cooldown-after",
+        type=int,
+        default=3,
+        help="unsuccessful elite expansions before cooldown",
+    )
+    parser.add_argument(
+        "--elite-cooldown-iterations",
+        type=int,
+        default=3,
+        help="iterations that suppress elite selection after stagnation",
     )
     parser.add_argument(
         "--waypoint-workspace",
@@ -243,6 +267,10 @@ def _config(args: argparse.Namespace) -> Config:
         ruin_recreate_enabled=not args.disable_ruin_recreate,
         pool_selection_enabled=not args.disable_pool_selection,
         selection_policy=args.selection_policy,
+        elite_selection_probability=args.elite_selection_probability,
+        pool_selection_probability=args.pool_selection_probability,
+        elite_cooldown_after=args.elite_cooldown_after,
+        elite_cooldown_iterations=args.elite_cooldown_iterations,
         waypoint_workspace=tuple(args.waypoint_workspace)
         if args.waypoint_workspace
         else None,
