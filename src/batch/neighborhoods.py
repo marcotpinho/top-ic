@@ -5,6 +5,7 @@ from dataclasses import replace
 import numpy as np
 
 from ..config import velocity_menu
+from ..entities.headings import geometric_velocity
 from ..entities.neighborhoods.common import changed_connectors_feasible
 from ..entities.neighborhoods.relay import DIRECTIONS
 from .tensors import RouteBatch, routes_to_tensor, tensor_to_solutions
@@ -304,11 +305,12 @@ def _velocity(name, solution, problem, config, rng):
     if name == "velocity_change":
         for agent, route in enumerate(solution.routes):
             for index, visit in enumerate(route[1:-1], 1):
-                proposals.extend(
-                    (agent, index, velocity)
-                    for velocity in velocity_menu(problem.limits[agent], config)
-                    if velocity != visit.velocity
-                )
+                for fraction in config.speed_fractions:
+                    velocity = geometric_velocity(
+                        route, index, problem.limits[agent], fraction
+                    )
+                    if velocity != visit.velocity:
+                        proposals.append((agent, index, velocity))
     elif name == "velocity_agent":
         proposals = [
             (agent, fraction)

@@ -4,8 +4,9 @@ from collections.abc import Iterator
 from dataclasses import replace
 from random import Random
 
-from ...config import Config, Problem, Vector, velocity_menu
+from ...config import Config, Problem, Vector
 from ...solution import Solution
+from ..headings import geometric_velocity
 from .common import changed_connectors_feasible, edited, sample_candidates
 
 name = "velocity_change"
@@ -15,9 +16,11 @@ def _proposals(
     solution: Solution, problem: Problem, config: Config
 ) -> Iterator[tuple[int, int, Vector]]:
     for agent, route in enumerate(solution.routes):
-        menu = velocity_menu(problem.limits[agent], config)
         for visit_index, visit in enumerate(route[1:-1], 1):
-            for velocity in menu:
+            for fraction in config.speed_fractions:
+                velocity = geometric_velocity(
+                    route, visit_index, problem.limits[agent], fraction
+                )
                 if velocity != visit.velocity:
                     route_copy = list(route)
                     route_copy[visit_index] = replace(visit, velocity=velocity)

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from ..evaluation_core.trajectory import MotionError
 from ..solution import Solution
 from .budget_repair import preview_solution, repair_over_budget
+from .headings import align_headings
 from .profiling import profiling
 
 if TYPE_CHECKING:
@@ -82,6 +83,7 @@ def _prepare_candidate(
     runner: "Runner", solution: Solution, family: str, row: Counter
 ) -> Solution | None:
     with profiling(runner.profile, "candidate_preparation_seconds"):
+        solution = align_headings(solution, runner.problem)
         runner.counts["generated"] += 1
         row["generated"] += 1
         if runner.active_base is not None:
