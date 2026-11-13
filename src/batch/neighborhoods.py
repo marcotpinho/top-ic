@@ -15,6 +15,7 @@ SUPPORTED = {
     "replace",
     "insert",
     "reorder",
+    "two_opt",
     "assignment",
     "relay",
     "velocity_change",
@@ -110,13 +111,13 @@ def _dedupe(solutions):
 def _indexed(name, solution, problem, config, rng):
     proposals = []
     if name in {"remove", "unlink"}:
-        code = 2 if name == "remove" else 3
+        codes = {2, 3} if name == "remove" else {3}
         proposals = [
             (agent, index)
             for agent, route in enumerate(solution.routes)
             for index in range(1, len(route) - 1)
-            if (route[index].kind == "TASK") == (code == 2)
-            and (route[index].kind == "FREE") == (code == 3)
+            if (route[index].kind == "TASK" and 2 in codes)
+            or (route[index].kind == "FREE" and 3 in codes)
         ]
     elif name == "replace":
         reached = {
@@ -147,10 +148,12 @@ def _indexed(name, solution, problem, config, rng):
             for agent, route in enumerate(solution.routes)
             for index in range(1, len(route))
         ]
-    elif name == "reorder":
+    elif name in {"reorder", "two_opt"}:
         proposals = [
             (kind, agent, left, right)
-            for kind in ("relocate", "swap", "reverse")
+            for kind in (
+                ("relocate", "swap", "reverse") if name == "reorder" else ("reverse",)
+            )
             for agent, route in enumerate(solution.routes)
             for left in range(1, len(route) - 1)
             for right in range(left + 1, len(route) - 1)
@@ -201,7 +204,7 @@ def _indexed(name, solution, problem, config, rng):
                 problem.tasks[task_index].position,
                 batch.vel[row, agent, index - 1].copy(),
             )
-        elif name == "reorder":
+        elif name in {"reorder", "two_opt"}:
             kind, agent, left, right = proposal
             order = list(range(len(solution.routes[agent])))
             if kind == "relocate":
@@ -420,7 +423,15 @@ def _free_near(solution, problem, config, rng):
 
 
 def generate(name, solution, problem, config, rng):
-    if name in {"remove", "unlink", "replace", "insert", "reorder", "assignment"}:
+    if name in {
+        "remove",
+        "unlink",
+        "replace",
+        "insert",
+        "reorder",
+        "two_opt",
+        "assignment",
+    }:
         return _indexed(name, solution, problem, config, rng)
     if name == "relay":
         return _relay(solution, problem, config, rng)
