@@ -42,7 +42,8 @@ class Evaluator:
         self.problem = problem
         self.config = config
         self.cache: dict[object, Evaluation] = {}
-        self.cache_capacity = 512
+        self.cache_capacity = config.evaluation_cache_size
+        self.route_cache: dict[object, tuple[AgentTrajectory, tuple]] = {}
         self.cache_hits = 0
         self.cache_misses = 0
         self.incremental_metrics = Counter()
@@ -180,6 +181,18 @@ class Evaluator:
         self, agent: int, route: tuple[Visit, ...], timing: tuple | None
     ) -> tuple:
         """Connect consecutive visits without pauses, eqs. (1)–(4)."""
+        key = (
+            agent,
+            tuple(
+                (visit.kind, visit.position, visit.velocity, visit.task_id)
+                for visit in route
+            ),
+        )
+        cached = self.route_cache.get(key)
+        if cached is not None:
+            self.incremental_metrics["route_cache_hits"] += 1
+            return cached
+        self.incremental_metrics["route_cache_misses"] += 1
         pieces = []
         elapsed = 0.0
         times = []
@@ -204,7 +217,12 @@ class Evaluator:
             State(route[0].position, route[0].velocity),
             State(route[-1].position, route[-1].velocity),
         )
-        return trajectory, tuple(times)
+        result = trajectory, tuple(times)
+        if len(self.route_cache) >= self.config.route_cache_size:
+            self.route_cache.pop(next(iter(self.route_cache)))
+            self.incremental_metrics["route_cache_evictions"] += 1
+        self.route_cache[key] = result
+        return result
 
     def credit_rewards(self, solution: Solution, visit_times: tuple) -> tuple:
         """Credit unique task IDs and first arrivals; implements eq. (7)."""

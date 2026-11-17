@@ -150,7 +150,11 @@ def _route_trajectory(
 
 
 def solutions_to_trajectories(
-    solutions: list[Solution], problem: Problem
+    solutions: list[Solution],
+    problem: Problem,
+    route_cache: dict | None = None,
+    route_cache_size: int = 4096,
+    metrics: dict | None = None,
 ) -> TrajectoryBatch:
     if not solutions:
         raise ValueError("A trajectory batch cannot be empty")
@@ -160,9 +164,27 @@ def solutions_to_trajectories(
     for solution in solutions:
         rows = []
         for agent, route in enumerate(solution.routes):
-            trajectory, times, connections = _route_trajectory(
-                route, problem.limits[agent]
+            key = (
+                agent,
+                tuple(
+                    (visit.kind, visit.position, visit.velocity, visit.task_id)
+                    for visit in route
+                ),
             )
+            cached = route_cache.get(key) if route_cache is not None else None
+            if cached is None:
+                cached = _route_trajectory(route, problem.limits[agent])
+                if route_cache is not None:
+                    if len(route_cache) >= route_cache_size:
+                        route_cache.pop(next(iter(route_cache)))
+                        if metrics is not None:
+                            metrics["route_cache_evictions"] += 1
+                    route_cache[key] = cached
+                if metrics is not None:
+                    metrics["route_cache_misses"] += 1
+            elif metrics is not None:
+                metrics["route_cache_hits"] += 1
+            trajectory, times, connections = cached
             rows.append((trajectory, times, connections))
             max_connections = max(max_connections, len(connections))
             max_pieces = max(

@@ -41,7 +41,8 @@ class BatchEvaluator:
         self.problem = problem
         self.config = config
         self.cache: dict[object, Evaluation] = {}
-        self.cache_capacity = 512
+        self.cache_capacity = config.evaluation_cache_size
+        self.route_cache = {}
         self.cache_hits = 0
         self.cache_misses = 0
         self.incremental_metrics = Counter()
@@ -106,13 +107,25 @@ class BatchEvaluator:
         valid_indices = list(range(len(solutions)))
         started = perf_counter()
         try:
-            trajectories = solutions_to_trajectories(valid_solutions, self.problem)
+            trajectories = solutions_to_trajectories(
+                valid_solutions,
+                self.problem,
+                self.route_cache,
+                self.config.route_cache_size,
+                self.batch_metrics,
+            )
         except (MotionError, ValueError):
             valid_solutions = []
             valid_indices = []
             for index, solution in enumerate(solutions):
                 try:
-                    solutions_to_trajectories([solution], self.problem)
+                    solutions_to_trajectories(
+                        [solution],
+                        self.problem,
+                        self.route_cache,
+                        self.config.route_cache_size,
+                        self.batch_metrics,
+                    )
                 except (MotionError, ValueError) as exc:
                     status = (
                         "unresolved"
@@ -135,7 +148,13 @@ class BatchEvaluator:
                     valid_solutions.append(solution)
                     valid_indices.append(index)
             trajectories = (
-                solutions_to_trajectories(valid_solutions, self.problem)
+                solutions_to_trajectories(
+                    valid_solutions,
+                    self.problem,
+                    self.route_cache,
+                    self.config.route_cache_size,
+                    self.batch_metrics,
+                )
                 if valid_solutions
                 else None
             )

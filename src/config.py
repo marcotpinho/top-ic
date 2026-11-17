@@ -111,6 +111,8 @@ class Config:
     seed: int = 42
     evaluation_workers: int = 1
     evaluation_batch_size: int = 8
+    evaluation_cache_size: int = 4096
+    route_cache_size: int = 4096
     incremental_evaluation: bool = True
     verify_incremental: bool = False
     max_seconds: float = 30.0
@@ -183,6 +185,8 @@ class Config:
                 self.max_evaluations,
                 self.evaluation_workers,
                 self.evaluation_batch_size,
+                self.evaluation_cache_size,
+                self.route_cache_size,
                 self.max_iterations,
                 self.neighborhood_max_passes,
                 self.kinematic_refinement_interval,

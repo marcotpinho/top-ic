@@ -53,6 +53,8 @@ def _parser() -> argparse.ArgumentParser:
         default=8,
         help="maximum candidates prepared per parallel batch",
     )
+    parser.add_argument("--evaluation-cache-size", type=int, default=4096)
+    parser.add_argument("--route-cache-size", type=int, default=4096)
     parser.add_argument(
         "--disable-incremental-evaluation",
         action="store_true",
@@ -251,6 +253,8 @@ def _config(args: argparse.Namespace) -> Config:
         batch_verify_fraction=args.batch_verify_fraction,
         evaluation_workers=args.evaluation_workers,
         evaluation_batch_size=args.evaluation_batch_size,
+        evaluation_cache_size=args.evaluation_cache_size,
+        route_cache_size=args.route_cache_size,
         incremental_evaluation=not args.disable_incremental_evaluation,
         verify_incremental=args.verify_incremental,
         max_seconds=args.max_seconds,
