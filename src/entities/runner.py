@@ -20,6 +20,7 @@ from .search_loop import run_iterations
 from .seed_construction import (
     construct_reward_seed,
     cooperative_seeds,
+    density_seeds,
     partition_seeds,
 )
 from .statistics import finish
@@ -96,15 +97,19 @@ class Runner:
         direct = self.evaluate(direct_solution(self.problem), "initialization")
         if direct is None:
             return "no_known_feasible_seed"
-        construct_reward_seed(self, direct)
         for cooperative in cooperative_seeds(direct, self.problem):
             if self.initialization_exhausted():
                 break
             self.evaluate(cooperative, "cooperative_seed")
+        for dense in density_seeds(direct, self.problem):
+            if self.initialization_exhausted():
+                break
+            self.evaluate(dense, "density_seed")
         for seed in partition_seeds(direct, self.problem, self.rng):
             if self.initialization_exhausted():
                 break
             self.evaluate(seed, "partition_seed")
+        construct_reward_seed(self, direct)
         self.record_archive_objectives(0)
         self.record_metrics(0)
         run_iterations(self)

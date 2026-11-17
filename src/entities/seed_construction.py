@@ -53,6 +53,40 @@ def partition_seeds(
     yield _build_partition(base, shuffled, 0, "random-partition")
 
 
+def density_seeds(base: Solution, problem: Problem) -> Iterator[Solution]:
+    """Build task-rich routes by cheapest reward-normalized geometric insertion."""
+    for reward_weighted in (True, False):
+        routes = [list(route) for route in base.routes]
+        remaining = list(problem.tasks)
+        while remaining:
+            choices = []
+            for task in remaining:
+                for agent, route in enumerate(routes):
+                    for index in range(1, len(route)):
+                        before = route[index - 1].position
+                        after = route[index].position
+                        detour = (
+                            hypot(before[0] - task.position[0], before[1] - task.position[1])
+                            + hypot(task.position[0] - after[0], task.position[1] - after[1])
+                            - hypot(before[0] - after[0], before[1] - after[1])
+                        )
+                        score = detour / max(task.reward, 1e-12) if reward_weighted else detour
+                        choices.append((score, -task.reward, task.id, agent, index, task))
+            _, _, _, agent, index, task = min(choices)
+            routes[agent].insert(
+                index,
+                Visit(
+                    f"density:{int(reward_weighted)}:{agent}:{task.id}",
+                    "TASK",
+                    task.position,
+                    routes[agent][0].velocity,
+                    task_id=task.id,
+                ),
+            )
+            remaining.remove(task)
+        yield normalize(routes)
+
+
 def cooperative_seeds(base: Solution, problem: Problem) -> Iterator[Solution]:
     """Give identical agents synchronized task orders for small Δ (eq. 15)."""
     if problem.num_agents < 2:

@@ -18,6 +18,7 @@ INITIALIZATION_FAMILIES = {
     "initialization",
     "construction",
     "cooperative_seed",
+    "density_seed",
     "partition_seed",
 }
 
