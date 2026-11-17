@@ -17,18 +17,21 @@ $z_i,r_i$ & task position and reward\\
 $B_m$ & flight-time budget of agent $m$\\
 $\pi_m$ & ordered visit sequence of agent $m$\\
 $p_m,v_m,a_m$ & continuous position, velocity, acceleration\\
+$d_{mk},\rho_{mk}$ & geometric direction and speed fraction at visit $k$\\
 $c_m,\bar c,T$ & completion, mean completion, mission horizon\\
 $R,T_c$ & communication range and recurrence bound\\
 $h_{nm}(t)$ & newest source-$m$ timestamp held by receiver $n$\\
 $A_{nm}(t),P_{nm}$ & information age and its directed peak\\
 $Q(S),CV(S)$ & team reward and communication violation\\
+$f_Q^{\mathcal F},f_c^{\mathcal F}$ & reward and completion-time objectives of $\mathcal F$\\
+$f_{CV}^{\mathcal P},f_Q^{\mathcal P},f_c^{\mathcal P}$ & violation, reward, and time objectives of $\mathcal P$\\
 $\mathcal F,\mathcal P$ & feasible archive and auxiliary pool\\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Decision variables}
-A solution $S$ assigns each agent an ordered sequence $\pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1})$. The first occurrence is START at $z_S$, the last is END at $z_E$, and each interior occurrence is either TASK, fixed at some $z_i$, or FREE, whose position is chosen by the search and earns no reward. Every occurrence has a nonzero boundary velocity $v_{mk}$. The route sequence, task assignment, free-waypoint coordinates, and boundary velocities are decisions. Arrival and departure coincide at every visit; routes contain no explicit waiting decision.
+A solution $S$ assigns each agent an ordered sequence $\pi_m=(\nu_{m0},\ldots,\nu_{m,K_m-1})$. The first occurrence is START at $z_S$, the last is END at $z_E$, and each interior occurrence is either TASK, fixed at some $z_i$, or FREE, whose position is chosen by the search and earns no reward. Every occurrence has a nonzero boundary velocity $v_{mk}$. The route sequence, task assignment, free-waypoint coordinates, and interior velocity magnitudes are decisions. Interior velocity directions are derived from adjacent route positions; START and END use the prescribed boundary velocities. Arrival and departure coincide at every visit, so one velocity state is shared by the incoming and outgoing connectors. Routes contain no explicit waiting decision.
 
 \subsection{Objectives and Pareto concepts}
 Let $\mathcal Q_m$ be the task IDs represented by explicit TASK occurrences in $\pi_m$. Repeated or shared visits credit each task once:
@@ -37,21 +40,58 @@ Let $\mathcal Q_m$ be the task IDs represented by explicit TASK occurrences in $
  \qquad \bar c(S)=\frac{1}{M}\sum_{m\in\mathcal A}c_m.
  \label{eq:reward}
 \end{equation}
-The reported minimization vector is
-\begin{equation}
- f(S)=\bigl(-Q(S),\bar c(S)\bigr).
+The feasible archive has one scalar function for each reported objective:
+\begin{align}
+ f_Q^{\mathcal F}(S)&=Q(S) &&\text{(maximize)},\nonumber\\
+ f_c^{\mathcal F}(S)&=\bar c(S) &&\text{(minimize)}.
  \label{eq:objectives}
-\end{equation}
-For feasible solutions $S$ and $S'$, $S$ dominates $S'$ when $f_j(S)\le f_j(S')$ for both objectives and the inequality is strict for at least one. The Pareto set contains feasible solutions not dominated by another feasible solution. We approximate it with an epsilon-box archive. Search progress is measured by normalized two-dimensional hypervolume with reference point $(1,1)$ after scaling reward by total available reward and time by the largest flight budget; larger hypervolume is better.
+\end{align}
+For feasible solutions $S$ and $S'$, $S$ dominates $S'$ in $\mathcal F$ when $f_Q^{\mathcal F}(S)\ge f_Q^{\mathcal F}(S')$ and $f_c^{\mathcal F}(S)\le f_c^{\mathcal F}(S')$, with at least one strict inequality. The Pareto set contains feasible solutions not dominated by another feasible solution. We approximate it with an epsilon-box archive. For implementation and hypervolume calculation only, the maximized reward is sign-reversed to obtain the equivalent minimization vector $(-f_Q^{\mathcal F},f_c^{\mathcal F})$. Search progress is measured by normalized two-dimensional hypervolume with reference point $(1,1)$ after scaling reward by total available reward and time by the largest flight budget; larger hypervolume is better.
 
 \subsection{Motion, budget, and reward constraints}
 Consecutive visits are joined by a double-integrator trajectory:
 \begin{equation}
- \dot p_m(t)=v_m(t),\quad \dot v_m(t)=a_m(t),\quad
- |v_{md}(t)|\le\bar v_{md},\quad |a_{md}(t)|\le\bar a_{md}.
+ \begin{aligned}
+  \dot p_m(t) &= v_m(t),\\
+  \dot v_m(t) &= a_m(t),\\
+  |v_{md}(t)| &\le \bar v_{md},\\
+  |a_{md}(t)| &\le \bar a_{md}.
+ \end{aligned}
  \label{eq:dynamics}
 \end{equation}
-These constraints enforce continuous position and velocity and bound each velocity and acceleration component. The implementation represents a connector by finitely many constant-acceleration pieces and computes a minimum-time connection for fixed endpoint states. If $D_{mk}$ is the duration from occurrence $k$ to $k+1$, then
+These constraints enforce continuous position and velocity and bound each velocity and acceleration component. For an interior occurrence, let
+\begin{equation}
+ d_{mk}=\frac{p_{m,k+1}-p_{m,k-1}}{\|p_{m,k+1}-p_{m,k-1}\|_2}
+ \label{eq:geometric_heading}
+\end{equation}
+be its geometric velocity direction when the denominator is nonzero. Given an optimized speed fraction $\rho_{mk}$, the boundary velocity is
+\begin{equation}
+ v_{mk}=\rho_{mk}s^{\max}_{mk}d_{mk},\qquad
+ s^{\max}_{mk}=\min_{e\in\mathcal D:\,|d_{mke}|>0}\frac{\bar v_{me}}{|d_{mke}|}.
+ \label{eq:visit_velocity}
+\end{equation}
+Thus $\rho_{mk}$ controls timing while the route geometry controls direction. At a sharp turn, the implementation caps $\rho_{mk}$ as a function of the angle between the incident route segments.
+
+For fixed endpoint states, we use the KOP time-optimal connector~\cite{meyer2022kop}. For each axis $d$, it considers the classical and synchronization acceleration patterns
+\begin{equation}
+ \mathcal B_{md}=\left\{
+ \begin{aligned}
+  &(+\bar a_{md},0,-\bar a_{md}),\\
+  &(-\bar a_{md},0,+\bar a_{md}),\\
+  &(+\bar a_{md},0,+\bar a_{md}),\\
+  &(-\bar a_{md},0,-\bar a_{md})
+ \end{aligned}
+ \right\}.
+ \label{eq:kop_patterns}
+\end{equation}
+For a pattern $b\in\mathcal B_{md}$, durations $t_{1,md},t_{2,md},t_{3,md}\ge0$ must satisfy the endpoint position and velocity, the componentwise bounds, and
+\begin{equation}
+ t_{1,md}+t_{2,md}+t_{3,md}=D_{mk}.
+ \label{eq:axis_synchronization}
+\end{equation}
+The same $D_{mk}$ is imposed on both axes. We enumerate analytical boundaries of the reachable-duration sets and choose the smallest duration for which at least one pattern is feasible on every axis. This explicitly handles synchronization intervals that may be disconnected; it does not assume $D_{mk}=\max_d D^{\min}_{mkd}$. Combining the axis switching times yields finitely many vector pieces with quadratic position, linear velocity, and acceleration components in $\{-\bar a_{md},0,+\bar a_{md}\}$. Acceleration may jump at switching times, so jerk is not bounded.
+
+If $D_{mk}$ is the resulting duration from occurrence $k$ to $k+1$, then
 \begin{equation}
  \alpha_{m0}=0,\qquad \alpha_{m,k+1}=\alpha_{mk}+D_{mk},
  \qquad c_m=\alpha_{m,K_m-1}\le B_m.
@@ -65,7 +105,12 @@ At time $t$, agents $m$ and $n$ communicate when
  \|p_m(t)-p_n(t)\|_2\le R.
  \label{eq:contact}
 \end{equation}
-Every connected component of the instantaneous range graph exchanges its newest information. Let $h_{nm}(t)$ be the newest timestamp originating at $m$ that receiver $n$ holds, with $h_{nm}(0)=0$ and $h_{mm}(t)=t$. Information is retained and may be forwarded at later contacts. Define
+Each agent stores its newest snapshot of every agent, including snapshots received indirectly. Let $h_{nm}(t)$ be the timestamp of the newest snapshot originating at source $m$ that receiver $n$ holds, with $h_{nm}(0)=0$ and $h_{mm}(t)=t$. At a communication event, every connected component $C$ of the instantaneous range graph merges its stored snapshots. For every receiver $n\in C$ and source $m\in\mathcal A$,
+\begin{equation}
+ h_{nm}(t^+)=\max_{q\in C}h_{qm}(t^-).
+ \label{eq:snapshot_exchange}
+\end{equation}
+Thus an agent $q$ may transmit its stored snapshot of source $m$ even when $q\ne m$; agents need not contact the original source directly. Snapshots are retained after separation and can be forwarded again at later contacts, yielding store--carry--forward propagation. Define
 \begin{equation}
  A_{nm}(t)=t-h_{nm}(t),\qquad
  P_{nm}(S)=\sup_{0\le t\le T} A_{nm}(t).

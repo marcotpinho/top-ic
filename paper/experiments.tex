@@ -35,3 +35,50 @@ The saved zero-violation fronts contain 16, 25, 11, and 8 epsilon representative
 A separate, deliberately small two-agent relay probe tests whether a free waypoint can improve a feasible route. Its saved best feasible solution collects reward 146 with mean completion time $55.13\,$s, peak staleness $9.11\,$s below $T_c=12\,$s, and a FREE visit at $(67.4,0)$. A saved same-reward feasible candidate without a FREE visit has mean time $57.65\,$s. This is a within-run example of benefit, not a controlled ablation or a general performance estimate.
 
 The budget multiplier is not a monotonicity claim about the heuristic. A larger physical budget enlarges the feasible set, but a fixed-time stochastic search need not return a better incumbent. The archived original-versus-tripled comparison summary illustrates this: post-disaster's best saved feasible reward fell from 311 to 186 when the larger budget changed the search trajectory. We do not infer a causal improvement or deterioration from one seed. Matched multi-seed comparisons, longer search budgets, communication-neighborhood ablations, and a kinematically matched TOP-CC baseline remain future experimental work.
+
+\subsection{Effect of the Recurrence Bound}
+Figure~\ref{fig:tc_contact_sweep} gives a spatial view of how the recurrence bound changes the routes and their contact portions. We use the same two-agent instance, communication range $R=2\,$m, seed 103, and 900-second search budget in all three panels. The plotted solution is the maximum-reward member of the final feasible archive, with ties broken by lower mean completion time. The smallest value in this campaign, $T_c=0.05\,$s, is used as a near-zero case. It yields $Q=300$, $\bar c=18.62\,$s, and numerical-zero peak staleness. The intermediate case $T_c=5\,$s yields $Q=390$, $\bar c=17.71\,$s, and $\Delta=4.49\,$s. With the nonbinding $T_c=100\,$s bound, the selected solution collects all available reward, $Q=450$, with $\bar c=16.73\,$s and $\Delta=14.51\,$s.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/tc-contact-sweep.pdf}
+\caption{Representative feasible solutions on the same map and seed under a near-zero, intermediate, and loose recurrence bound. Blue and orange curves are the agents' continuous trajectories; gold diamonds are collected tasks. Green samples identify positions traversed while the agents are directly within range, and faint green chords show selected simultaneous contacts. The near-zero bound keeps the pair together almost everywhere, whereas larger bounds permit spatial separation between encounters. These are single-seed outcomes, not estimates of expected performance.}
+\label{fig:tc_contact_sweep}
+\end{figure*}
+
+\subsection{Indirect Communication Through a Relay}
+We use a three-agent bridge instance to expose indirect propagation geometrically. The agents start and finish at $(10,0)$ and have separate tasks at $(10,-6)$, $(20,4)$, and $(0,4)$. With $R=14.5\,$m and $T_c=0.05\,$s, the selected solution assigns one task to each agent, collects the full reward $Q=150$, has mean completion time $9.81\,$s, and has numerical-zero peak staleness and $CV=0$. Agents 2 and 3 have no direct contact from $t=3.438\,$s to $t=7.261\,$s, but both remain directly connected to Agent 1 throughout this $3.823\,$s interval. Their snapshots therefore propagate through the component $2\text{--}1\text{--}3$ without a direct $2\text{--}3$ link.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/indirect-communication.pdf}
+\caption{Indirect communication in the three-agent bridge instance. Left: complete trajectories and the instantaneous graph at $t=5.35\,$s; solid green edges connect each external agent to the relay, while the dashed red edge marks the absent external link. Right: direct-contact intervals for every pair. The shaded interval has no direct $2\text{--}3$ contact, but links $1\text{--}2$ and $1\text{--}3$ remain active, allowing Agent 1 to transmit snapshots between Agents 2 and 3.}
+\label{fig:indirect_communication}
+\end{figure*}
+
+\subsection{Matched TOP-CC Comparison at Constant Connectivity}
+We compare the current TOP-ICC implementation with an adapted constant-connectivity baseline, TOP-CC-C0, built from TOP-CC revision \texttt{38c863a}. Both methods receive the same four original-budget maps, task rewards, three-agent team, communication range, seed 42, and nominal 600-second wall-clock budget. Each map pair runs concurrently with one numerical-library thread per process. TOP-ICC uses its acceleration-bounded model and exact $T_c=0$, which requires the instantaneous range graph to remain connected throughout the mission. TOP-CC-C0 retains piecewise-linear motion at constant scalar speed $3\,$m/s, the RSSI objective, and archive size 40. Its distance budget is $3B_m$, where $B_m$ is the original temporal budget, and its \texttt{multi\_vis} variant permits shared visits.
+
+The unmodified TOP-CC initializer did not save a continuously connected solution in a preliminary campaign, even with tripled budgets. We therefore add one deterministic feasible initializer: tasks are inserted greedily by reward per added distance into a common route, and every agent receives that route. The resulting convoy is continuously connected and respects the converted budget. This plays the same feasibility role as TOP-ICC's cooperative initialization, but it is an additional heuristic and must be included when interpreting the baseline. We otherwise retain the original TOP-CC operators and dominance relation. After each run, all saved paths are post-validated by exact continuous range-graph connectivity and distance budgets. The agriculture TOP-CC-C0 alarm was armed 10 seconds early to absorb a non-interruptible Numba batch; its effective search time was $591.57\,$s, so it received slightly less than the nominal budget.
+
+Table~\ref{tab:topcc_comparison} reports the maximum-reward connected solution saved by each method, breaking ties by mean completion time. TOP-CC-C0 saved higher reward on all four maps: $70.3\%$ versus $56.3\%$ of available reward on post-disaster, $100\%$ versus $99.1\%$ on wildfire, $56.1\%$ versus $8.6\%$ on pipeline, and $21.9\%$ versus $2.8\%$ on agriculture. However, on post-disaster, pipeline, and agriculture its sole saved connected solution was the greedy convoy seed; only wildfire retained multiple connected alternatives. Thus these rows primarily compare TOP-ICC against the added convoy construction rather than demonstrate consistent improvement by the original TOP-CC search. TOP-ICC peak staleness was at most $1.43\times10^{-14}\,$s, i.e., numerical zero.
+
+\begin{table*}[t]
+\centering
+\caption{Single-seed TOP-CC-C0 versus TOP-ICC comparison under constant connectivity and nominal 600-second wall-clock budgets. $Q_{\max}$ is available reward, $Q_0$ is the best saved continuously connected reward, and $n_0$ is the number of saved connected solutions. Completion times belong to different motion models and are descriptive rather than a controlled speed comparison.}
+\label{tab:topcc_comparison}
+\begin{tabular}{lrrrrrrr}
+\toprule
+& & \multicolumn{3}{c}{TOP-CC-C0} & \multicolumn{3}{c}{TOP-ICC, $T_c=0$}\\
+\cmidrule(lr){3-5}\cmidrule(lr){6-8}
+Map & $Q_{\max}$ & $Q_0^{CC}$ & $\bar c_0^{CC}$ (s) & $n_0^{CC}$ & $Q_0^{ICC}$ & $\bar c_0^{ICC}$ (s) & $n_0^{ICC}$\\
+\midrule
+Post-disaster & 1530 & 1076 & 119.34 & 1 & 862 & 108.62 & 24\\
+Wildfire & 1648 & 1648 & 140.41 & 10 & 1633 & 144.91 & 10\\
+Pipeline & 757 & 425 & 157.77 & 1 & 65 & 41.06 & 5\\
+Agriculture & 1793 & 393 & 152.83 & 1 & 50 & 36.59 & 9\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The methods also differ substantially in work completed within the wall-clock budget. TOP-CC-C0 evaluated 233,396, 188,331, 336,574, and 57,651 candidates, whereas TOP-ICC evaluated 25,715, 17,062, 38,947, and 26,717, respectively. These counts are not normalized units of effort because the evaluators and motion models differ. The TOP-ICC batch diagnostic recorded 12, 10, 7, and 23 batch--scalar divergences, respectively; every batch-feasible candidate is re-evaluated by the scalar evaluator before archive insertion, so the table uses scalar-validated incumbents. Together with the added TOP-CC-C0 initializer, single-seed design, slightly shorter agriculture baseline run, and distinct kinematics, this prevents a statistical or purely algorithmic superiority claim; the table establishes only the quality and feasibility of the solutions actually saved under this protocol.

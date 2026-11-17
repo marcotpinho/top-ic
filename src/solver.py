@@ -65,7 +65,7 @@ def _tc_slice(front: list[Solution], tc: float) -> dict:
     eligible = [
         index
         for index, solution in enumerate(front)
-        if solution.evaluation.comm_violation == 0
+        if solution.evaluation.comm_violation <= 1e-13
     ]
     selected = []
     for index in eligible:

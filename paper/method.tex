@@ -43,14 +43,22 @@ If all possible insertions were enumerated, one greedy construction step would c
 \end{algorithm}
 
 \subsection{Feasible archive, auxiliary pool, and selection}
-A physically valid candidate with $CV=0$ is eligible for $\mathcal F$. The archive first removes Pareto-dominated solutions in $(-Q,\bar c)$ and then retains one representative per epsilon box; if capacity is exceeded, both epsilon widths are coarsened. This bounds memory while preserving reward--time coverage.
+A physically valid candidate with $CV=0$ is eligible for $\mathcal F$. Its two objective functions are evaluated separately as
+\begin{align}
+ f_Q^{\mathcal F}(S)&=Q(S) &&\text{(maximize)},\nonumber\\
+ f_c^{\mathcal F}(S)&=\bar c(S) &&\text{(minimize)}.
+ \label{eq:archive_objectives}
+\end{align}
+The archive first removes solutions dominated under these two directions and then retains one representative per epsilon box; if capacity is exceeded, both epsilon widths are coarsened. This bounds memory while preserving reward--time coverage.
 
-Candidates not retained in $\mathcal F$, together with solutions displaced from $\mathcal F$, are considered for $\mathcal P$. Pool dominance uses
-\begin{equation}
- g(S)=\bigl(CV(S),-Q(S),\bar c(S)\bigr),
- \label{eq:pool_vector}
-\end{equation}
-so partial communication repair remains visible. The pool removes dominated and over-age members and, if necessary, truncates by crowding distance. Let $ND_{\mathcal F}$ and $ND_{\mathcal P}$ be the nondominated subsets of the two archives. The default probability of selecting $\mathcal P$ is $|ND_{\mathcal P}|/(|ND_{\mathcal F}|+|ND_{\mathcal P}|)$; a two-member crowding tournament then chooses a base within the selected archive. Keeping $CV$ in $\mathcal P$ rather than in the reported objective vector preserves useful stepping stones without rewarding excess connectivity in the final front.
+Candidates not retained in $\mathcal F$, together with solutions displaced from $\mathcal F$, are considered for $\mathcal P$. The pool has one scalar function for each of its three search objectives:
+\begin{align}
+ f_{CV}^{\mathcal P}(S)&=CV(S) &&\text{(minimize)},\nonumber\\
+ f_Q^{\mathcal P}(S)&=Q(S) &&\text{(maximize)},\nonumber\\
+ f_c^{\mathcal P}(S)&=\bar c(S) &&\text{(minimize)}.
+ \label{eq:pool_objectives}
+\end{align}
+A pool member dominates another when it is no worse according to all three stated directions and strictly better in at least one. This makes partial communication repair visible without converting communication violation into a reported objective of $\mathcal F$. The pool removes dominated and over-age members and, if necessary, truncates by crowding distance. Let $ND_{\mathcal F}$ and $ND_{\mathcal P}$ be the nondominated subsets of the two archives. The default probability of selecting $\mathcal P$ is $|ND_{\mathcal P}|/(|ND_{\mathcal F}|+|ND_{\mathcal P}|)$; a two-member crowding tournament then chooses a base within the selected archive. Keeping $CV$ only in the pool objectives preserves useful stepping stones without rewarding excess connectivity in the final front.
 
 With archive capacities $C_{\mathcal F}$ and $C_{\mathcal P}$, one insertion costs $O(C_{\mathcal F}+C_{\mathcal P}^2)$ in the current implementation: feasible-front dominance is linear, whereas pool dominance is quadratic in the bounded pool size. Memory is $O(C_{\mathcal F}+C_{\mathcal P})$ solutions, excluding cached trajectory data.
 
@@ -62,7 +70,7 @@ The neighborhood set contains whole-agent velocity changes, individual visit-vel
 For a batch of $b$ candidates, generation and repair remain sequential. With $w>1$ evaluator processes, at most $\min(b,2w)$ jobs are pending and results are integrated in input order. The default $w=1$ creates no subprocess. Parallel evaluation changes wall time rather than the logical archive order under an evaluation-count budget.
 
 \subsection{Continuous-time evaluator}
-For fixed endpoint states, the connector produces piecewise constant-acceleration motion. On each overlap of two motion pieces, relative position is quadratic in time, so squared separation minus $R^2$ has degree at most four. Real roots and interval signs yield maximal range-contact intervals without uniform time discretization. Unchanged routes and pair contacts may be reused from a parent solution when the evaluation context and mission horizon are compatible; otherwise they are rebuilt.
+For fixed endpoint states, the KOP-based connector evaluates the four patterns in~\eqref{eq:kop_patterns} per axis and returns the minimum feasible common duration. The resulting motion has piecewise constant acceleration. On each overlap of two motion pieces, relative position is quadratic in time, so squared separation minus $R^2$ has degree at most four. Real roots and interval signs yield maximal range-contact intervals without uniform time discretization. Unchanged routes and pair contacts may be reused from a parent solution when the evaluation context and mission horizon are compatible; otherwise they are rebuilt.
 
 Algorithm~\ref{alg:communication} processes all contact endpoints plus $0$ and $T$. It first records left-limit ages, then exchanges componentwise newest timestamps over every link active at the event. Processing all simultaneous links as a connected component permits instantaneous multi-hop relay. The output contains every $P_{nm}$ and hence $CV$ from~\eqref{eq:communication_constraint}.
 
@@ -92,4 +100,4 @@ Algorithm~\ref{alg:communication} processes all contact endpoints plus $0$ and $
 If pair $(m,n)$ contains $q_m$ and $q_n$ motion pieces, contact extraction examines $O(q_mq_n)$ overlaps. For $C$ resulting intervals, the chronological sweep has at most $2C+2$ event times; component propagation costs $O(M^2)$ per event in the implemented vector-clock representation. The total evaluation cost is therefore $O(\sum_{m<n}q_mq_n+CM^2)$, apart from constant-degree root solving.
 
 \subsection{Design choices and hyperparameters}
-The method uses exact event ordering because an aggregated contact graph can report a path that never exists in chronological order. It uses instantaneous in-range exchange to isolate recurrence from link-layer protocol modeling. The finite velocity menu and sampled neighborhoods make the search tractable, while the full continuous evaluator protects feasibility between visits. The main hyperparameters are the random seed, time and exact-evaluation limits, archive and pool capacities, epsilon widths, velocity headings and speed fractions, $K_N$, $p_{\max}$, hypervolume threshold $\tau$, communication-repair rounds, batch size, and evaluator workers. Section~\ref{sec:experiments} reports the values used in each saved run.
+The method uses exact event ordering because an aggregated contact graph can report a path that never exists in chronological order. It uses instantaneous in-range exchange to isolate recurrence from link-layer protocol modeling. The finite speed-fraction menu and sampled neighborhoods make the search tractable, while the full continuous evaluator protects feasibility between visits. The main hyperparameters are the random seed, time and exact-evaluation limits, archive and pool capacities, epsilon widths, speed fractions, $K_N$, $p_{\max}$, hypervolume threshold $\tau$, communication-repair rounds, batch size, and evaluator workers. Section~\ref{sec:experiments} reports the values used in each saved run.

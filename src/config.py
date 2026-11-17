@@ -248,9 +248,9 @@ class Config:
             not isfinite(self.comm_range)
             or self.comm_range <= 0
             or not isfinite(self.recurrence_bound)
-            or self.recurrence_bound <= 0
+            or self.recurrence_bound < 0
         ):
-            raise ValueError("Communication range/window must be positive")
+            raise ValueError("Communication range must be positive and window nonnegative")
         if not all(isfinite(s) and s > 0 for s in self.waypoint_steps):
             raise ValueError("Neighborhood step sizes must be positive")
         if self.waypoint_workspace is not None and (

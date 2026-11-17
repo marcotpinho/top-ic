@@ -21,4 +21,6 @@ benchmarks/
 paper/*
 !paper/midpoint/
 !paper/midpoint/**
+!paper/figures/
+!paper/figures/**
 .agent/

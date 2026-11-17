@@ -3,6 +3,7 @@
 import argparse
 import json
 import subprocess
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
@@ -297,6 +298,7 @@ def parse_args():
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--pilot", action="store_true")
+    parser.add_argument("--parallel", type=int, default=1)
     return parser.parse_args()
 
 
@@ -321,6 +323,7 @@ def main():
     output_root = ROOT / args.output_root
     output_root.mkdir(parents=True, exist_ok=True)
     ledger = []
+    pending = []
     for case in build_cases(args):
         output = output_root / case.group / case.name
         arguments = list(case.arguments)
@@ -356,7 +359,17 @@ def main():
             row["status"] = "dry-run"
             print(" ".join(command))
         else:
-            completed = subprocess.run(command, cwd=ROOT, check=False)
+            pending.append((row, command))
+            continue
+        ledger.append(row)
+    with ThreadPoolExecutor(max_workers=args.parallel) as executor:
+        futures = {
+            executor.submit(subprocess.run, command, cwd=ROOT, check=False): row
+            for row, command in pending
+        }
+        for future in as_completed(futures):
+            row = futures[future]
+            completed = future.result()
             row["status"] = "ok" if completed.returncode == 0 else "failed"
             row["returncode"] = completed.returncode
             ledger.append(row)
@@ -365,8 +378,6 @@ def main():
             )
             if completed.returncode:
                 raise SystemExit(completed.returncode)
-            continue
-        ledger.append(row)
     (output_root / "ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
     blocked = {}
     (output_root / "blocked.json").write_text(json.dumps(blocked, indent=2) + "\n")

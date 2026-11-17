@@ -15,7 +15,7 @@ from math import isfinite, sqrt
 
 from ..config import MotionLimits, Vector, vector
 
-VERSION = "envelope-2-moving"
+VERSION = "kop-patterns-1-geometric-heading"
 TOL = 1e-8
 
 
@@ -149,6 +149,132 @@ def _axis_profile(T, x, v0, v1, V, A):
     return times, [speed(t) for t in times]
 
 
+def _integrate_axis(v0, phases):
+    position = 0.0
+    velocity = v0
+    for duration, acceleration in phases:
+        position += velocity * duration + 0.5 * acceleration * duration * duration
+        velocity += acceleration * duration
+    return position, velocity
+
+
+def _valid_axis_pattern(phases, T, x, v0, v1, V, A):
+    if any(duration < -1e-9 for duration, _ in phases):
+        return None
+    normalized = tuple(
+        (max(0.0, duration), acceleration)
+        for duration, acceleration in phases
+        if duration > 1e-12
+    )
+    if abs(sum(duration for duration, _ in normalized) - T) > 2e-7:
+        return None
+    velocity = v0
+    for duration, acceleration in normalized:
+        if abs(acceleration) > A + 1e-9:
+            return None
+        tail = velocity + acceleration * duration
+        if max(abs(velocity), abs(tail)) > V + 2e-7:
+            return None
+        velocity = tail
+    displacement, velocity = _integrate_axis(v0, normalized)
+    if abs(displacement - x) > 2e-7 or abs(velocity - v1) > 2e-7:
+        return None
+    return normalized
+
+
+def _classical_patterns(T, x, v0, v1, V, A):
+    delta = v1 - v0
+    for acceleration in (A, -A):
+        discriminant = (
+            acceleration * acceleration * T * T
+            + 2 * (v1 + v0) * acceleration * T
+            - 4 * acceleration * x
+            - delta * delta
+        )
+        if discriminant < -1e-9:
+            continue
+        root = sqrt(max(0.0, discriminant))
+        for branch in (-1.0, 1.0):
+            t1 = (acceleration * T + delta + branch * root) / (
+                2 * acceleration
+            )
+            t2 = -branch * root / acceleration
+            t3 = (acceleration * T - delta + branch * root) / (
+                2 * acceleration
+            )
+            pattern = _valid_axis_pattern(
+                (
+                    (t1, acceleration),
+                    (t2, 0.0),
+                    (t3, -acceleration),
+                ),
+                T,
+                x,
+                v0,
+                v1,
+                V,
+                A,
+            )
+            if pattern is not None:
+                yield pattern
+
+
+def _synchronization_patterns(T, x, v0, v1, V, A):
+    delta = v1 - v0
+    for acceleration in (A, -A):
+        accelerated_time = delta / acceleration
+        t2 = T - accelerated_time
+        if accelerated_time < -1e-9 or t2 < -1e-9:
+            continue
+        if abs(t2) <= 1e-12:
+            if abs(x - (v0 * T + 0.5 * acceleration * T * T)) > 2e-7:
+                continue
+            t1 = 0.0
+        else:
+            t1 = (
+                x
+                - v0 * T
+                - 0.5 * acceleration * accelerated_time * accelerated_time
+            ) / (acceleration * t2)
+        t3 = accelerated_time - t1
+        pattern = _valid_axis_pattern(
+            (
+                (t1, acceleration),
+                (t2, 0.0),
+                (t3, acceleration),
+            ),
+            T,
+            x,
+            v0,
+            v1,
+            V,
+            A,
+        )
+        if pattern is not None:
+            yield pattern
+
+
+def _axis_pattern(T, x, v0, v1, V, A):
+    return next(
+        iter(
+            (
+                *_classical_patterns(T, x, v0, v1, V, A),
+                *_synchronization_patterns(T, x, v0, v1, V, A),
+            )
+        ),
+        None,
+    )
+
+
+def _pattern_acceleration(pattern, t):
+    elapsed = 0.0
+    for duration, acceleration in pattern:
+        if t <= elapsed + duration + 1e-12:
+            return acceleration
+        elapsed += duration
+    return pattern[-1][1]
+
+
 @lru_cache(maxsize=50000)
 def connect(start: State, end: State, limits: MotionLimits) -> Connection:
     for vel in (start.velocity, end.velocity):
@@ -177,27 +303,23 @@ def connect(start: State, end: State, limits: MotionLimits) -> Connection:
         )
     )
     duration = None
+    patterns = None
     for t in candidates:
-        if all(
-            t + 1e-10 >= abs(v1 - v0) / A
-            and _bounds(t, v0, v1, V, A)[0] - 1e-9
-            <= x
-            <= _bounds(t, v0, v1, V, A)[1] + 1e-9
-            for x, v0, v1, V, A in axes
-        ):
+        candidate_patterns = tuple(_axis_pattern(t, *axis) for axis in axes)
+        if all(pattern is not None for pattern in candidate_patterns):
             duration = t
+            patterns = candidate_patterns
             break
-    if duration is None or duration < 1e-12:
+    if duration is None or duration < 1e-12 or patterns is None:
         raise MotionError("No numerically resolved common duration")
-    profiles = [_axis_profile(duration, *ax) for ax in axes]
-    times = sorted(set(t for ts, _ in profiles for t in ts))
-
-    def axis_v(d, t):
-        ts, vs = profiles[d]
-        for j in range(len(ts) - 1):
-            if t <= ts[j + 1] + 1e-12:
-                return vs[j] + (vs[j + 1] - vs[j]) * (t - ts[j]) / (ts[j + 1] - ts[j])
-        return vs[-1]
+    times = {0.0, duration}
+    for pattern in patterns:
+        elapsed = 0.0
+        for phase_duration, _ in pattern:
+            elapsed += phase_duration
+            if 1e-12 < elapsed < duration - 1e-12:
+                times.add(elapsed)
+    times = sorted(times)
 
     state = start
     pieces = []
@@ -205,7 +327,8 @@ def connect(start: State, end: State, limits: MotionLimits) -> Connection:
         h = t1 - t0
         if h < 1e-12:
             continue
-        a = tuple((axis_v(d, t1) - axis_v(d, t0)) / h for d in range(2))
+        midpoint = (t0 + t1) / 2
+        a = tuple(_pattern_acceleration(patterns[d], midpoint) for d in range(2))
         piece = MotionPiece(state.position, state.velocity, a, h, t0)
         pieces.append(piece)
         state = piece.state(h)
