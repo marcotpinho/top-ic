@@ -20,8 +20,9 @@ def _task_positions(solution: Solution) -> list[tuple[int, int]]:
     ]
 
 
-def _removal_count(total: int, rng: Random) -> int:
-    fraction = rng.uniform(0.1, 0.4)
+def _removal_count(total: int, rng: Random, strength: int) -> int:
+    lower, upper = ((0.1, 0.15), (0.2, 0.3), (0.3, 0.4))[min(3, max(1, strength)) - 1]
+    fraction = rng.uniform(lower, upper)
     return min(total, max(1, ceil(total * fraction)))
 
 
@@ -110,11 +111,13 @@ def _related_positions(solution, occupied, count, rng):
     )[:count]
 
 
-def _ruin(solution: Solution, rng: Random) -> tuple[Solution, list[Visit]]:
+def _ruin(
+    solution: Solution, rng: Random, strength: int
+) -> tuple[Solution, list[Visit]]:
     occupied = _task_positions(solution)
     if not occupied:
         return solution, []
-    count = _removal_count(len(occupied), rng)
+    count = _removal_count(len(occupied), rng, strength)
     mode = rng.choice(RUIN_MODES)
     if mode == "route":
         selected = _route_positions(solution, occupied, count, rng)
@@ -189,5 +192,5 @@ def ruin_recreate(
     solution: Solution, config: Config, rng: Random, strength: int = 1
 ) -> Solution:
     """Destroy 10–40% of task visits and rebuild with regret-2 insertion."""
-    ruined, removed = _ruin(solution, rng)
+    ruined, removed = _ruin(solution, rng, strength)
     return _recreate(ruined, removed, config, rng)

@@ -85,6 +85,7 @@ def _search_family(
 
 def run_iterations(runner: "Runner") -> None:
     """Time the full local-search loop over independent sampled families."""
+    stagnation = 0
     with profiling(runner.profile, "search_loop_seconds"):
         for iteration in range(runner.config.max_iterations):
             if runner.exhausted() or not (runner.archive.front or runner.archive.pool):
@@ -103,8 +104,9 @@ def run_iterations(runner: "Runner") -> None:
                 for solution in nondominated(runner.archive.pool, pool_vector)
             }
             if runner.config.ruin_recreate_enabled:
+                strength = 1 if stagnation < 2 else 2 if stagnation < 5 else 3
                 shaken = ruin_recreate(
-                    base, runner.config, runner.rng, 1 + iteration // 4
+                    base, runner.config, runner.rng, strength
                 )
                 working = runner.evaluate(shaken, "ruin_recreate")
                 if working is None:
@@ -120,6 +122,14 @@ def run_iterations(runner: "Runner") -> None:
             for name in runner.neighborhood.names:
                 if runner.exhausted():
                     break
+                kinematic = name in {"velocity_change", "free_segment"}
+                refine_now = (
+                    iteration % runner.config.kinematic_refinement_interval == 0
+                    or working.evaluation.comm_violation
+                    > runner.config.numerical_tolerance
+                )
+                if kinematic and not refine_now:
+                    continue
                 pass_base = working
                 for pass_index in range(runner.config.neighborhood_max_passes):
                     if runner.exhausted():
@@ -152,6 +162,7 @@ def run_iterations(runner: "Runner") -> None:
                 )
             )
             runner.archive.mark_expansion(base, new_front or pool_improvement)
+            stagnation = 0 if new_front or pool_improvement else stagnation + 1
             selection["exact_evaluations_spent"] = (
                 runner.counts["exact_evaluations"] - evaluations_started
             )

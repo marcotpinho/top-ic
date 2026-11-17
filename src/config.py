@@ -119,6 +119,7 @@ class Config:
     initialization_budget_fraction: float = 0.2
     neighborhood_hv_tau: float = 0.0
     neighborhood_max_passes: int = 3
+    kinematic_refinement_interval: int = 3
     archive_size: int = 100
     headings: int = 8
     eps_reward: float = 1.0
@@ -184,6 +185,7 @@ class Config:
                 self.evaluation_batch_size,
                 self.max_iterations,
                 self.neighborhood_max_passes,
+                self.kinematic_refinement_interval,
                 self.archive_size,
                 self.dominated_archive_size,
                 self.headings,

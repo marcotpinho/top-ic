@@ -144,6 +144,12 @@ def _parser() -> argparse.ArgumentParser:
         help="ICC neighborhood family names to omit from the search",
     )
     parser.add_argument(
+        "--kinematic-refinement-interval",
+        type=int,
+        default=3,
+        help="run velocity and FREE refinement every N structural iterations",
+    )
+    parser.add_argument(
         "--comm-range",
         type=float,
         default=2.0,
@@ -260,6 +266,7 @@ def _config(args: argparse.Namespace) -> Config:
         speed_fractions=tuple(args.speed_fractions),
         velocity_segment_lengths=tuple(args.velocity_segment_lengths),
         disabled=tuple(args.disable),
+        kinematic_refinement_interval=args.kinematic_refinement_interval,
         comm_range=args.comm_range,
         recurrence_bound=args.recurrence_bound,
         dominated_archive_size=args.dominated_archive_size,
