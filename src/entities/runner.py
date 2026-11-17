@@ -97,10 +97,6 @@ class Runner:
         direct = self.evaluate(direct_solution(self.problem), "initialization")
         if direct is None:
             return "no_known_feasible_seed"
-        for cooperative in cooperative_seeds(direct, self.problem):
-            if self.initialization_exhausted():
-                break
-            self.evaluate(cooperative, "cooperative_seed")
         for dense in density_seeds(direct, self.problem):
             if self.initialization_exhausted():
                 break
@@ -109,6 +105,10 @@ class Runner:
             if self.initialization_exhausted():
                 break
             self.evaluate(seed, "partition_seed")
+        for cooperative in cooperative_seeds(direct, self.problem):
+            if self.initialization_exhausted():
+                break
+            self.evaluate(cooperative, "cooperative_seed")
         construct_reward_seed(self, direct)
         self.record_archive_objectives(0)
         self.record_metrics(0)

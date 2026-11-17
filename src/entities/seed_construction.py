@@ -107,9 +107,9 @@ def cooperative_seeds(base: Solution, problem: Problem) -> Iterator[Solution]:
             task.id,
         ),
     )
+    yield _cooperative_subset(base, tasks)
     for subset in ([task] for task in tasks):
         yield _cooperative_subset(base, subset)
-    yield _cooperative_subset(base, tasks)
 
 
 def _cooperative_subset(base: Solution, tasks: list[Task]) -> Solution:
