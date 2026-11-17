@@ -25,7 +25,7 @@ def plot_result(data, directory, prefix="full"):
         arrival=tr["completion_time"];vel.plot([arrival,horizon],[0,0],linestyle="--",color=line.get_color());vel.axvline(arrival,color=line.get_color(),alpha=.3)
     path.scatter(*problem["start"],marker="s",s=130,c="#ff6361",edgecolors="black",label="Start",zorder=5);path.scatter(*problem["end"],marker="X",s=130,c="#58508d",edgecolors="black",label="Goal",zorder=5)
     path.set(xlabel="x (m)",ylabel="y (m)",title=f"Maximum-reward solution: {representative['reward']:g}");path.set_aspect("equal",adjustable="datalim");path.legend()
-    fig.patch.set_facecolor("grey");path.set_facecolor("grey")
+    fig.patch.set_facecolor("white");path.set_facecolor("white")
     vel.set(xlabel="Mission time (s)",ylabel="Speed magnitude (m/s)",title="Speed; dashed = free post-arrival presence");vel.legend();vel.grid(alpha=.3)
     add_speed_colorbars(fig, path, speed_colors)
     fig.savefig(directory/f"{prefix}-paths-speed.png",dpi=160);plt.close(fig)

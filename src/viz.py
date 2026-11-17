@@ -3,10 +3,12 @@
 import json
 from pathlib import Path
 
+import numpy as np
+from matplotlib import gridspec
 from matplotlib import pyplot as plt
 
 from .viz_paths import (
-    add_speed_colorbars,
+    communication_rssi_history,
     draw_speed_paths,
     draw_task_markers,
     save_agent_path_panels,
@@ -272,16 +274,36 @@ def _plot_communication(solution, output_path):
 def draw_solution_paths(
     problem, solution, title, output_path, show_communication=False
 ):
-    """Render one saved solution with collected-task symbols and speed gradients."""
-    fig, ax = plt.subplots(figsize=(10, 7))
+    """Render the white paper layout used by the original TOP-CC visualizer."""
+    fig = plt.figure(figsize=(16, 8), facecolor="white")
+    layout = gridspec.GridSpec(
+        2,
+        2,
+        figure=fig,
+        height_ratios=(1, 1),
+        width_ratios=(1.5, 1),
+        hspace=0.45,
+        wspace=0.45,
+    )
+    ax = fig.add_subplot(layout[:, 0])
+    legend_axis = fig.add_subplot(layout[0, 1])
+    communication_axis = fig.add_subplot(layout[1, 1])
     tasks = problem["tasks"]
     reached = set().union(*(set(ids) for ids in solution.get("reached_tasks", [])))
     task_colors = draw_task_markers(ax, tasks, reached, color_by_reward=True)
     if task_colors is not None:
-        fig.colorbar(task_colors, ax=ax, shrink=0.6, label="Task reward")
-    ax.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=130, label="Start", zorder=5)
-    ax.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=130, label="Goal", zorder=5)
-    sampled, speed_colors = draw_speed_paths(ax, solution["trajectories"])
+        colorbar = fig.colorbar(task_colors, ax=ax, shrink=0.78)
+        colorbar.set_label("Reward Value", fontsize=14)
+        colorbar.ax.tick_params(labelsize=11)
+    ax.scatter(
+        *problem["start"], marker="s", color="#ff6361", edgecolors="black",
+        s=130, label="Start", zorder=5,
+    )
+    ax.scatter(
+        *problem["end"], marker="X", color="#58508d", edgecolors="black",
+        s=130, label="Goal", zorder=5,
+    )
+    sampled, _ = draw_speed_paths(ax, solution["trajectories"])
     if show_communication:
         _draw_communication_links(ax, solution)
     free_label = True
@@ -307,18 +329,38 @@ def draw_solution_paths(
                 fontsize=8,
             )
             free_label = False
+    horizon = max(
+        trajectory["completion_time"] for trajectory in solution["trajectories"]
+    )
+    times = np.linspace(0.0, horizon, 300)
+    _, rssi_history = communication_rssi_history(solution["trajectories"], times)
+    finite_rssi = rssi_history[np.isfinite(rssi_history)]
+    minimum_rssi = float(np.min(finite_rssi)) if len(finite_rssi) else float("nan")
     ax.set(
-        title=f"{title}: reward {solution['reward']:g}\nMean time {solution['objectives'][1]:.3f}s; Δ {(solution.get('peak_staleness') or 0):.3f}s",
-        xlabel="x (m)",
-        ylabel="y (m)",
+        title=(
+            f"R: {solution['reward']:g} | MIN RSSI: {minimum_rssi:.2f} | "
+            f"T: {solution['objectives'][1]:.2f} s\n{title}"
+        ),
+        xlabel="x (m)", ylabel="y (m)",
     )
     ax.set_aspect("equal")
-    fig.patch.set_facecolor("grey")
-    ax.set_facecolor("grey")
-    ax.grid(alpha=0.2)
-    ax.legend(fontsize=8)
-    add_speed_colorbars(fig, ax, speed_colors)
-    fig.savefig(output_path, dpi=150)
+    ax.set_facecolor("white")
+    ax.grid(True, alpha=0.35)
+    legend_axis.axis("off")
+    handles, labels = ax.get_legend_handles_labels()
+    legend_axis.legend(handles, labels, loc="center", fontsize=12)
+    if len(finite_rssi):
+        communication_axis.plot(times, rssi_history, color="red", alpha=0.7, linewidth=3)
+        communication_axis.set_ylim(minimum_rssi - 1, 0)
+        communication_axis.set_title(f"RSSI: {rssi_history[-1]:.2f}", fontsize=16)
+    else:
+        communication_axis.text(0.5, 0.5, "Single agent", ha="center", va="center")
+        communication_axis.set_title("RSSI")
+    communication_axis.set(
+        xlim=(0, horizon), xlabel="Mission time (s)", ylabel="RSSI (dBm)"
+    )
+    communication_axis.grid(True, alpha=0.2)
+    fig.savefig(output_path, dpi=300, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     return sampled, reached
 

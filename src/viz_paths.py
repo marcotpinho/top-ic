@@ -6,9 +6,20 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.collections import LineCollection
 from matplotlib.colors import LinearSegmentedColormap, Normalize
 
+from .evaluation_core.rssi import rssi
+
 
 AGENT_STYLES = ("solid", "dashed", "dotted", "dashdot")
 AGENT_COLORMAPS = ("Blues", "Oranges", "Greens", "Purples", "Reds", "Greys")
+ARTICLE_COLORS = (
+    "#003f5c",
+    "#ff6361",
+    "#ffa600",
+    "#bc5090",
+    "#58508d",
+    "#003f5c",
+    "#7a5195",
+)
 
 
 def draw_task_markers(ax, tasks, reached_tasks, color_by_reward=False):
@@ -74,14 +85,44 @@ def sample_trajectory(trajectory, samples_per_second=20):
     return np.asarray(positions), np.asarray(velocities), np.asarray(times)
 
 
+def positions_at_times(trajectory, times):
+    positions = np.tile(trajectory["end"]["position"], (len(times), 1)).astype(float)
+    positions[times <= 0] = trajectory["start"]["position"]
+    for piece in trajectory["pieces"]:
+        local = times - piece["start_time"]
+        active = (local >= 0) & (local <= piece["duration"])
+        elapsed = local[active, None]
+        positions[active] = (
+            np.asarray(piece["position"])
+            + elapsed * np.asarray(piece["velocity"])
+            + 0.5 * elapsed**2 * np.asarray(piece["acceleration"])
+        )
+    return positions
+
+
+def communication_rssi_history(trajectories, times):
+    positions = np.stack(
+        [positions_at_times(trajectory, times) for trajectory in trajectories], axis=1
+    )
+    if positions.shape[1] < 2:
+        return positions, np.full(len(times), np.nan)
+    maximum_distances = np.zeros(len(times))
+    for first in range(positions.shape[1]):
+        for second in range(first + 1, positions.shape[1]):
+            distances = np.linalg.norm(
+                positions[:, first] - positions[:, second], axis=1
+            )
+            maximum_distances = np.maximum(maximum_distances, distances)
+    return positions, np.asarray([rssi(float(distance)) for distance in maximum_distances])
+
+
 def draw_speed_paths(ax, trajectories, samples_per_second=20, linewidth=3,
                      agent_offset=0, speed_max=None):
     """Draw continuous trajectories with the path style used by TOP-CC."""
     sampled = [sample_trajectory(tr, samples_per_second) for tr in trajectories]
-    colors = colormaps["tab10"]
     for local_agent, (positions, _, _) in enumerate(sampled):
         agent = agent_offset + local_agent
-        color = colors(agent % 10)
+        color = ARTICLE_COLORS[agent % len(ARTICLE_COLORS)]
         if len(positions) > 1:
             ax.plot(
                 positions[:, 0],
@@ -158,13 +199,13 @@ def save_agent_path_panels(problem, trajectories, destination, reached_tasks=())
         draw_speed_paths(ax, [trajectory], agent_offset=agent, speed_max=maximum)
         ax.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=100, zorder=5)
         ax.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=100, zorder=5)
-        ax.set_facecolor("grey")
+        ax.set_facecolor("white")
         ax.set(title=f"Agent {agent + 1}", xlabel="x (m)", ylabel="y (m)")
         ax.set_aspect("equal", adjustable="box")
         ax.grid(alpha=.2)
         if agent == 0:
             ax.legend(fontsize=7)
-    fig.patch.set_facecolor("grey")
+    fig.patch.set_facecolor("white")
     fig.tight_layout()
     fig.savefig(Path(destination), dpi=150)
     plt.close(fig)

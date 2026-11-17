@@ -48,6 +48,6 @@ def plot_communication(data,directory,prefix='full'):
             if v['kind']=='FREE':ax.scatter(*v['position'],marker='D',facecolors='none',edgecolors='tab:red',s=70)
     ax.scatter(*problem['start'],marker='s',color='#ff6361',edgecolors='black',s=130,label='Start',zorder=5);ax.scatter(*problem['end'],marker='X',color='#58508d',edgecolors='black',s=130,label='Goal',zorder=5)
     ax.scatter([],[],marker='D',facecolors='none',edgecolors='tab:red',label='Free waypoint')
-    ax.set(xlabel='x (m)',ylabel='y (m)',title='Continuous paths and freely positioned rendezvous visits');ax.set_aspect('equal');ax.legend();ax.grid(alpha=.2);fig.patch.set_facecolor('grey');ax.set_facecolor('grey')
+    ax.set(xlabel='x (m)',ylabel='y (m)',title='Continuous paths and freely positioned rendezvous visits');ax.set_aspect('equal');ax.legend();ax.grid(alpha=.2);fig.patch.set_facecolor('white');ax.set_facecolor('white')
     add_speed_colorbars(fig, ax, speed_colors)
     fig.savefig(directory/f'{prefix}-free-waypoints.png',dpi=160);plt.close(fig)
