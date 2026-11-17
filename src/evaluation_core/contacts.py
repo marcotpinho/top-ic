@@ -12,6 +12,7 @@ from functools import lru_cache
 import numpy as np
 from scipy.optimize import brentq
 
+from .rssi import distance_at_rssi, meets_threshold
 from .trajectory import AgentTrajectory, MotionPiece
 
 Interval = tuple[float, float]
@@ -163,17 +164,25 @@ def trajectory_pieces(trajectory: AgentTrajectory, horizon: float) -> list[Motio
 
 @lru_cache(maxsize=10000)
 def pair_contacts(
-    first: AgentTrajectory, second: AgentTrajectory, horizon: float, radius: float
+    first: AgentTrajectory,
+    second: AgentTrajectory,
+    horizon: float,
+    rssi_threshold: float,
 ) -> tuple[Interval, ...]:
+    radius = distance_at_rssi(rssi_threshold)
     a, b = trajectory_pieces(first, horizon), trajectory_pieces(second, horizon)
     if horizon == 0:
         return (
             ((0.0, 0.0),)
-            if sum(
-                (x - y) ** 2
-                for x, y in zip(first.start.position, second.start.position)
+            if meets_threshold(
+                math.sqrt(
+                    sum(
+                        (x - y) ** 2
+                        for x, y in zip(first.start.position, second.start.position)
+                    )
+                ),
+                rssi_threshold,
             )
-            <= radius**2
             else ()
         )
     i = j = 0

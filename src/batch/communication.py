@@ -217,14 +217,14 @@ def batch_sweep(
 
 def batch_evaluate_communication(
     trajectories: TrajectoryBatch,
-    radius: float,
+    rssi_threshold: float,
     recurrence_bound: float,
     metrics=None,
 ) -> SweepBatch:
     from .contacts import batch_pair_contacts
 
     started = perf_counter()
-    contacts = batch_pair_contacts(trajectories, radius)
+    contacts = batch_pair_contacts(trajectories, rssi_threshold)
     if metrics is not None:
         metrics["contact_seconds"] += perf_counter() - started
     started = perf_counter()

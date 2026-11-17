@@ -144,7 +144,7 @@ def sweep(
 
 def evaluate_communication(
     trajectories: tuple[AgentTrajectory, ...],
-    radius: float,
+    rssi_threshold: float,
     recurrence_bound: float | None = None,
     *,
     parent_communication: CommunicationResult | None = None,
@@ -167,7 +167,9 @@ def evaluate_communication(
                 if metrics is not None:
                     metrics["pairs_reused"] += 1
             else:
-                raw = pair_contacts(trajectories[m], trajectories[n], horizon, radius)
+                raw = pair_contacts(
+                    trajectories[m], trajectories[n], horizon, rssi_threshold
+                )
                 records.append(ContactRecord((m, n), raw, raw))
                 if metrics is not None:
                     metrics["pairs_rebuilt"] += 1

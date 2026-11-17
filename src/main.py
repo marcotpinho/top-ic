@@ -147,7 +147,7 @@ def _parser() -> argparse.ArgumentParser:
         "--comm-range",
         type=float,
         default=2.0,
-        help="maximum Euclidean communication range in map distance units",
+        help="distance mapped to the TOP-CC log-distance RSSI contact threshold",
     )
     parser.add_argument(
         "--recurrence-bound",

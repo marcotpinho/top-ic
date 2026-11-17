@@ -17,18 +17,15 @@ def plot_result(data, directory, prefix="full"):
     fig,axes=plt.subplots(1,2,figsize=(12,5));path,vel=axes
     reached=set().union(*(set(ids) for ids in representative.get("reached_tasks",[])))
     draw_task_markers(path, problem["tasks"], reached)
-    for task in problem["tasks"]:
-        x,y=task["position"]
-        if len(problem["tasks"])<=30 or task["id"] in reached:
-            path.annotate(task["id"],(x,y),fontsize=7)
     horizon=max(representative["completion_times"])
     sampled, speed_colors = draw_speed_paths(path, representative["trajectories"], samples_per_second=25)
     for m,((_, velocities, times),tr) in enumerate(zip(sampled,representative["trajectories"])):
         speeds=np.linalg.norm(velocities,axis=1)
         line=vel.plot(times,speeds,label=f"Agent {m+1}")[0]
         arrival=tr["completion_time"];vel.plot([arrival,horizon],[0,0],linestyle="--",color=line.get_color());vel.axvline(arrival,color=line.get_color(),alpha=.3)
-    path.scatter(*problem["start"],marker="s",s=80,c="black",label="Start");path.scatter(*problem["end"],marker="*",s=130,c="black",label="End")
+    path.scatter(*problem["start"],marker="s",s=130,c="#ff6361",edgecolors="black",label="Start",zorder=5);path.scatter(*problem["end"],marker="X",s=130,c="#58508d",edgecolors="black",label="Goal",zorder=5)
     path.set(xlabel="x (m)",ylabel="y (m)",title=f"Maximum-reward solution: {representative['reward']:g}");path.set_aspect("equal",adjustable="datalim");path.legend()
+    fig.patch.set_facecolor("grey");path.set_facecolor("grey")
     vel.set(xlabel="Mission time (s)",ylabel="Speed magnitude (m/s)",title="Speed; dashed = free post-arrival presence");vel.legend();vel.grid(alpha=.3)
     add_speed_colorbars(fig, path, speed_colors)
     fig.savefig(directory/f"{prefix}-paths-speed.png",dpi=160);plt.close(fig)

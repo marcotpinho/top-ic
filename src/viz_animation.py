@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
 from matplotlib.lines import Line2D
 
-from .viz_paths import AGENT_COLORMAPS, draw_task_markers, sample_trajectory
+from .viz_paths import draw_task_markers, sample_trajectory
 
 
 def _positions_at_times(trajectory: dict, times: np.ndarray) -> np.ndarray:
@@ -35,18 +35,20 @@ def _create_scene(problem: dict, solution: dict) -> tuple:
     trails = []
     markers = []
     for agent, (positions, _, _) in enumerate(samples):
-        color = plt.get_cmap(AGENT_COLORMAPS[agent % len(AGENT_COLORMAPS)])(0.75)
+        color = plt.get_cmap("tab10")(agent % 10)
         axis.plot(*positions.T, color=color, alpha=0.18)
         trails.append(axis.plot([], [], color=color, linewidth=2)[0])
         markers.append(
             axis.plot([], [], "o", color=color, markersize=8, label=f"Agent {agent + 1}")[0]
         )
-    axis.scatter(*problem["start"], marker="s", color="black", label="Start")
-    axis.scatter(*problem["end"], marker="X", color="black", label="End")
+    axis.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=100, label="Start")
+    axis.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=100, label="Goal")
     axis.set(xlabel="x (m)", ylabel="y (m)", title="Agent paths and communication")
     axis.set_aspect("equal", adjustable="datalim")
     axis.margins(0.08)
     axis.grid(alpha=0.2)
+    figure.patch.set_facecolor("grey")
+    axis.set_facecolor("grey")
     return figure, axis, samples, trails, markers
 
 

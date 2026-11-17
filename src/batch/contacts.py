@@ -15,6 +15,7 @@ from ..evaluation_core.contacts import (
     polynomial_roots,
     trajectory_pieces,
 )
+from ..evaluation_core.rssi import distance_at_rssi, meets_threshold
 from .tensors import TrajectoryBatch
 
 
@@ -104,9 +105,10 @@ def _polynomial_intervals(coefficients, q, duration, radius, scale):
     return merge_intervals(intervals)
 
 
-def batch_pair_contacts(trajectories: TrajectoryBatch, radius: float) -> ContactBatch:
-    if radius <= 0:
-        raise ValueError("Communication range must be positive")
+def batch_pair_contacts(
+    trajectories: TrajectoryBatch, rssi_threshold: float
+) -> ContactBatch:
+    radius = distance_at_rssi(rssi_threshold)
     agents = trajectories.comp.shape[1]
     pairs = tuple((m, n) for m in range(agents) for n in range(m + 1, agents))
     segments: list[_Segment] = []
@@ -122,7 +124,7 @@ def batch_pair_contacts(trajectories: TrajectoryBatch, radius: float) -> Contact
                     (x - y) ** 2
                     for x, y in zip(first.start.position, second.start.position)
                 )
-                if distance <= radius**2:
+                if meets_threshold(np.sqrt(distance), rssi_threshold):
                     pair_intervals[batch_index][pair_index].append((0.0, 0.0))
                 continue
             first_pieces = trajectory_pieces(first, horizon)

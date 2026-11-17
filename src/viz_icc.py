@@ -31,7 +31,7 @@ def plot_communication(data,directory,prefix='full'):
     for i,record in enumerate(records):
         for s,e in record['raw']:axes[0].plot([s,e],[i,i],color='lightgray',linewidth=7)
         for s,e in record['effective']:axes[0].plot([s,e],[i,i],color='tab:blue',linewidth=3,marker='.' if s==e else None)
-    axes[0].set(yticks=range(len(records)),yticklabels=[f"{r['agents'][0]+1}–{r['agents'][1]+1}" for r in records],ylabel='Agent pair',title='Instantaneous in-range links (blue)')
+    axes[0].set(yticks=range(len(records)),yticklabels=[f"{r['agents'][0]+1}–{r['agents'][1]+1}" for r in records],ylabel='Agent pair',title='Instantaneous RSSI-qualified links (blue)')
     trace=chosen['communication']['history'];times=[];ages=[]
     for t,left,event in trace:times.extend([t,t]);ages.extend([left,event])
     axes[1].plot(times,ages,label='Peak instantaneous information age')
@@ -46,8 +46,8 @@ def plot_communication(data,directory,prefix='full'):
     for m,tr in enumerate(chosen['trajectories']):
         for v in chosen['routes'][m]:
             if v['kind']=='FREE':ax.scatter(*v['position'],marker='D',facecolors='none',edgecolors='tab:red',s=70)
-    ax.scatter(*problem['start'],marker='s',color='black',label='Start');ax.scatter(*problem['end'],marker='*',color='black',s=100,label='End')
+    ax.scatter(*problem['start'],marker='s',color='#ff6361',edgecolors='black',s=130,label='Start',zorder=5);ax.scatter(*problem['end'],marker='X',color='#58508d',edgecolors='black',s=130,label='Goal',zorder=5)
     ax.scatter([],[],marker='D',facecolors='none',edgecolors='tab:red',label='Free waypoint')
-    ax.set(xlabel='x (m)',ylabel='y (m)',title='Continuous paths and freely positioned rendezvous visits');ax.set_aspect('equal');ax.legend();ax.grid(alpha=.2)
+    ax.set(xlabel='x (m)',ylabel='y (m)',title='Continuous paths and freely positioned rendezvous visits');ax.set_aspect('equal');ax.legend();ax.grid(alpha=.2);fig.patch.set_facecolor('grey');ax.set_facecolor('grey')
     add_speed_colorbars(fig, ax, speed_colors)
     fig.savefig(directory/f'{prefix}-free-waypoints.png',dpi=160);plt.close(fig)

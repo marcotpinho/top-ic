@@ -160,7 +160,7 @@ class BatchEvaluator:
             started = perf_counter()
             swept = batch_evaluate_communication(
                 feasible_batch,
-                self.config.comm_range,
+                self.config.communication_rssi_threshold,
                 self.config.recurrence_bound,
                 self.batch_metrics,
             )

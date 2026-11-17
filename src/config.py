@@ -155,6 +155,12 @@ class Config:
     batch_verify_fraction: float = 0.0
     ruin_recreate_enabled: bool = True
 
+    @property
+    def communication_rssi_threshold(self) -> float:
+        from .evaluation_core.rssi import rssi
+
+        return rssi(self.comm_range)
+
     def __post_init__(self):
         # JSON arrays must not leave mutable containers inside a frozen config.
         for name in (

@@ -279,17 +279,8 @@ def draw_solution_paths(
     task_colors = draw_task_markers(ax, tasks, reached, color_by_reward=True)
     if task_colors is not None:
         fig.colorbar(task_colors, ax=ax, shrink=0.6, label="Task reward")
-    for task in tasks:
-        if len(tasks) <= 30 or task["id"] in reached:
-            ax.annotate(
-                task["id"],
-                task["position"],
-                xytext=(4, 4),
-                textcoords="offset points",
-                fontsize=7,
-            )
-    for label, key, marker in [("Start", "start", "s"), ("End", "end", "X")]:
-        ax.scatter(*problem[key], marker=marker, s=100, label=label)
+    ax.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=130, label="Start", zorder=5)
+    ax.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=130, label="Goal", zorder=5)
     sampled, speed_colors = draw_speed_paths(ax, solution["trajectories"])
     if show_communication:
         _draw_communication_links(ax, solution)
@@ -322,6 +313,8 @@ def draw_solution_paths(
         ylabel="y (m)",
     )
     ax.set_aspect("equal")
+    fig.patch.set_facecolor("grey")
+    ax.set_facecolor("grey")
     ax.grid(alpha=0.2)
     ax.legend(fontsize=8)
     add_speed_colorbars(fig, ax, speed_colors)

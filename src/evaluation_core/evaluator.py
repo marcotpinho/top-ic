@@ -49,7 +49,7 @@ class Evaluator:
         self.incremental_divergences = []
         self.context = (
             repr(problem),
-            config.comm_range,
+            config.communication_rssi_threshold,
             config.recurrence_bound,
             config.budget_tolerance,
         )
@@ -246,7 +246,7 @@ class Evaluator:
             return None, 0.0
         communication = evaluate_communication(
             trajectories,
-            self.config.comm_range,
+            self.config.communication_rssi_threshold,
             self.config.recurrence_bound,
             parent_communication=parent.evaluation.communication if parent else None,
             reusable_agents=reusable_agents,

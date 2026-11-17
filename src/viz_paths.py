@@ -12,34 +12,42 @@ AGENT_COLORMAPS = ("Blues", "Oranges", "Greens", "Purples", "Reds", "Greys")
 
 
 def draw_task_markers(ax, tasks, reached_tasks, color_by_reward=False):
-    """Use diamonds for collected tasks and circles for uncollected tasks."""
+    """Draw rewards with the marker and color scheme used by TOP-CC."""
     reached = set(reached_tasks)
     collected = [task for task in tasks if task["id"] in reached]
     uncollected = [task for task in tasks if task["id"] not in reached]
-    if color_by_reward and tasks:
+    if tasks:
         rewards = [task["reward"] for task in tasks]
-        norm = Normalize(vmin=min(rewards), vmax=max(rewards) if max(rewards) > min(rewards) else min(rewards) + 1)
-        for group, marker, size, label, alpha in (
-            (uncollected, "o", 28, "Uncollected task", .65),
-            (collected, "D", 65, "Collected task", 1.),
-        ):
-            if group:
-                ax.scatter([task["position"][0] for task in group],
-                           [task["position"][1] for task in group],
-                           c=[task["reward"] for task in group], cmap="viridis", norm=norm,
-                           marker=marker, s=size, alpha=alpha, edgecolors="black" if marker == "D" else "none",
-                           linewidths=.5, zorder=4 if marker == "D" else 1, label=label)
+        norm = Normalize(
+            vmin=min(1.0, min(rewards)), vmax=max(10.0, max(rewards))
+        )
+        if uncollected:
+            ax.scatter(
+                [task["position"][0] for task in uncollected],
+                [task["position"][1] for task in uncollected],
+                c=[task["reward"] for task in uncollected],
+                cmap="viridis",
+                norm=norm,
+                marker="D",
+                s=110,
+                edgecolors="black",
+                linewidths=.7,
+                zorder=2,
+                label="PoI",
+            )
+        if collected:
+            ax.scatter(
+                [task["position"][0] for task in collected],
+                [task["position"][1] for task in collected],
+                color="#58508d",
+                marker="o",
+                s=110,
+                edgecolors="black",
+                linewidths=.7,
+                zorder=4,
+                label="Visited PoI",
+            )
         return ScalarMappable(norm=norm, cmap=colormaps["viridis"])
-    for group, marker, size, color, label, order in (
-        (uncollected, "o", 18, "0.72", "Uncollected task", 1),
-        (collected, "D", 55, "goldenrod", "Collected task", 4),
-    ):
-        if group:
-            ax.scatter([task["position"][0] for task in group],
-                       [task["position"][1] for task in group],
-                       marker=marker, s=size, color=color,
-                       edgecolors="black" if marker == "D" else "none",
-                       linewidths=.5, zorder=order, label=label)
     return None
 
 
@@ -68,38 +76,55 @@ def sample_trajectory(trajectory, samples_per_second=20):
 
 def draw_speed_paths(ax, trajectories, samples_per_second=20, linewidth=3,
                      agent_offset=0, speed_max=None):
-    """Give each agent a distinct gradient under one shared speed scale."""
+    """Draw continuous trajectories with the path style used by TOP-CC."""
     sampled = [sample_trajectory(tr, samples_per_second) for tr in trajectories]
-    maximum = (speed_max if speed_max is not None else
-               max((np.linalg.norm(velocities, axis=1).max() for _, velocities, _ in sampled), default=0.))
-    norm = Normalize(vmin=0., vmax=max(float(maximum), 1e-12))
-    scales = []
-    for local_agent, (positions, velocities, _) in enumerate(sampled):
+    colors = colormaps["tab10"]
+    for local_agent, (positions, _, _) in enumerate(sampled):
         agent = agent_offset + local_agent
-        palette = colormaps[AGENT_COLORMAPS[agent % len(AGENT_COLORMAPS)]]
-        cmap = LinearSegmentedColormap.from_list(
-            f"agent_{agent + 1}_speed", palette(np.linspace(.35, .95, 256)))
-        scales.append(ScalarMappable(norm=norm, cmap=cmap))
+        color = colors(agent % 10)
         if len(positions) > 1:
-            segments = np.stack((positions[:-1], positions[1:]), axis=1)
-            # Midpoint velocity is exact for a constant-acceleration piece.
-            segment_speeds = np.linalg.norm((velocities[:-1] + velocities[1:]) / 2, axis=1)
-            collection = LineCollection(segments, cmap=cmap, norm=norm,
-                                        linewidths=linewidth,
-                                        linestyles=AGENT_STYLES[agent % len(AGENT_STYLES)],
-                                        zorder=3)
-            collection.set_array(segment_speeds)
-            ax.add_collection(collection)
+            ax.plot(
+                positions[:, 0],
+                positions[:, 1],
+                color=color,
+                linewidth=max(5, linewidth),
+                zorder=3,
+                label=f"Agent {agent + 1}",
+            )
+            deltas = np.diff(positions, axis=0)
+            lengths = np.linalg.norm(deltas, axis=1)
+            moving = np.flatnonzero(lengths > 1e-12)
+            if len(moving):
+                picks = moving[
+                    np.unique(np.linspace(0, len(moving) - 1, min(8, len(moving))).astype(int))
+                ]
+                directions = deltas[picks] / lengths[picks, None]
+                ax.quiver(
+                    positions[picks, 0],
+                    positions[picks, 1],
+                    0.5 * directions[:, 0],
+                    0.5 * directions[:, 1],
+                    angles="xy",
+                    scale_units="xy",
+                    scale=1,
+                    color=color,
+                    width=0.007,
+                    headlength=8,
+                    headwidth=7,
+                    headaxislength=7,
+                    zorder=4,
+                )
         else:
-            ax.scatter(*positions[0], color=cmap(norm(np.linalg.norm(velocities[0]))), s=20, zorder=3)
-        ax.plot([], [], color=cmap(.7), linestyle=AGENT_STYLES[agent % len(AGENT_STYLES)],
-                linewidth=linewidth, label=f"Agent {agent + 1}")
+            ax.scatter(*positions[0], color=color, s=20, zorder=3)
     ax.autoscale_view()
-    return sampled, scales
+    return sampled, []
 
 
 def add_speed_colorbars(fig, ax, scales):
     """Place distinct palettes in a shared horizontal speed-key panel."""
+    if not scales:
+        fig.tight_layout()
+        return
     reserve = min(.35, .08 + .045 * len(scales))
     fig.tight_layout(rect=(0, reserve, 1, 0.94))
     for agent, scale in enumerate(scales):
@@ -127,20 +152,19 @@ def save_agent_path_panels(problem, trajectories, destination, reached_tasks=())
     n = len(trajectories)
     fig, axes = plt.subplots(1, n, figsize=(max(6, 4*n), 5), squeeze=False,
                              sharex=True, sharey=True)
-    scales = []
     tasks = problem["tasks"]
     for agent, (ax, trajectory) in enumerate(zip(axes[0], trajectories)):
-        draw_task_markers(ax, tasks, reached_tasks)
-        _, agent_scales = draw_speed_paths(ax, [trajectory], agent_offset=agent,
-                                           speed_max=maximum)
-        scales.extend(agent_scales)
-        ax.scatter(*problem["start"], marker="s", color="black", s=35, zorder=4)
-        ax.scatter(*problem["end"], marker="*", color="black", s=65, zorder=4)
+        draw_task_markers(ax, tasks, reached_tasks, color_by_reward=True)
+        draw_speed_paths(ax, [trajectory], agent_offset=agent, speed_max=maximum)
+        ax.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=100, zorder=5)
+        ax.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=100, zorder=5)
+        ax.set_facecolor("grey")
         ax.set(title=f"Agent {agent + 1}", xlabel="x (m)", ylabel="y (m)")
         ax.set_aspect("equal", adjustable="box")
         ax.grid(alpha=.2)
         if agent == 0:
             ax.legend(fontsize=7)
-    add_speed_colorbars(fig, axes[0][0], scales)
+    fig.patch.set_facecolor("grey")
+    fig.tight_layout()
     fig.savefig(Path(destination), dpi=150)
     plt.close(fig)
