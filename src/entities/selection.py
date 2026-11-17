@@ -91,6 +91,8 @@ def _pool_tournament(source: list[Solution], rng: Random) -> Solution:
         return source[0]
     crowding = crowding_distances(source, pool_vector)
     first, second = rng.sample(source, 2)
+    if rng.random() < 0.75:
+        return min(first, second, key=_stable_key)
     if crowding[first.key] == crowding[second.key]:
         return rng.choice((first, second))
     return first if crowding[first.key] > crowding[second.key] else second

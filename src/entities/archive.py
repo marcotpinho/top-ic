@@ -36,6 +36,10 @@ class Archive:
             config.dominated_archive_size, config.pool_max_age, self.profile
         )
         self.selection_history: list[dict] = []
+        self.selection_source_stats = {
+            source: {"attempts": 0, "improvements": 0, "hypervolume_gain": 0.0, "evaluations": 0}
+            for source in ("elite", "front", "pool")
+        }
         self.last_addition = {"front": False, "pool": False, "displaced": 0}
 
     @property
@@ -91,6 +95,7 @@ class Archive:
         elite_enabled = self.elite_cooldown_remaining == 0
         if self.elite_cooldown_remaining:
             self.elite_cooldown_remaining -= 1
+        probabilities = self._adaptive_probabilities(elite_enabled)
         with profiling(self.profile, "base_selection_seconds"):
             solution, record = select_base(
                 self.front,
@@ -98,8 +103,8 @@ class Archive:
                 self.rng,
                 self.selection_policy,
                 self.pool_selection_enabled,
-                self.elite_selection_probability,
-                self.pool_selection_probability,
+                probabilities["elite"],
+                probabilities["pool"],
                 elite_enabled,
             )
         with profiling(self.profile, "recording_seconds"):
@@ -107,17 +112,42 @@ class Archive:
             self.selection_history.append(record)
         return solution
 
+    def _adaptive_probabilities(self, elite_enabled: bool) -> dict[str, float]:
+        configured = {
+            "elite": self.elite_selection_probability if elite_enabled and self.front else 0.0,
+            "pool": self.pool_selection_probability if self.pool_selection_enabled and self.pool else 0.0,
+        }
+        configured["front"] = max(0.0, 1.0 - configured["elite"] - configured["pool"])
+        weights = {}
+        for source, base in configured.items():
+            stats = self.selection_source_stats[source]
+            success = (stats["improvements"] + 1) / (stats["attempts"] + 2)
+            weights[source] = base * (0.25 + success)
+        total = sum(weights.values())
+        return {
+            source: weight / total if total else configured[source]
+            for source, weight in weights.items()
+        }
+
     def mark_expansion(self, solution: Solution, improved: bool) -> None:
         with profiling(self.profile, "pool_maintenance_seconds"):
             self.pareto_pool.set_expansion_result(solution, improved)
             if self.selection_history:
-                self.selection_history[-1]["improved"] = improved
-                if self.selection_history[-1]["source"] == "elite":
+                record = self.selection_history[-1]
+                record["improved"] = improved
+                source = record["source"]
+                stats = self.selection_source_stats[source]
+                stats["attempts"] += 1
+                stats["improvements"] += int(improved)
+                stats["hypervolume_gain"] += record.get("hypervolume_gain", 0.0)
+                stats["evaluations"] += record.get("exact_evaluations_spent", 0)
+                record["source_stats"] = dict(stats)
+                if source == "elite":
                     self.elite_failures = 0 if improved else self.elite_failures + 1
                     if self.elite_failures >= self.elite_cooldown_after:
                         self.elite_failures = 0
                         self.elite_cooldown_remaining = self.elite_cooldown_iterations
-                self.selection_history[-1]["elite_failures"] = self.elite_failures
-                self.selection_history[-1]["elite_cooldown_remaining"] = (
+                record["elite_failures"] = self.elite_failures
+                record["elite_cooldown_remaining"] = (
                     self.elite_cooldown_remaining
                 )

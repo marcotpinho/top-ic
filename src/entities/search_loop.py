@@ -161,8 +161,6 @@ def run_iterations(runner: "Runner") -> None:
                     for solution in nondominated(runner.archive.pool, pool_vector)
                 )
             )
-            runner.archive.mark_expansion(base, new_front or pool_improvement)
-            stagnation = 0 if new_front or pool_improvement else stagnation + 1
             selection["exact_evaluations_spent"] = (
                 runner.counts["exact_evaluations"] - evaluations_started
             )
@@ -172,6 +170,8 @@ def run_iterations(runner: "Runner") -> None:
             )
             selection["front_changed"] = new_front
             selection["pool_improved"] = pool_improvement
+            runner.archive.mark_expansion(base, new_front or pool_improvement)
+            stagnation = 0 if new_front or pool_improvement else stagnation + 1
             runner.active_base = None
             runner.active_base_source = None
             runner.record_archive_objectives(iteration + 1)

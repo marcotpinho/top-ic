@@ -60,6 +60,7 @@ def finish(runner: "Runner", status: str) -> RunResult:
             "objective_history": runner.objective_history,
             "metrics_history": runner.metrics_history,
             "selection_history": runner.archive.selection_history,
+            "selection_source_stats": runner.archive.selection_source_stats,
             "communication_repair_history": runner.repair_history,
             "initialization_history": runner.initialization_history,
             "neighborhood_execution_count": len(runner.neighborhood.executions),
