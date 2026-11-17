@@ -1,6 +1,7 @@
 """Bounded communication repair driven by the current ordered-pair bottleneck."""
 
 from math import atan2, cos, hypot, sin
+from itertools import islice
 from typing import TYPE_CHECKING
 
 from ..solution import Solution, Visit
@@ -67,7 +68,7 @@ def _invitation_candidates(runner: "Runner", solution: Solution):
             yield Solution(tuple(routes))
 
 
-def _candidate_set(runner: "Runner", solution: Solution) -> list[Solution]:
+def _invitation_set(runner: "Runner", solution: Solution) -> list[Solution]:
     candidates = {}
     if runner.config.batch_eval:
         from ..batch.repair import invitation_candidates
@@ -87,6 +88,51 @@ def _candidate_set(runner: "Runner", solution: Solution) -> list[Solution]:
     return values[: runner.config.neighborhood_candidates]
 
 
+def _repair_candidates(
+    runner: "Runner", solution: Solution, family: str
+) -> list[Solution]:
+    if family == "free_invitation":
+        return _invitation_set(runner, solution)
+    if family not in runner.neighborhood.names:
+        return []
+    limit = max(1, runner.config.neighborhood_candidates // 4)
+    return list(
+        islice(
+            runner.neighborhood.generate(
+                family,
+                solution,
+                phase="communication_repair",
+            ),
+            limit,
+        )
+    )
+
+
+def _score_family(
+    runner: "Runner", current: Solution, family: str
+) -> list[Solution]:
+    candidates = _repair_candidates(runner, current, family)
+    label = (
+        "communication_repair"
+        if family == "free_invitation"
+        else f"communication_repair_{family}"
+    )
+    if runner.config.batch_eval:
+        return [
+            evaluated
+            for evaluated in runner.evaluate_batch(candidates, label, current)
+            if evaluated is not None
+        ]
+    scored = []
+    for candidate in candidates:
+        if runner.exhausted():
+            break
+        evaluated = runner.evaluate(candidate, label, current)
+        if evaluated is not None:
+            scored.append(evaluated)
+    return scored
+
+
 def repair_communication(runner: "Runner", solution: Solution) -> Solution:
     """Run at most three exact best-improvement CV repair rounds."""
     if solution.evaluation.comm_violation <= runner.config.numerical_tolerance:
@@ -96,35 +142,26 @@ def repair_communication(runner: "Runner", solution: Solution) -> Solution:
     current = solution
     reduced = False
     for round_index in range(runner.config.communication_repair_rounds):
-        scored = []
-        candidates = _candidate_set(runner, current)
-        if runner.config.batch_eval:
-            scored.extend(
-                evaluated
-                for evaluated in runner.evaluate_batch(
-                    candidates, "communication_repair", current
-                )
-                if evaluated is not None
+        best = None
+        selected_family = None
+        for family in ("assignment", "two_opt", "velocity_change", "free_invitation"):
+            scored = _score_family(runner, current, family)
+            if not scored:
+                continue
+            candidate = min(
+                scored,
+                key=lambda item: (
+                    item.evaluation.comm_violation,
+                    -item.evaluation.reward,
+                    item.objectives[1],
+                    repr(item.key),
+                ),
             )
-        else:
-            for candidate in candidates:
-                if runner.exhausted():
-                    break
-                evaluated = runner.evaluate(candidate, "communication_repair")
-                if evaluated is not None:
-                    scored.append(evaluated)
-        if not scored:
-            break
-        best = min(
-            scored,
-            key=lambda candidate: (
-                candidate.evaluation.comm_violation,
-                -candidate.evaluation.reward,
-                candidate.objectives[1],
-                repr(candidate.key),
-            ),
-        )
-        if best.evaluation.comm_violation >= current.evaluation.comm_violation:
+            if candidate.evaluation.comm_violation < current.evaluation.comm_violation:
+                best = candidate
+                selected_family = family
+                break
+        if best is None:
             break
         reduced = True
         current = best
@@ -133,6 +170,7 @@ def repair_communication(runner: "Runner", solution: Solution) -> Solution:
                 "round": round_index + 1,
                 "before_cv": initial_cv if round_index == 0 else None,
                 "after_cv": current.evaluation.comm_violation,
+                "family": selected_family,
             }
         )
         if current.evaluation.comm_violation <= runner.config.numerical_tolerance:
