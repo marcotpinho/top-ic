@@ -128,6 +128,15 @@ class Runner:
             self.objective_history.append(
                 {
                     "iteration": iteration,
+                    "elapsed_seconds": perf_counter() - self.started,
+                    "exact_evaluations": self.counts["exact_evaluations"],
+                    "maximum_reward": max(
+                        (
+                            solution.evaluation.reward
+                            for solution in self.archive.front
+                        ),
+                        default=0.0,
+                    ),
                     "objectives": [
                         list(objectives) for objectives in objective_vectors
                     ],
