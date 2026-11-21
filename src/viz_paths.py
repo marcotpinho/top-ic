@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import colormaps
 from matplotlib.cm import ScalarMappable
 from matplotlib.collections import LineCollection
-from matplotlib.colors import LinearSegmentedColormap, Normalize
+from matplotlib.colors import Normalize, to_rgb
 
 from .evaluation_core.rssi import rssi
 
@@ -12,13 +12,21 @@ from .evaluation_core.rssi import rssi
 AGENT_STYLES = ("solid", "dashed", "dotted", "dashdot")
 AGENT_COLORMAPS = ("Blues", "Oranges", "Greens", "Purples", "Reds", "Greys")
 ARTICLE_COLORS = (
-    "#003f5c",
-    "#ff6361",
-    "#ffa600",
-    "#bc5090",
-    "#58508d",
-    "#003f5c",
-    "#7a5195",
+    "#d62728",
+    "#1f77b4",
+    "#2ca02c",
+    "#9467bd",
+    "#8c564b",
+    "#17becf",
+    "#7f7f7f",
+)
+COMMUNICATION_COLORS = (
+    "#e67e22",
+    "#f1c40f",
+    "#ff9f43",
+    "#d9a400",
+    "#f5b041",
+    "#f4d03f",
 )
 
 
@@ -100,6 +108,97 @@ def positions_at_times(trajectory, times):
     return positions
 
 
+def velocities_at_times(trajectory, times):
+    velocities = np.zeros((len(times), 2), dtype=float)
+    for piece in trajectory["pieces"]:
+        local = times - piece["start_time"]
+        active = (local >= 0) & (local <= piece["duration"])
+        elapsed = local[active, None]
+        velocities[active] = (
+            np.asarray(piece["velocity"])
+            + elapsed * np.asarray(piece["acceleration"])
+        )
+    return velocities
+
+
+def communication_components(communication, time, agent_count):
+    adjacency = [set() for _ in range(agent_count)]
+    for contact in (communication or {}).get("contacts", []):
+        if not any(start <= time <= end for start, end in contact.get("effective", [])):
+            continue
+        first, second = contact["agents"]
+        adjacency[first].add(second)
+        adjacency[second].add(first)
+    components = []
+    pending = {agent for agent, neighbors in enumerate(adjacency) if neighbors}
+    while pending:
+        stack = [min(pending)]
+        component = set()
+        while stack:
+            agent = stack.pop()
+            if agent in component:
+                continue
+            component.add(agent)
+            stack.extend(adjacency[agent] - component)
+        pending -= component
+        components.append(tuple(sorted(component)))
+    return sorted(components)
+
+
+def _speed_color(color, velocity, maximum_speed):
+    ratio = min(1.0, float(np.linalg.norm(velocity)) / maximum_speed)
+    white_fraction = 0.58 * (1.0 - ratio)
+    rgb = np.asarray(to_rgb(color))
+    return tuple(rgb * (1.0 - white_fraction) + white_fraction)
+
+
+def agent_color_at_time(
+    agent, time, communication, agent_count, velocity, maximum_speed
+):
+    base = ARTICLE_COLORS[agent % len(ARTICLE_COLORS)]
+    for group_index, component in enumerate(
+        communication_components(communication, time, agent_count)
+    ):
+        if agent in component:
+            base = COMMUNICATION_COLORS[group_index % len(COMMUNICATION_COLORS)]
+            break
+    return _speed_color(base, velocity, maximum_speed)
+
+
+def maximum_trajectory_speed(trajectories):
+    maximum = max(
+        (
+            float(np.linalg.norm(velocity))
+            for trajectory in trajectories
+            for piece in trajectory["pieces"]
+            for velocity in (
+                np.asarray(piece["velocity"]),
+                np.asarray(piece["velocity"])
+                + piece["duration"] * np.asarray(piece["acceleration"]),
+            )
+        ),
+        default=0.0,
+    )
+    return max(maximum, np.finfo(float).eps)
+
+
+def agent_colors_at_times(
+    agent, times, trajectory, communication, agent_count, maximum_speed
+):
+    velocities = velocities_at_times(trajectory, np.asarray(times))
+    return [
+        agent_color_at_time(
+            agent,
+            float(time),
+            communication,
+            agent_count,
+            velocity,
+            maximum_speed,
+        )
+        for time, velocity in zip(times, velocities)
+    ]
+
+
 def communication_rssi_history(trajectories, times):
     positions = np.stack(
         [positions_at_times(trajectory, times) for trajectory in trajectories], axis=1
@@ -117,21 +216,34 @@ def communication_rssi_history(trajectories, times):
 
 
 def draw_speed_paths(ax, trajectories, samples_per_second=20, linewidth=3,
-                     agent_offset=0, speed_max=None):
+                     agent_offset=0, speed_max=None, communication=None,
+                     agent_count=None):
     """Draw continuous trajectories with the path style used by TOP-CC."""
     sampled = [sample_trajectory(tr, samples_per_second) for tr in trajectories]
-    for local_agent, (positions, _, _) in enumerate(sampled):
+    total_agents = agent_count or len(trajectories)
+    maximum_speed = speed_max or maximum_trajectory_speed(trajectories)
+    for local_agent, (positions, _, times) in enumerate(sampled):
         agent = agent_offset + local_agent
         color = ARTICLE_COLORS[agent % len(ARTICLE_COLORS)]
         if len(positions) > 1:
-            ax.plot(
-                positions[:, 0],
-                positions[:, 1],
-                color=color,
-                linewidth=max(5, linewidth),
-                zorder=3,
-                label=f"Agent {agent + 1}",
+            midpoints = (times[:-1] + times[1:]) / 2
+            segment_colors = agent_colors_at_times(
+                agent,
+                midpoints,
+                trajectories[local_agent],
+                communication,
+                total_agents,
+                maximum_speed,
             )
+            segments = np.stack([positions[:-1], positions[1:]], axis=1)
+            ax.add_collection(LineCollection(
+                segments,
+                colors=segment_colors,
+                linewidths=max(5, linewidth),
+                zorder=3,
+            ))
+            ax.plot([], [], color=color, linewidth=max(5, linewidth),
+                    label=f"Agent {agent + 1}")
             deltas = np.diff(positions, axis=0)
             lengths = np.linalg.norm(deltas, axis=1)
             moving = np.flatnonzero(lengths > 1e-12)
@@ -148,7 +260,7 @@ def draw_speed_paths(ax, trajectories, samples_per_second=20, linewidth=3,
                     angles="xy",
                     scale_units="xy",
                     scale=1,
-                    color=color,
+                    color=[segment_colors[pick] for pick in picks],
                     width=0.007,
                     headlength=8,
                     headwidth=7,
@@ -180,7 +292,9 @@ def add_speed_colorbars(fig, ax, scales):
             bar.ax.set_xticklabels([])
 
 
-def save_agent_path_panels(problem, trajectories, destination, reached_tasks=()):
+def save_agent_path_panels(
+    problem, trajectories, destination, reached_tasks=(), communication=None
+):
     """Show coincident routes separately without changing their coordinates."""
     from pathlib import Path
     from matplotlib import pyplot as plt
@@ -196,7 +310,14 @@ def save_agent_path_panels(problem, trajectories, destination, reached_tasks=())
     tasks = problem["tasks"]
     for agent, (ax, trajectory) in enumerate(zip(axes[0], trajectories)):
         draw_task_markers(ax, tasks, reached_tasks, color_by_reward=True)
-        draw_speed_paths(ax, [trajectory], agent_offset=agent, speed_max=maximum)
+        draw_speed_paths(
+            ax,
+            [trajectory],
+            agent_offset=agent,
+            speed_max=maximum,
+            communication=communication,
+            agent_count=n,
+        )
         ax.scatter(*problem["start"], marker="s", color="#ff6361", edgecolors="black", s=100, zorder=5)
         ax.scatter(*problem["end"], marker="X", color="#58508d", edgecolors="black", s=100, zorder=5)
         ax.set_facecolor("white")

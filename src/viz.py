@@ -272,7 +272,12 @@ def _plot_communication(solution, output_path):
 
 
 def draw_solution_paths(
-    problem, solution, title, output_path, show_communication=False
+    problem,
+    solution,
+    title,
+    output_path,
+    show_communication=False,
+    communication_rssi_threshold=None,
 ):
     """Render the white paper layout used by the original TOP-CC visualizer."""
     fig = plt.figure(figsize=(16, 8), facecolor="white")
@@ -303,7 +308,11 @@ def draw_solution_paths(
         *problem["end"], marker="X", color="#58508d", edgecolors="black",
         s=130, label="Goal", zorder=5,
     )
-    sampled, _ = draw_speed_paths(ax, solution["trajectories"])
+    sampled, _ = draw_speed_paths(
+        ax,
+        solution["trajectories"],
+        communication=solution.get("communication"),
+    )
     if show_communication:
         _draw_communication_links(ax, solution)
     free_label = True
@@ -351,7 +360,22 @@ def draw_solution_paths(
     legend_axis.legend(handles, labels, loc="center", fontsize=12)
     if len(finite_rssi):
         communication_axis.plot(times, rssi_history, color="red", alpha=0.7, linewidth=3)
-        communication_axis.set_ylim(minimum_rssi - 1, 0)
+        if communication_rssi_threshold is not None:
+            communication_axis.axhline(
+                communication_rssi_threshold,
+                color="#e67e22",
+                linestyle="--",
+                linewidth=2.2,
+                label="Acceptable communication threshold",
+            )
+            communication_axis.legend(loc="lower right", fontsize=9)
+        lower_limit = min(
+            minimum_rssi,
+            communication_rssi_threshold
+            if communication_rssi_threshold is not None
+            else minimum_rssi,
+        )
+        communication_axis.set_ylim(lower_limit - 1, 0)
         communication_axis.set_title(f"RSSI: {rssi_history[-1]:.2f}", fontsize=16)
     else:
         communication_axis.text(0.5, 0.5, "Single agent", ha="center", va="center")
@@ -457,9 +481,23 @@ def plot_result(data_orpath, output_dir):
     chosen = front[selected["max-reward"]]
     from .viz_animation import save_path_animation
 
-    save_path_animation(problem, chosen, out / "paths-animation.gif")
+    communication_rssi_threshold = data.get("communication_rssi_threshold")
+    if communication_rssi_threshold is None and data.get("config", {}).get("comm_range"):
+        from .evaluation_core.rssi import rssi
+
+        communication_rssi_threshold = rssi(data["config"]["comm_range"])
+    save_path_animation(
+        problem,
+        chosen,
+        out / "paths-animation.gif",
+        communication_rssi_threshold=communication_rssi_threshold,
+    )
     sampled, reached = draw_solution_paths(
-        problem, chosen, "Maximum reward", out / "paths.png"
+        problem,
+        chosen,
+        "Maximum reward",
+        out / "paths.png",
+        communication_rssi_threshold=communication_rssi_threshold,
     )
     draw_solution_paths(
         problem,
@@ -467,6 +505,7 @@ def plot_result(data_orpath, output_dir):
         "Maximum reward with effective communication links",
         out / "paths-communication.png",
         show_communication=True,
+        communication_rssi_threshold=communication_rssi_threshold,
     )
     _plot_communication(chosen, out / "communication.png")
     fig2, speed = plt.subplots(figsize=(8, 4))
@@ -485,7 +524,11 @@ def plot_result(data_orpath, output_dir):
     fig2.savefig(out / "speed.png", dpi=150)
     plt.close(fig2)
     save_agent_path_panels(
-        problem, chosen["trajectories"], out / "agent-paths.png", reached
+        problem,
+        chosen["trajectories"],
+        out / "agent-paths.png",
+        reached,
+        chosen.get("communication"),
     )
 
 

@@ -42,7 +42,9 @@ def plot_communication(data,directory,prefix='full'):
     fig,ax=plt.subplots(figsize=(8,7));problem=data['problem']
     reached=set().union(*(set(ids) for ids in chosen.get('reached_tasks',[])))
     draw_task_markers(ax,problem['tasks'],reached)
-    _, speed_colors = draw_speed_paths(ax, chosen['trajectories'])
+    _, speed_colors = draw_speed_paths(
+        ax, chosen['trajectories'], communication=chosen.get('communication')
+    )
     for m,tr in enumerate(chosen['trajectories']):
         for v in chosen['routes'][m]:
             if v['kind']=='FREE':ax.scatter(*v['position'],marker='D',facecolors='none',edgecolors='tab:red',s=70)

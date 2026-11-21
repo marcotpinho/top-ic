@@ -18,7 +18,12 @@ def plot_result(data, directory, prefix="full"):
     reached=set().union(*(set(ids) for ids in representative.get("reached_tasks",[])))
     draw_task_markers(path, problem["tasks"], reached)
     horizon=max(representative["completion_times"])
-    sampled, speed_colors = draw_speed_paths(path, representative["trajectories"], samples_per_second=25)
+    sampled, speed_colors = draw_speed_paths(
+        path,
+        representative["trajectories"],
+        samples_per_second=25,
+        communication=representative.get("communication"),
+    )
     for m,((_, velocities, times),tr) in enumerate(zip(sampled,representative["trajectories"])):
         speeds=np.linalg.norm(velocities,axis=1)
         line=vel.plot(times,speeds,label=f"Agent {m+1}")[0]
@@ -30,7 +35,8 @@ def plot_result(data, directory, prefix="full"):
     add_speed_colorbars(fig, path, speed_colors)
     fig.savefig(directory/f"{prefix}-paths-speed.png",dpi=160);plt.close(fig)
     save_agent_path_panels(problem, representative["trajectories"],
-                           directory/f"{prefix}-agent-paths.png", reached)
+                           directory/f"{prefix}-agent-paths.png", reached,
+                           representative.get("communication"))
     return representative
 
 def plot_comparison(results,destination):

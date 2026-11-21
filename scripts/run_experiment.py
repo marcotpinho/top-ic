@@ -153,6 +153,7 @@ def _generate_plots(
             best,
             f"Best archive path satisfying Tc={recurrence_bound:g} s",
             path,
+            communication_rssi_threshold=data.get("communication_rssi_threshold"),
         )
     return sorted(
         path.name

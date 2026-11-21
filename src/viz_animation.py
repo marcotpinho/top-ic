@@ -6,11 +6,14 @@ import numpy as np
 from matplotlib import gridspec
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation, PillowWriter
+from matplotlib.collections import LineCollection
 
 from .viz_paths import (
     ARTICLE_COLORS,
+    agent_colors_at_times,
     communication_rssi_history,
     draw_task_markers,
+    maximum_trajectory_speed,
 )
 
 
@@ -38,6 +41,7 @@ def save_path_animation(
     output_path: str | Path,
     fps: int = 15,
     playback_seconds: float = 12.0,
+    communication_rssi_threshold: float | None = None,
 ) -> Path:
     if fps <= 0 or playback_seconds <= 0:
         raise ValueError("Animation fps and playback duration must be positive")
@@ -52,6 +56,9 @@ def save_path_animation(
         task_id: float(time)
         for task_id, _, time in solution.get("first_visitors", [])
     }
+    maximum_speed = maximum_trajectory_speed(solution["trajectories"])
+    communication = solution.get("communication")
+    agent_count = len(solution["trajectories"])
 
     figure = plt.figure(figsize=(16, 8), facecolor="white")
     layout = gridspec.GridSpec(
@@ -97,13 +104,36 @@ def save_path_animation(
             s=130, label="Goal", zorder=7,
         )
         for agent in range(positions.shape[1]):
-            color = ARTICLE_COLORS[agent % len(ARTICLE_COLORS)]
             trail = positions[: frame + 1, agent]
+            current_color = agent_colors_at_times(
+                agent,
+                [time],
+                solution["trajectories"][agent],
+                communication,
+                agent_count,
+                maximum_speed,
+            )[0]
+            if len(trail) > 1:
+                midpoints = (times[:frame] + times[1:frame + 1]) / 2
+                trail_colors = agent_colors_at_times(
+                    agent,
+                    midpoints,
+                    solution["trajectories"][agent],
+                    communication,
+                    agent_count,
+                    maximum_speed,
+                )
+                path_axis.add_collection(LineCollection(
+                    np.stack([trail[:-1], trail[1:]], axis=1),
+                    colors=trail_colors,
+                    linewidths=5,
+                    zorder=3,
+                ))
             path_axis.plot(
-                trail[:, 0], trail[:, 1], color=color, linewidth=5,
-                label=f"Agent {agent + 1}", zorder=3,
+                [], [], color=ARTICLE_COLORS[agent % len(ARTICLE_COLORS)],
+                linewidth=5, label=f"Agent {agent + 1}",
             )
-            path_axis.scatter(*trail[-1], color=color, s=55, zorder=5)
+            path_axis.scatter(*trail[-1], color=current_color, s=55, zorder=5)
             if len(trail) > 1:
                 direction = trail[-1] - trail[-2]
                 length = np.linalg.norm(direction)
@@ -111,7 +141,8 @@ def save_path_animation(
                     direction = 0.5 * direction / length
                     path_axis.quiver(
                         trail[-2, 0], trail[-2, 1], direction[0], direction[1],
-                        angles="xy", scale_units="xy", scale=1, color=color,
+                        angles="xy", scale_units="xy", scale=1,
+                        color=current_color,
                         width=0.01, headlength=20, headwidth=20,
                         headaxislength=19, zorder=5,
                     )
@@ -136,7 +167,22 @@ def save_path_animation(
                 times[: frame + 1], rssi_history[: frame + 1],
                 color="red", alpha=0.7, linewidth=5,
             )
-            communication_axis.set_ylim(minimum_rssi - 1, 0)
+            if communication_rssi_threshold is not None:
+                communication_axis.axhline(
+                    communication_rssi_threshold,
+                    color="#e67e22",
+                    linestyle="--",
+                    linewidth=2.5,
+                    label="Acceptable communication threshold",
+                )
+                communication_axis.legend(loc="lower right", fontsize=9)
+            lower_limit = min(
+                minimum_rssi,
+                communication_rssi_threshold
+                if communication_rssi_threshold is not None
+                else minimum_rssi,
+            )
+            communication_axis.set_ylim(lower_limit - 1, 0)
             communication_axis.set_title(
                 f"RSSI: {rssi_history[frame]:.2f}", fontsize=16
             )

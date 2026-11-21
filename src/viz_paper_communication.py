@@ -8,12 +8,19 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 from matplotlib.lines import Line2D
 import numpy as np
 
+from .viz_paths import (
+    ARTICLE_COLORS,
+    COMMUNICATION_COLORS,
+    agent_colors_at_times,
+    maximum_trajectory_speed,
+)
 
-AGENT_COLORS = ("#0072B2", "#D55E00", "#009E73", "#CC79A7")
-CONTACT_COLOR = "#009E73"
+AGENT_COLORS = ARTICLE_COLORS
+CONTACT_COLOR = COMMUNICATION_COLORS[0]
 ABSENT_COLOR = "#C44E52"
 
 
@@ -135,16 +142,27 @@ def _draw_tasks(ax, problem, solution):
 def _draw_routes(ax, data, solution):
     _draw_tasks(ax, data["problem"], solution)
     sampled = []
+    maximum_speed = maximum_trajectory_speed(solution["trajectories"])
+    agent_count = len(solution["trajectories"])
     for agent, trajectory in enumerate(solution["trajectories"]):
         times, positions = _sample(trajectory)
         sampled.append((times, positions))
-        ax.plot(
-            positions[:, 0],
-            positions[:, 1],
-            color=AGENT_COLORS[agent],
-            label=f"Agent {agent + 1}",
-            zorder=3,
+        midpoints = (times[:-1] + times[1:]) / 2
+        colors = agent_colors_at_times(
+            agent,
+            midpoints,
+            trajectory,
+            solution.get("communication"),
+            agent_count,
+            maximum_speed,
         )
+        ax.add_collection(LineCollection(
+            np.stack([positions[:-1], positions[1:]], axis=1),
+            colors=colors,
+            linewidths=1.8,
+            zorder=3,
+        ))
+        ax.plot([], [], color=AGENT_COLORS[agent], label=f"Agent {agent + 1}")
     start = data["problem"]["start"]
     end = data["problem"]["end"]
     ax.scatter(*start, marker="s", s=25, color="black", zorder=6)
@@ -264,11 +282,20 @@ def plot_indirect_communication(result_path, destination):
     positions = [
         _state_position(trajectory, instant) for trajectory in solution["trajectories"]
     ]
+    maximum_speed = maximum_trajectory_speed(solution["trajectories"])
     for agent, position in enumerate(positions):
+        color = agent_colors_at_times(
+            agent,
+            [instant],
+            solution["trajectories"][agent],
+            solution.get("communication"),
+            len(solution["trajectories"]),
+            maximum_speed,
+        )[0]
         path_ax.scatter(
             *position,
             s=38,
-            color=AGENT_COLORS[agent],
+            color=color,
             edgecolor="white",
             linewidth=0.7,
             zorder=8,
