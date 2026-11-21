@@ -1,7 +1,6 @@
 """Restore flight budgets by dropping visits at minimum reward/time loss."""
 
 from collections import Counter
-from dataclasses import dataclass
 from itertools import accumulate
 from typing import TYPE_CHECKING
 
@@ -11,17 +10,10 @@ from ..solution import Solution
 from .budget_communication import preserves_local_contacts
 from .neighborhoods.common import edited
 from .profiling import profiling
+from .repair.RoutePreview import RoutePreview
 
 if TYPE_CHECKING:
-    from .runner import Runner
-
-
-@dataclass(frozen=True)
-class RoutePreview:
-    """Route completion times and cached durations of consecutive connections."""
-
-    completion_times: tuple[float, ...]
-    connection_times: tuple[tuple[float, ...], ...]
+    from .search.Runner import Runner
 
 
 def preview_solution(runner: "Runner", solution: Solution) -> RoutePreview:

@@ -5,12 +5,13 @@ from math import atan2, hypot
 from random import Random
 from typing import TYPE_CHECKING
 
-from ..config import Problem, Task
+from .problem.Problem import Problem
+from .problem.Task import Task
 from ..solution import Solution, Visit
 from .neighborhoods.common import normalize
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 def _partition_angle(task: Task, problem: Problem) -> tuple[float, str]:

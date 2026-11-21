@@ -4,7 +4,8 @@ from collections.abc import Iterator
 from dataclasses import replace
 from random import Random
 
-from ...config import Config, Problem, Vector, velocity_menu
+from ..problem.Config import Config, Vector, velocity_menu
+from ..problem.Problem import Problem
 from ...solution import Solution, Visit
 from .common import changed_connectors_feasible, edited
 

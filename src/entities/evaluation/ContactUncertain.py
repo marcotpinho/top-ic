@@ -1,0 +1,2 @@
+class ContactUncertain(ValueError):
+    pass

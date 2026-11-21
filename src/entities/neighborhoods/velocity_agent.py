@@ -5,7 +5,8 @@ from dataclasses import replace
 from math import hypot
 from random import Random
 
-from ...config import Config, Problem, velocity_menu
+from ..problem.Config import Config, velocity_menu
+from ..problem.Problem import Problem
 from ...solution import Solution
 from .common import changed_connectors_feasible, edited, sample_candidates
 

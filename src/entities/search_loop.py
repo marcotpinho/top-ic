@@ -11,7 +11,7 @@ from .selection import nondominated, pool_vector, vector_dominates
 from .shaking import ruin_recreate
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 def _timed_candidates(

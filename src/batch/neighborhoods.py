@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import numpy as np
 
-from ..config import velocity_menu
+from ..entities.problem.Config import velocity_menu
 from ..entities.headings import geometric_velocity
 from ..entities.neighborhoods.common import changed_connectors_feasible
 from ..entities.neighborhoods.relay import DIRECTIONS

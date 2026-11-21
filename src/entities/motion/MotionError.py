@@ -1,0 +1,2 @@
+class MotionError(ValueError):
+    pass

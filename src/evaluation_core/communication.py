@@ -1,34 +1,11 @@
 """Chronological vector-clock propagation with exact-event/left-limit phases."""
 
-from dataclasses import dataclass
-
 import numpy as np
 
+from ..entities.evaluation.CommunicationResult import CommunicationResult
+from ..entities.evaluation.ContactRecord import ContactRecord
 from .contacts import pair_contacts
 from .trajectory import AgentTrajectory
-
-
-@dataclass(frozen=True)
-class ContactRecord:
-    agents: tuple[int, int]
-    raw: tuple[tuple[float, float], ...]
-    effective: tuple[tuple[float, float], ...]
-
-
-@dataclass(frozen=True)
-class CommunicationResult:
-    peak_staleness: float
-    contacts: tuple[ContactRecord, ...]
-    history: tuple[
-        tuple[float, float, float], ...
-    ]  # time, left-limit peak, exact-event peak
-    final_clock: tuple[tuple[float, ...], ...]
-    bottleneck: tuple[int, int, float, str] | None  # source, receiver, time, phase
-    numerical_status: str = "resolved"
-    pair_peaks: tuple[tuple[float, ...], ...] = ()  # receiver, source
-    integrated_excess: float = (
-        0.0  # pair-time above the configured Tc; search guidance only
-    )
 
 
 def components(num_agents: int, edges: list[tuple[int, int]]) -> list[list[int]]:

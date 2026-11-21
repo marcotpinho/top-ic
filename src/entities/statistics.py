@@ -4,10 +4,10 @@ from dataclasses import asdict
 from time import perf_counter
 from typing import TYPE_CHECKING
 
-from ..runner_models import RunResult
+from .search.RunResult import RunResult
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 def _mean_task_jaccard(runner: "Runner") -> float:

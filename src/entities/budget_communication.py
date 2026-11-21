@@ -12,7 +12,7 @@ from ..evaluation_core.trajectory import MotionPiece, State, connect
 from ..solution import Solution
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 def _contacts(pieces, other, horizon, radius, start, end):

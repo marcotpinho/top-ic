@@ -4,7 +4,7 @@ from dataclasses import replace
 from math import ceil, hypot
 from random import Random
 
-from ..config import Config
+from .problem.Config import Config
 from ..solution import Solution, Visit
 from .neighborhoods.common import fresh_id, normalize
 

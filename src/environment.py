@@ -2,7 +2,9 @@
 import json
 from dataclasses import asdict
 from pathlib import Path
-from .config import Problem, Task, MotionLimits
+from .entities.problem.MotionLimits import MotionLimits
+from .entities.problem.Problem import Problem
+from .entities.problem.Task import Task
 
 
 def problem_from_dict(data):

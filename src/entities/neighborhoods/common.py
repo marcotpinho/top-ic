@@ -4,7 +4,8 @@ from collections.abc import Iterable
 from dataclasses import replace
 from random import Random
 
-from ...config import MotionLimits, Problem
+from ..problem.MotionLimits import MotionLimits
+from ..problem.Problem import Problem
 from ...evaluation_core.trajectory import MotionError, State, connect
 from ...solution import Solution, Visit
 

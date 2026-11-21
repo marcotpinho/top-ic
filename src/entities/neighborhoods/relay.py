@@ -4,7 +4,8 @@ from collections.abc import Iterator
 from math import cos, pi, sin
 from random import Random
 
-from ...config import Config, Problem
+from ..problem.Config import Config
+from ..problem.Problem import Problem
 from ...solution import Solution, Visit
 from .common import edited, fresh_id, in_workspace, sample_candidates
 

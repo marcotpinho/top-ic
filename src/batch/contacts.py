@@ -1,11 +1,12 @@
 """Batched continuous range contacts for padded trajectory tensors."""
 
-from dataclasses import dataclass
 from itertools import pairwise
 
 import numpy as np
 
-from ..evaluation_core.communication import ContactRecord
+from ..entities.evaluation.ContactBatch import ContactBatch
+from ..entities.evaluation.ContactRecord import ContactRecord
+from ..entities.evaluation.batch._Segment import _Segment
 from ..evaluation_core.contacts import (
     RESIDUAL_TOL,
     ROOT_TOL,
@@ -17,26 +18,6 @@ from ..evaluation_core.contacts import (
 )
 from ..evaluation_core.rssi import distance_at_rssi, meets_threshold
 from .tensors import TrajectoryBatch
-
-
-@dataclass(frozen=True)
-class ContactBatch:
-    intervals: np.ndarray
-    counts: np.ndarray
-    status: np.ndarray
-    pair_agents: tuple[tuple[int, int], ...]
-    records: tuple[tuple[ContactRecord, ...], ...]
-
-
-@dataclass(frozen=True)
-class _Segment:
-    batch: int
-    pair: int
-    left: float
-    duration: float
-    position: tuple[float, float]
-    velocity: tuple[float, float]
-    acceleration: tuple[float, float]
 
 
 def _quartics(segments: list[_Segment], radius: float):

@@ -4,9 +4,12 @@ import json
 from dataclasses import asdict
 from pathlib import Path
 
-from topcc.config import Config, MotionLimits, Problem, Task
+from topcc.entities.problem.Config import Config
+from topcc.entities.problem.MotionLimits import MotionLimits
+from topcc.entities.problem.Problem import Problem
+from topcc.entities.problem.Task import Task
 from topcc.environment import problem_to_dict
-from topcc.evaluation_core.evaluator import Evaluator
+from topcc.entities.evaluation.Evaluator import Evaluator
 from topcc.solution import Solution, Visit, direct_solution
 from topcc.solver import solution_to_dict
 from topcc.viz_icc import plot_communication

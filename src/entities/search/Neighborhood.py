@@ -7,9 +7,10 @@ from random import Random
 
 import numpy as np
 
-from ..config import Config, Problem
-from ..solution import Solution
-from .profiling import profiling
+from ..problem.Config import Config
+from ..problem.Problem import Problem
+from ...solution import Solution
+from ..profiling import profiling
 
 ICC_NEIGHBORHOODS = (
     "insert",
@@ -49,7 +50,7 @@ class Neighborhood:
         if name not in self.names:
             raise ValueError(f"Disabled or unknown neighborhood: {name}")
         if self.config.batch_neighborhoods:
-            from ..batch.neighborhoods import SUPPORTED, generate
+            from ...batch.neighborhoods import SUPPORTED, generate
 
             if name in SUPPORTED:
                 candidates = generate(
@@ -60,12 +61,12 @@ class Neighborhood:
                     self.batch_rng,
                 )
             else:
-                module = import_module(f".neighborhoods.{name}", package=__package__)
+                module = import_module(f"..neighborhoods.{name}", package=__package__)
                 candidates = module.generate(
                     solution, self.problem, self.config, self.rng
                 )
         else:
-            module = import_module(f".neighborhoods.{name}", package=__package__)
+            module = import_module(f"..neighborhoods.{name}", package=__package__)
             candidates = module.generate(solution, self.problem, self.config, self.rng)
         execution = {
             "sequence": len(self.executions) + 1,

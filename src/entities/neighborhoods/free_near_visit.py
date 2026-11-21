@@ -4,7 +4,9 @@ from collections.abc import Iterator
 from math import cos, sin, sqrt, tau
 from random import Random
 
-from ...config import Config, MotionLimits, Problem, Vector
+from ..problem.Config import Config, Vector
+from ..problem.MotionLimits import MotionLimits
+from ..problem.Problem import Problem
 from ...evaluation_core.trajectory import MotionError, State, connect
 from ...solution import Solution, Visit
 from .common import edited, fresh_id, in_workspace, sample_candidates

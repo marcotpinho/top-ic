@@ -11,7 +11,7 @@ from .headings import align_headings
 from .profiling import profiling
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 INITIALIZATION_FAMILIES = {

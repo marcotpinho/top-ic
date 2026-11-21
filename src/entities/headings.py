@@ -3,7 +3,9 @@
 from dataclasses import replace
 from math import hypot, sqrt
 
-from ..config import MotionLimits, Problem, Vector
+from .problem.Config import Vector
+from .problem.MotionLimits import MotionLimits
+from .problem.Problem import Problem
 from ..solution import Solution, Visit
 
 

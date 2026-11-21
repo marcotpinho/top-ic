@@ -1,23 +1,13 @@
 """Vectorized chronological communication sweeps over candidate batches."""
 
-from dataclasses import dataclass
 from time import perf_counter
 
 import numpy as np
 
-from ..evaluation_core.communication import CommunicationResult
-from .contacts import ContactBatch
-from .tensors import TrajectoryBatch
-
-
-@dataclass(frozen=True)
-class SweepBatch:
-    results: tuple[CommunicationResult | None, ...]
-    peaks: np.ndarray
-    violation: np.ndarray
-    delta: np.ndarray
-    integrated_excess: np.ndarray
-    status: np.ndarray
+from ..entities.evaluation.CommunicationResult import CommunicationResult
+from ..entities.evaluation.ContactBatch import ContactBatch
+from ..entities.evaluation.SweepBatch import SweepBatch
+from ..entities.evaluation.TrajectoryBatch import TrajectoryBatch
 
 
 def _closure(adjacency: np.ndarray) -> np.ndarray:

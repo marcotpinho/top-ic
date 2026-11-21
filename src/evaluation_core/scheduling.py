@@ -2,7 +2,7 @@
 
 from itertools import pairwise
 
-from ..config import Problem
+from ..entities.problem.Problem import Problem
 from ..solution import Visit
 from .trajectory import State, connect
 

@@ -9,79 +9,19 @@ integrals and domain boundaries. This explicitly handles disconnected sets
 of feasible durations (unlike max(independent axis minimum)).
 """
 
-from dataclasses import dataclass
 from functools import lru_cache
 from math import isfinite, sqrt
 
-from ..config import MotionLimits, Vector, vector
+from ..entities.problem.Config import Vector, vector
+from ..entities.problem.MotionLimits import MotionLimits
+from ..entities.motion.AgentTrajectory import AgentTrajectory
+from ..entities.motion.Connection import Connection
+from ..entities.motion.MotionError import MotionError
+from ..entities.motion.MotionPiece import MotionPiece
+from ..entities.motion.State import State
 
 VERSION = "kop-patterns-1-geometric-heading"
 TOL = 1e-8
-
-
-class MotionError(ValueError):
-    pass
-
-
-@dataclass(frozen=True)
-class State:
-    position: Vector
-    velocity: Vector = (0.0, 0.0)
-
-    def __post_init__(self):
-        object.__setattr__(self, "position", vector(self.position))
-        object.__setattr__(self, "velocity", vector(self.velocity))
-
-
-@dataclass(frozen=True)
-class MotionPiece:
-    position: Vector
-    velocity: Vector
-    acceleration: Vector
-    duration: float
-    start_time: float = 0.0
-
-    def state(self, t: float) -> State:
-        return State(
-            (
-                self.position[0]
-                + self.velocity[0] * t
-                + 0.5 * self.acceleration[0] * t * t,
-                self.position[1]
-                + self.velocity[1] * t
-                + 0.5 * self.acceleration[1] * t * t,
-            ),
-            (
-                self.velocity[0] + self.acceleration[0] * t,
-                self.velocity[1] + self.acceleration[1] * t,
-            ),
-        )
-
-
-@dataclass(frozen=True)
-class Connection:
-    pieces: tuple[MotionPiece, ...]
-    duration: float
-
-
-@dataclass(frozen=True)
-class AgentTrajectory:
-    pieces: tuple[MotionPiece, ...]
-    completion_time: float
-    start: State
-    end: State
-
-    def state(self, t: float) -> State:
-        if t < 0:
-            raise ValueError("Time must be nonnegative")
-        if t > self.completion_time:
-            return State(self.end.position, (0.0, 0.0))
-        if t == self.completion_time:
-            return self.end
-        for piece in self.pieces:
-            if piece.start_time <= t <= piece.start_time + piece.duration + TOL:
-                return piece.state(min(piece.duration, max(0.0, t - piece.start_time)))
-        return self.start
 
 
 def _bounds(T, v0, v1, V, A):

@@ -12,19 +12,7 @@ def vector(value) -> Vector:
     return tuple(float(x) for x in value)
 
 
-@dataclass(frozen=True)
-class MotionLimits:
-    velocity: Vector = (3.0, 3.0)
-    acceleration: Vector = (1.5, 1.5)
-
-    def __post_init__(self):
-        object.__setattr__(self, "velocity", vector(self.velocity))
-        object.__setattr__(self, "acceleration", vector(self.acceleration))
-        if min(*self.velocity, *self.acceleration) <= 0:
-            raise ValueError("Axis limits must be positive")
-
-
-def moving_velocity(limits: MotionLimits, start: Vector, end: Vector) -> Vector:
+def moving_velocity(limits, start: Vector, end: Vector) -> Vector:
     """Use the nearest 45-degree heading at 10% of its axis-limited speed."""
     angle = round(atan2(end[1] - start[1], end[0] - start[0]) / (pi / 4)) * (pi / 4)
     direction = (cos(angle), sin(angle))
@@ -34,76 +22,6 @@ def moving_velocity(limits: MotionLimits, start: Vector, end: Vector) -> Vector:
         if abs(direction[d]) > 1e-12
     )
     return tuple(0.0 if abs(v) < 1e-12 else 0.1 * maximum * v for v in direction)
-
-
-@dataclass(frozen=True)
-class Task:
-    id: str
-    position: Vector
-    reward: float
-
-    def __post_init__(self):
-        object.__setattr__(self, "position", vector(self.position))
-        if not self.id or not isfinite(self.reward) or self.reward < 0:
-            raise ValueError("Tasks need a stable ID and finite nonnegative reward")
-
-
-@dataclass(frozen=True)
-class Problem:
-    tasks: tuple[Task, ...]
-    start: Vector
-    end: Vector
-    time_budgets: tuple[float, ...]
-    limits: tuple[MotionLimits, ...]
-    initial_velocities: tuple[Vector, ...]
-    name: str = "instance"
-    schema_version: int = 1
-
-    def __post_init__(self):
-        object.__setattr__(self, "tasks", tuple(self.tasks))
-        object.__setattr__(self, "start", vector(self.start))
-        object.__setattr__(self, "end", vector(self.end))
-        object.__setattr__(
-            self, "time_budgets", tuple(float(x) for x in self.time_budgets)
-        )
-        object.__setattr__(self, "limits", tuple(self.limits))
-        object.__setattr__(
-            self,
-            "initial_velocities",
-            tuple(vector(v) for v in self.initial_velocities),
-        )
-        if self.schema_version != 1:
-            raise ValueError("Unsupported instance schema")
-        if not self.time_budgets or any(
-            not isfinite(b) or b <= 0 for b in self.time_budgets
-        ):
-            raise ValueError("Flight-time budgets must be positive seconds")
-        if (
-            len(self.limits) != self.num_agents
-            or len(self.initial_velocities) != self.num_agents
-        ):
-            raise ValueError("Per-agent array counts must match")
-        if len({t.id for t in self.tasks}) != len(self.tasks):
-            raise ValueError("Duplicate task IDs")
-        object.__setattr__(
-            self,
-            "initial_velocities",
-            tuple(
-                vel if vel != (0.0, 0.0) else moving_velocity(lim, self.start, self.end)
-                for vel, lim in zip(self.initial_velocities, self.limits)
-            ),
-        )
-        for vel, lim in zip(self.initial_velocities, self.limits):
-            if any(abs(v) > bound for v, bound in zip(vel, lim.velocity)):
-                raise ValueError("Initial velocity exceeds axis limit")
-
-    @property
-    def num_agents(self):
-        return len(self.time_budgets)
-
-    @property
-    def task_map(self):
-        return {t.id: t for t in self.tasks}
 
 
 @dataclass(frozen=True)
@@ -160,7 +78,7 @@ class Config:
 
     @property
     def communication_rssi_threshold(self) -> float:
-        from .evaluation_core.rssi import rssi
+        from ...evaluation_core.rssi import rssi
 
         return rssi(self.comm_range)
 
@@ -290,7 +208,7 @@ class Config:
             raise ValueError("Velocity segment lengths must be distinct integers >= 2")
 
 
-def velocity_menu(limits: MotionLimits, config: Config):
+def velocity_menu(limits, config: Config):
     states = set()
     for h in range(config.headings):
         direction = (

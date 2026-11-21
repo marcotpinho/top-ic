@@ -3,7 +3,7 @@
 import argparse
 import json
 
-from .config import Config
+from .entities.problem.Config import Config
 from .environment import load_problem_instance, smoke_problem
 from .solver import run_optimization, save_result
 

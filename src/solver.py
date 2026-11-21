@@ -4,11 +4,12 @@ import json
 from dataclasses import asdict, replace
 from pathlib import Path
 
-from .config import Config, Problem
-from .entities.neighborhood import Neighborhood
-from .entities.runner import Runner
+from .entities.problem.Config import Config
+from .entities.problem.Problem import Problem
+from .entities.search.Neighborhood import Neighborhood
+from .entities.search.Runner import Runner
 from .environment import problem_to_dict
-from .runner_models import RunResult
+from .entities.search.RunResult import RunResult
 from .solution import Solution
 
 

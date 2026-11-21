@@ -8,7 +8,7 @@ from ..solution import Solution, Visit
 from .neighborhoods.common import fresh_id, in_workspace
 
 if TYPE_CHECKING:
-    from .runner import Runner
+    from .search.Runner import Runner
 
 
 def _bottleneck_agents(solution: Solution) -> tuple[int, int]:

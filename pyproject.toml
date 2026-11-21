@@ -16,7 +16,21 @@ test = ["pytest>=8"]
 topcc = "topcc.main:main"
 
 [tool.setuptools]
-packages = ["topcc", "topcc.batch"]
+packages = [
+    "topcc",
+    "topcc.batch",
+    "topcc.entities",
+    "topcc.entities.evaluation",
+    "topcc.entities.evaluation.batch",
+    "topcc.entities.motion",
+    "topcc.entities.neighborhoods",
+    "topcc.entities.problem",
+    "topcc.entities.repair",
+    "topcc.entities.routing",
+    "topcc.entities.search",
+    "topcc.entities.search.epsilon",
+    "topcc.evaluation_core",
+]
 package-dir = {topcc = "src"}
 
 [tool.pytest.ini_options]

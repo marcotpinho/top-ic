@@ -8,11 +8,12 @@ from time import perf_counter
 
 import numpy as np
 
-from ..evaluation_core.evaluator import Evaluation, Evaluator
-from ..evaluation_core.trajectory import MotionError
-from ..solution import Solution
-from .communication import batch_evaluate_communication
-from .tensors import select_trajectories, solutions_to_trajectories
+from ...batch.communication import batch_evaluate_communication
+from ...batch.tensors import select_trajectories, solutions_to_trajectories
+from ...evaluation_core.trajectory import MotionError
+from ...solution import Solution
+from .Evaluation import Evaluation
+from .Evaluator import Evaluator
 
 
 def _equivalent(first, second, tolerance=1e-9):

@@ -1,38 +1,17 @@
 """Validate a solution and assemble the TOP-ICC objectives in ordered stages."""
 
 from collections import Counter
-from dataclasses import dataclass, fields, replace
+from dataclasses import fields, replace
 from itertools import pairwise
 from math import inf
 
-from ..config import Config, Problem
-from ..solution import Solution, Visit
-from .communication import evaluate_communication
-from .scheduling import schedule
-from .trajectory import AgentTrajectory, MotionError, State, connect
-
-
-@dataclass(frozen=True)
-class Evaluation:
-    valid: bool
-    objectives: tuple[float, ...]
-    completion_times: tuple[float, ...]
-    reached_tasks: tuple[frozenset[str], ...]
-    trajectories: tuple[AgentTrajectory, ...]
-    reason: str = ""
-    peak_staleness: float | None = None
-    first_visitors: tuple[tuple[str, int, float], ...] = ()
-    motion_budget_valid: bool = False
-    comm_violation: float = 0.0
-    communication: object = None
-    visit_times: tuple = ()
-    validation_status: str = "valid"
-    evaluation_context: tuple = ()
-
-    @property
-    def reward(self) -> float:
-        """Return Q, the reward in eq. (7); evaluation is immutable."""
-        return -self.objectives[0]
+from ..problem.Config import Config
+from ..problem.Problem import Problem
+from ...evaluation_core.communication import evaluate_communication
+from ...evaluation_core.scheduling import schedule
+from ...evaluation_core.trajectory import AgentTrajectory, MotionError, State, connect
+from ...solution import Solution, Visit
+from .Evaluation import Evaluation
 
 
 class Evaluator:
@@ -71,7 +50,7 @@ class Evaluator:
             and len(parent.routes) == len(solution.routes)
         )
         if reusable:
-            from ..entities.profiling import profiling
+            from ..profiling import profiling
 
             self.incremental_metrics["incremental_evaluations"] += 1
             with profiling(self.incremental_metrics, "incremental_seconds"):

@@ -12,6 +12,7 @@ from functools import lru_cache
 import numpy as np
 from scipy.optimize import brentq
 
+from ..entities.evaluation.ContactUncertain import ContactUncertain
 from .rssi import distance_at_rssi, meets_threshold
 from .trajectory import AgentTrajectory, MotionPiece
 
@@ -19,10 +20,6 @@ Interval = tuple[float, float]
 
 ROOT_TOL = 2e-13
 RESIDUAL_TOL = 2e-11
-
-
-class ContactUncertain(ValueError):
-    """Floating-point signs cannot be classified safely under the policy."""
 
 
 def _value(coefficients, x):

@@ -3,7 +3,8 @@
 from collections.abc import Iterator
 from random import Random
 
-from ...config import Config, Problem
+from ..problem.Config import Config
+from ..problem.Problem import Problem
 from ...solution import Solution
 from .common import edited, sample_candidates
 

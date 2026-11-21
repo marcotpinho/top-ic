@@ -2,12 +2,13 @@
 
 from random import Random
 
-from ..archive import Archive as EpsilonArchive
-from ..config import Config
-from ..solution import Solution
-from .pool import ParetoPool
-from .profiling import SearchProfile, profiling
-from .selection import select_base
+from ..problem.Config import Config
+from ...solution import Solution
+from ..profiling import profiling
+from ..selection import select_base
+from .ParetoPool import ParetoPool
+from .SearchProfile import SearchProfile
+from .epsilon.Archive import Archive as EpsilonArchive
 
 
 class Archive:

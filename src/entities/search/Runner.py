@@ -5,25 +5,27 @@ from random import Random
 from statistics import median
 from time import perf_counter
 
-from ..batch import BatchEvaluator
-from ..config import Config, Problem
-from ..runner_models import RunResult
-from ..solution import Solution, direct_solution
-from .archive import Archive
-from .archive_updates import evaluate_candidate
-from .evaluator import Evaluator
-from .hypervolume import hypervolume_2d
-from .neighborhood import Neighborhood
-from .parallel_evaluation import ParallelEvaluation
-from .profiling import SearchProfile, profiling
-from .search_loop import run_iterations
-from .seed_construction import (
+from ..problem.Config import Config
+from ..problem.Problem import Problem
+from ...solution import Solution, direct_solution
+from ..archive_updates import evaluate_candidate
+from ..evaluation.BatchEvaluator import BatchEvaluator
+from ..evaluation.ParallelEvaluation import ParallelEvaluation
+from ..evaluation.Evaluator import Evaluator
+from ..hypervolume import hypervolume_2d
+from ..profiling import profiling
+from ..search_loop import run_iterations
+from ..seed_construction import (
     construct_reward_seed,
     cooperative_seeds,
     density_seeds,
     partition_seeds,
 )
-from .statistics import finish
+from ..statistics import finish
+from .Archive import Archive
+from .Neighborhood import Neighborhood
+from .RunResult import RunResult
+from .SearchProfile import SearchProfile
 
 
 class Runner:

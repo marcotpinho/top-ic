@@ -1,48 +1,17 @@
 """Padded tensor representations of route decisions and trajectories."""
 
-from dataclasses import dataclass
 from itertools import pairwise
 
 import numpy as np
 
-from ..config import Problem
+from ..entities.problem.Problem import Problem
+from ..entities.evaluation.RouteBatch import RouteBatch
+from ..entities.evaluation.TrajectoryBatch import TrajectoryBatch
 from ..evaluation_core.trajectory import AgentTrajectory, State, connect
 from ..solution import Solution, Visit
 
 KIND_TO_CODE = {"START": 1, "TASK": 2, "FREE": 3, "END": 4}
 CODE_TO_KIND = {value: key for key, value in KIND_TO_CODE.items()}
-
-
-@dataclass(frozen=True)
-class RouteBatch:
-    kind: np.ndarray
-    task: np.ndarray
-    pos: np.ndarray
-    vel: np.ndarray
-    nvis: np.ndarray
-    task_ids: tuple[str, ...]
-
-    @property
-    def size(self) -> int:
-        return int(self.kind.shape[0])
-
-
-@dataclass(frozen=True)
-class TrajectoryBatch:
-    dur: np.ndarray
-    pc_n: np.ndarray
-    p_pos: np.ndarray
-    p_vel: np.ndarray
-    p_acc: np.ndarray
-    p_len: np.ndarray
-    p_t0: np.ndarray
-    comp: np.ndarray
-    trajectories: tuple[tuple[AgentTrajectory, ...], ...]
-    visit_times: tuple[tuple[tuple, ...], ...]
-
-    @property
-    def size(self) -> int:
-        return int(self.comp.shape[0])
 
 
 def select_trajectories(batch: TrajectoryBatch, indices: list[int]) -> TrajectoryBatch:

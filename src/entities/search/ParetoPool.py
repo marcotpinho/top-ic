@@ -1,17 +1,10 @@
-"""Bounded Pareto archive in communication violation, negative reward, and time."""
-
-from dataclasses import dataclass
 from hashlib import sha256
 
-from ..solution import Solution
-from .profiling import SearchProfile, profiling
-from .selection import crowding_distances, pool_vector, vector_dominates
-
-
-@dataclass
-class PoolMember:
-    solution: Solution
-    age: int = 0
+from ...solution import Solution
+from ..profiling import profiling
+from ..selection import crowding_distances, pool_vector, vector_dominates
+from .PoolMember import PoolMember
+from .SearchProfile import SearchProfile
 
 
 class ParetoPool:

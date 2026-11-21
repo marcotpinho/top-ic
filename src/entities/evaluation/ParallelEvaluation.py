@@ -7,9 +7,9 @@ from multiprocessing import get_context
 from sys import platform
 from time import perf_counter
 
-from .archive_updates import evaluate_candidate, integrate_candidate, prepare_candidate
-from .evaluator import Evaluator
-from .profiling import profiling
+from ..archive_updates import evaluate_candidate, integrate_candidate, prepare_candidate
+from .Evaluator import Evaluator
+from ..profiling import profiling
 
 _worker_evaluator = None
 

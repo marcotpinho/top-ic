@@ -1,5 +1,3 @@
-"""Serializable optimization run result."""
-
 from dataclasses import dataclass
 
 
