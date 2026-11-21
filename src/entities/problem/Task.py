@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import isfinite
 
-from .Config import Vector, vector
+from ...core.problem.config import Vector, vector
 
 
 @dataclass(frozen=True)

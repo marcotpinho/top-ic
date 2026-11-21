@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
-from topcc.viz_icc import plot_fronts,plot_communication
+from topcc.core.visualization.viz_icc import plot_fronts,plot_communication
 from scripts.plot_saved_stage_results import plot_stage
 from matplotlib import pyplot as plt
 

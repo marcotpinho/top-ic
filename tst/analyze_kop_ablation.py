@@ -14,8 +14,8 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from topcc.config import MotionLimits
-from topcc.evaluation_core.trajectory import State, connect
+from topcc.entities.problem.MotionLimits import MotionLimits
+from topcc.core.motion.trajectory import State, connect
 
 ROOT = Path(__file__).resolve().parents[1]
 METRICS = (
@@ -387,7 +387,7 @@ def main():
     reproduction = output / "reproduce.sh"
     reproduction.write_text(command)
     reproduction.chmod(0o755)
-    source_hash = hashlib.sha256((ROOT / "src/evaluation_core/trajectory.py").read_bytes()).hexdigest()
+    source_hash = hashlib.sha256((ROOT / "src/core/motion/trajectory.py").read_bytes()).hexdigest()
     (output / "source-info.json").write_text(
         json.dumps(
             {

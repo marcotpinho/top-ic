@@ -13,23 +13,31 @@ dependencies = ["numpy>=1.26", "scipy>=1.11", "matplotlib>=3.8"]
 test = ["pytest>=8"]
 
 [project.scripts]
-topcc = "topcc.main:main"
+topcc = "topcc.core.application.main:main"
 
 [tool.setuptools]
 packages = [
     "topcc",
-    "topcc.batch",
+    "topcc.core",
+    "topcc.core.application",
+    "topcc.core.evaluation",
+    "topcc.core.evaluation.batch",
+    "topcc.core.motion",
+    "topcc.core.neighborhoods",
+    "topcc.core.problem",
+    "topcc.core.repair",
+    "topcc.core.routing",
+    "topcc.core.search",
+    "topcc.core.visualization",
     "topcc.entities",
     "topcc.entities.evaluation",
     "topcc.entities.evaluation.batch",
     "topcc.entities.motion",
-    "topcc.entities.neighborhoods",
     "topcc.entities.problem",
     "topcc.entities.repair",
     "topcc.entities.routing",
     "topcc.entities.search",
     "topcc.entities.search.epsilon",
-    "topcc.evaluation_core",
 ]
 package-dir = {topcc = "src"}
 

@@ -4,55 +4,11 @@ from collections import Counter
 from concurrent.futures import ProcessPoolExecutor, TimeoutError
 from dataclasses import replace
 from multiprocessing import get_context
-from sys import platform
 from time import perf_counter
 
-from ..archive_updates import evaluate_candidate, integrate_candidate, prepare_candidate
-from .Evaluator import Evaluator
-from ..profiling import profiling
-
-_worker_evaluator = None
-
-
-def _initialize_worker(problem, config):
-    global _worker_evaluator
-    _worker_evaluator = Evaluator(problem, config)
-
-
-def _peak_rss_bytes():
-    if platform != "darwin" and not platform.startswith("linux"):
-        return None
-    try:
-        from resource import RUSAGE_SELF, getrusage
-
-        peak = getrusage(RUSAGE_SELF).ru_maxrss
-        return int(peak if platform == "darwin" else peak * 1024)
-    except (ImportError, OSError, ValueError):
-        return None
-
-
-def _evaluate_worker(candidate, parent):
-    evaluator = _worker_evaluator
-    before = evaluator.incremental_metrics.copy()
-    hits, misses = evaluator.cache_hits, evaluator.cache_misses
-    evaluator.incremental_divergences.clear()
-    started = perf_counter()
-    scored = evaluator.evaluate(candidate, parent=parent)
-    elapsed = perf_counter() - started
-    delta = {
-        name: value - before[name]
-        for name, value in evaluator.incremental_metrics.items()
-    }
-    return (
-        scored,
-        elapsed,
-        delta,
-        list(evaluator.incremental_divergences),
-        evaluator.cache_hits - hits,
-        evaluator.cache_misses - misses,
-        len(evaluator.cache),
-        _peak_rss_bytes(),
-    )
+from ...core.evaluation.parallel import evaluate_worker, initialize_worker
+from ...core.search.archive_updates import evaluate_candidate, integrate_candidate, prepare_candidate
+from ...core.search.profiling import profiling
 
 
 class ParallelEvaluation:
@@ -67,7 +23,7 @@ class ParallelEvaluation:
             self.executor = ProcessPoolExecutor(
                 max_workers=runner.config.evaluation_workers,
                 mp_context=get_context("spawn"),
-                initializer=_initialize_worker,
+                initializer=initialize_worker,
                 initargs=(runner.problem, runner.config),
             )
         return self.executor
@@ -113,7 +69,7 @@ class ParallelEvaluation:
                     if miss:
                         with profiling(runner.profile, "parallel_dispatch_seconds"):
                             future = self._executor().submit(
-                                _evaluate_worker,
+                                evaluate_worker,
                                 replace(candidate, evaluation=None),
                                 parent,
                             )

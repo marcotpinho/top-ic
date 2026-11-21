@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..problem.Config import Vector
+from ...core.problem.config import Vector
 from .State import State
 
 

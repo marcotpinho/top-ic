@@ -3,7 +3,7 @@
 import json
 
 from common import CheckLog, close, records
-from topcc.evaluation_core.communication import sweep
+from topcc.core.evaluation.communication import sweep
 
 CASES = {
     "B1": (

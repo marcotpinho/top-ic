@@ -1,38 +1,18 @@
 """Batch evaluator with scalar-oracle verification and bounded cache."""
 
 from collections import Counter
-from dataclasses import fields, is_dataclass, replace
+from dataclasses import replace
 from hashlib import sha256
 from math import inf
 from time import perf_counter
 
-import numpy as np
-
-from ...batch.communication import batch_evaluate_communication
-from ...batch.tensors import select_trajectories, solutions_to_trajectories
-from ...evaluation_core.trajectory import MotionError
-from ...solution import Solution
+from ...core.evaluation.batch.communication import batch_evaluate_communication
+from ...core.evaluation.batch.tensors import select_trajectories, solutions_to_trajectories
+from ...core.evaluation.equivalence import equivalent
+from ...core.motion.trajectory import MotionError
+from ..routing.Solution import Solution
 from .Evaluation import Evaluation
 from .Evaluator import Evaluator
-
-
-def _equivalent(first, second, tolerance=1e-9):
-    if type(first) is not type(second):
-        return False
-    if is_dataclass(first):
-        return all(
-            _equivalent(
-                getattr(first, item.name), getattr(second, item.name), tolerance
-            )
-            for item in fields(first)
-        )
-    if isinstance(first, (tuple, list)):
-        return len(first) == len(second) and all(
-            _equivalent(a, b, tolerance) for a, b in zip(first, second)
-        )
-    if isinstance(first, (float, np.floating)):
-        return bool(np.isclose(first, second, rtol=0.0, atol=tolerance, equal_nan=True))
-    return first == second
 
 
 class BatchEvaluator:
@@ -239,7 +219,7 @@ class BatchEvaluator:
         self.batch_metrics["oracle_evaluations"] += 1
         self.verified_keys.add(solution.key)
         self._cache(solution.key, oracle)
-        if _equivalent(solution.evaluation, oracle):
+        if equivalent(solution.evaluation, oracle):
             return replace(solution, evaluation=oracle)
         self.batch_metrics["oracle_divergences"] += 1
         if len(self.incremental_divergences) < 20:

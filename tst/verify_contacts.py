@@ -5,12 +5,10 @@ from collections import Counter
 from math import sqrt
 
 from common import CheckLog, close, piece, trajectory
-from topcc.evaluation_core.communication import (
-    ContactRecord,
-    evaluate_communication,
-    sweep,
-)
-from topcc.evaluation_core.contacts import ContactUncertain, pair_contacts
+from topcc.core.evaluation.communication import evaluate_communication, sweep
+from topcc.core.evaluation.contacts import pair_contacts
+from topcc.entities.evaluation.ContactRecord import ContactRecord
+from topcc.entities.evaluation.ContactUncertain import ContactUncertain
 
 
 def moving(position, velocity, duration=10.0, acceleration=(0.0, 0.0), completion=None):

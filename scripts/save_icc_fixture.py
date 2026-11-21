@@ -8,11 +8,13 @@ from topcc.entities.problem.Config import Config
 from topcc.entities.problem.MotionLimits import MotionLimits
 from topcc.entities.problem.Problem import Problem
 from topcc.entities.problem.Task import Task
-from topcc.environment import problem_to_dict
+from topcc.core.problem.environment import problem_to_dict
 from topcc.entities.evaluation.Evaluator import Evaluator
-from topcc.solution import Solution, Visit, direct_solution
-from topcc.solver import solution_to_dict
-from topcc.viz_icc import plot_communication
+from topcc.core.routing.solution import direct_solution
+from topcc.core.application.solver import solution_to_dict
+from topcc.core.visualization.viz_icc import plot_communication
+from topcc.entities.routing.Solution import Solution
+from topcc.entities.routing.Visit import Visit
 
 from scripts.validate_icc import validate_solution
 

@@ -7,21 +7,22 @@ from time import perf_counter
 
 from ..problem.Config import Config
 from ..problem.Problem import Problem
-from ...solution import Solution, direct_solution
-from ..archive_updates import evaluate_candidate
-from ..evaluation.BatchEvaluator import BatchEvaluator
-from ..evaluation.ParallelEvaluation import ParallelEvaluation
-from ..evaluation.Evaluator import Evaluator
-from ..hypervolume import hypervolume_2d
-from ..profiling import profiling
-from ..search_loop import run_iterations
-from ..seed_construction import (
+from ...core.routing.solution import direct_solution
+from ...core.search.archive_updates import evaluate_candidate
+from ...core.search.hypervolume import hypervolume_2d
+from ...core.search.profiling import profiling
+from ...core.search.search_loop import run_iterations
+from ...core.search.seed_construction import (
     construct_reward_seed,
     cooperative_seeds,
     density_seeds,
     partition_seeds,
 )
-from ..statistics import finish
+from ...core.search.statistics import finish
+from ..evaluation.BatchEvaluator import BatchEvaluator
+from ..evaluation.ParallelEvaluation import ParallelEvaluation
+from ..evaluation.Evaluator import Evaluator
+from ..routing.Solution import Solution
 from .Archive import Archive
 from .Neighborhood import Neighborhood
 from .RunResult import RunResult

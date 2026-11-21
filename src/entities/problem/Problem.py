@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from math import isfinite
 
-from .Config import Vector, moving_velocity, vector
+from ...core.problem.config import Vector, moving_velocity, vector
 from .MotionLimits import MotionLimits
 from .Task import Task
 

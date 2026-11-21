@@ -1,0 +1,325 @@
+"""CLI for the team KOP with intermittent communication."""
+
+import argparse
+import json
+
+from ...entities.problem.Config import Config
+from ..problem.environment import load_problem_instance, smoke_problem
+from .solver import run_optimization, save_result
+
+
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="TOP-ICC sampled MOVNS search",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--instance",
+        help="instance JSON path; omitting it runs the built-in two-agent smoke map",
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="seed for the run's random generator"
+    )
+    parser.add_argument(
+        "--batch-eval",
+        action="store_true",
+        help="evaluate candidate batches with NumPy tensor kernels",
+    )
+    parser.add_argument(
+        "--batch-neighborhoods",
+        action="store_true",
+        help="use tensor generators for supported neighborhood families",
+    )
+    parser.add_argument(
+        "--verify-batch-eval",
+        action="store_true",
+        help="verify every batch result with the scalar evaluator",
+    )
+    parser.add_argument(
+        "--batch-verify-fraction",
+        type=float,
+        default=0.0,
+        help="deterministic fraction of batch results checked by the scalar evaluator",
+    )
+    parser.add_argument(
+        "--evaluation-workers",
+        type=int,
+        default=1,
+        help="worker processes for independent candidate evaluations; 1 runs serially",
+    )
+    parser.add_argument(
+        "--evaluation-batch-size",
+        type=int,
+        default=8,
+        help="maximum candidates prepared per parallel batch",
+    )
+    parser.add_argument("--evaluation-cache-size", type=int, default=4096)
+    parser.add_argument("--route-cache-size", type=int, default=4096)
+    parser.add_argument(
+        "--disable-incremental-evaluation",
+        action="store_true",
+        help="evaluate complete candidate trajectories without reusing their parent",
+    )
+    parser.add_argument(
+        "--verify-incremental",
+        action="store_true",
+        help="compare incremental evaluations with an independent complete evaluation",
+    )
+    parser.add_argument(
+        "--max-seconds",
+        type=float,
+        default=30.0,
+        help="search wall-time limit in seconds",
+    )
+    parser.add_argument(
+        "--max-evaluations",
+        type=int,
+        default=2000,
+        help="maximum distinct candidates sent through the evaluator",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=100,
+        help="maximum outer local-search iterations",
+    )
+    parser.add_argument(
+        "--initialization-budget-fraction",
+        type=float,
+        default=0.2,
+        help="maximum fraction of time and exact-evaluation budgets used by initialization",
+    )
+    parser.add_argument(
+        "--neighborhood-hv-tau",
+        type=float,
+        default=0.0,
+        help="minimum normalized archive hypervolume gain required to repeat a neighborhood",
+    )
+    parser.add_argument(
+        "--neighborhood-max-passes",
+        type=int,
+        default=3,
+        help="maximum passes per neighborhood in each outer iteration",
+    )
+    parser.add_argument(
+        "--archive-size",
+        type=int,
+        default=100,
+        help="maximum epsilon-front representatives before box coarsening",
+    )
+    parser.add_argument(
+        "--eps-reward",
+        type=float,
+        default=1.0,
+        help="epsilon-box width for negative reward units",
+    )
+    parser.add_argument(
+        "--eps-time",
+        type=float,
+        default=0.1,
+        help="epsilon-box width for mean completion time in seconds",
+    )
+    parser.add_argument(
+        "--headings",
+        type=int,
+        default=8,
+        help="number of heading directions in the visit-velocity menu",
+    )
+    parser.add_argument(
+        "--speed-fractions",
+        type=float,
+        nargs="+",
+        default=[0.1, 0.25, 0.5, 0.75, 1],
+        help="fractions of each axis speed limit used in the velocity menu",
+    )
+    parser.add_argument(
+        "--velocity-segment-lengths",
+        type=int,
+        nargs="+",
+        default=[2, 3],
+        help="visit counts for contiguous velocity-change blocks",
+    )
+    parser.add_argument(
+        "--disable",
+        nargs="*",
+        default=[],
+        help="ICC neighborhood family names to omit from the search",
+    )
+    parser.add_argument(
+        "--kinematic-refinement-interval",
+        type=int,
+        default=3,
+        help="run velocity and FREE refinement every N structural iterations",
+    )
+    parser.add_argument(
+        "--comm-range",
+        type=float,
+        default=2.0,
+        help="distance mapped to the TOP-CC log-distance RSSI contact threshold",
+    )
+    parser.add_argument(
+        "--recurrence-bound",
+        type=float,
+        default=5.0,
+        help="maximum allowed information staleness T_c in seconds",
+    )
+    parser.add_argument(
+        "--dominated-archive-size",
+        type=int,
+        default=100,
+        help="maximum physically valid dominated solutions kept for search bases",
+    )
+    parser.add_argument(
+        "--communication-repair-rounds",
+        type=int,
+        default=3,
+        help="maximum communication-repair rounds; 0 disables repair",
+    )
+    parser.add_argument(
+        "--disable-ruin-recreate",
+        action="store_true",
+        help="start each iteration from its selected base without ruin-and-recreate",
+    )
+    parser.add_argument(
+        "--disable-pool-selection",
+        action="store_true",
+        help="ablation: update the Pareto pool but select search bases only from F",
+    )
+    parser.add_argument(
+        "--selection-policy",
+        choices=["elite_mixture", "nd_count", "legacy_fraction"],
+        default="elite_mixture",
+        help="archive selection policy; elite_mixture balances exploitation and diversity",
+    )
+    parser.add_argument(
+        "--elite-selection-probability",
+        type=float,
+        default=0.3,
+        help="probability of expanding the maximum-reward minimum-time elite",
+    )
+    parser.add_argument(
+        "--pool-selection-probability",
+        type=float,
+        default=0.3,
+        help="pool probability under elite_mixture",
+    )
+    parser.add_argument(
+        "--elite-cooldown-after",
+        type=int,
+        default=3,
+        help="unsuccessful elite expansions before cooldown",
+    )
+    parser.add_argument(
+        "--elite-cooldown-iterations",
+        type=int,
+        default=3,
+        help="iterations that suppress elite selection after stagnation",
+    )
+    parser.add_argument(
+        "--waypoint-workspace",
+        type=float,
+        nargs=4,
+        metavar=("XMIN", "XMAX", "YMIN", "YMAX"),
+        help="bounds for free waypoints; inferred from the instance when omitted",
+    )
+    parser.add_argument(
+        "--waypoint-steps",
+        type=float,
+        nargs="+",
+        default=[1.0, 0.25],
+        help="distance steps used to propose or move free waypoints",
+    )
+    parser.add_argument(
+        "--neighborhood-candidates",
+        type=int,
+        default=120,
+        help="maximum sampled proposals generated per neighborhood call",
+    )
+    parser.add_argument("--output", help="path for the complete JSON run result")
+    parser.add_argument(
+        "--free-segment-radius",
+        type=float,
+        help="maximum lateral FREE offset from a route segment; defaults to communication range",
+    )
+    return parser
+
+
+def _config(args: argparse.Namespace) -> Config:
+    return Config(
+        seed=args.seed,
+        batch_eval=args.batch_eval,
+        batch_neighborhoods=args.batch_neighborhoods or args.batch_eval,
+        verify_batch_eval=args.verify_batch_eval,
+        batch_verify_fraction=args.batch_verify_fraction,
+        evaluation_workers=args.evaluation_workers,
+        evaluation_batch_size=args.evaluation_batch_size,
+        evaluation_cache_size=args.evaluation_cache_size,
+        route_cache_size=args.route_cache_size,
+        incremental_evaluation=not args.disable_incremental_evaluation,
+        verify_incremental=args.verify_incremental,
+        max_seconds=args.max_seconds,
+        max_evaluations=args.max_evaluations,
+        max_iterations=args.max_iterations,
+        initialization_budget_fraction=args.initialization_budget_fraction,
+        neighborhood_hv_tau=args.neighborhood_hv_tau,
+        neighborhood_max_passes=args.neighborhood_max_passes,
+        archive_size=args.archive_size,
+        eps_reward=args.eps_reward,
+        eps_time=args.eps_time,
+        headings=args.headings,
+        speed_fractions=tuple(args.speed_fractions),
+        velocity_segment_lengths=tuple(args.velocity_segment_lengths),
+        disabled=tuple(args.disable),
+        kinematic_refinement_interval=args.kinematic_refinement_interval,
+        comm_range=args.comm_range,
+        recurrence_bound=args.recurrence_bound,
+        dominated_archive_size=args.dominated_archive_size,
+        communication_repair_rounds=args.communication_repair_rounds,
+        ruin_recreate_enabled=not args.disable_ruin_recreate,
+        pool_selection_enabled=not args.disable_pool_selection,
+        selection_policy=args.selection_policy,
+        elite_selection_probability=args.elite_selection_probability,
+        pool_selection_probability=args.pool_selection_probability,
+        elite_cooldown_after=args.elite_cooldown_after,
+        elite_cooldown_iterations=args.elite_cooldown_iterations,
+        waypoint_workspace=tuple(args.waypoint_workspace)
+        if args.waypoint_workspace
+        else None,
+        waypoint_steps=tuple(args.waypoint_steps),
+        neighborhood_candidates=args.neighborhood_candidates,
+        free_segment_radius=args.free_segment_radius,
+    )
+
+
+def main() -> int:
+    """Run the ICC search and optionally save complete evaluation records."""
+    parser = _parser()
+    args = parser.parse_args()
+    try:
+        config = _config(args)
+        problem = (
+            load_problem_instance(args.instance) if args.instance else smoke_problem(2)
+        )
+        result = run_optimization(problem, config)
+        if args.output:
+            save_result(result, args.output)
+        summary = {
+            "status": result.status,
+            "elapsed_seconds": result.elapsed_seconds,
+            "evaluations": result.statistics.get("evaluated", 0),
+            "profiling": result.statistics["profiling"],
+            "incremental_evaluation": result.statistics.get(
+                "incremental_evaluation", {}
+            ),
+            "batch_evaluation": result.statistics.get("batch_evaluation", {}),
+            "parallel_evaluation": result.statistics.get("parallel_evaluation", {}),
+            "front": [solution.objectives for solution in result.front],
+        }
+        print(json.dumps(summary, indent=2))
+        return 0 if result.front else 1
+    except ValueError as exc:
+        parser.error(str(exc))
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

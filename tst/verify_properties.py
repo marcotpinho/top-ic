@@ -6,8 +6,9 @@ from itertools import pairwise
 from pathlib import Path
 
 from common import CheckLog, close, piece, records, trajectory
-from topcc.evaluation_core.communication import sweep
-from topcc.evaluation_core.contacts import ContactUncertain, pair_contacts
+from topcc.core.evaluation.communication import sweep
+from topcc.core.evaluation.contacts import pair_contacts
+from topcc.entities.evaluation.ContactUncertain import ContactUncertain
 from verify_propagation import CASES, violation
 
 ROOT = Path(__file__).resolve().parents[1]

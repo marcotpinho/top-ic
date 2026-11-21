@@ -7,19 +7,11 @@ from random import Random
 
 import numpy as np
 
+from ...core.neighborhoods.registry import ICC_NEIGHBORHOODS
+from ...core.search.profiling import profiling
 from ..problem.Config import Config
 from ..problem.Problem import Problem
-from ...solution import Solution
-from ..profiling import profiling
-
-ICC_NEIGHBORHOODS = (
-    "insert",
-    "remove",
-    "two_opt",
-    "assignment",
-    "free_segment",
-    "velocity_change",
-)
+from ..routing.Solution import Solution
 
 
 class Neighborhood:
@@ -50,7 +42,7 @@ class Neighborhood:
         if name not in self.names:
             raise ValueError(f"Disabled or unknown neighborhood: {name}")
         if self.config.batch_neighborhoods:
-            from ...batch.neighborhoods import SUPPORTED, generate
+            from ...core.neighborhoods.batch import SUPPORTED, generate
 
             if name in SUPPORTED:
                 candidates = generate(
@@ -61,12 +53,12 @@ class Neighborhood:
                     self.batch_rng,
                 )
             else:
-                module = import_module(f"..neighborhoods.{name}", package=__package__)
+                module = import_module(f"topcc.core.neighborhoods.{name}")
                 candidates = module.generate(
                     solution, self.problem, self.config, self.rng
                 )
         else:
-            module = import_module(f"..neighborhoods.{name}", package=__package__)
+            module = import_module(f"topcc.core.neighborhoods.{name}")
             candidates = module.generate(solution, self.problem, self.config, self.rng)
         execution = {
             "sequence": len(self.executions) + 1,

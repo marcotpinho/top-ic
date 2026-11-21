@@ -129,7 +129,7 @@ def _generate_plots(
     result_path: Path, output_dir: Path, elapsed_seconds: float
 ) -> list[str]:
     """Generate plots, the path animation, and the best saved Tc-feasible path."""
-    from topcc.viz import draw_solution_paths, plot_execution_time, plot_result
+    from topcc.core.visualization.viz import draw_solution_paths, plot_execution_time, plot_result
 
     data = json.loads(result_path.read_text())
     plot_execution_time(data, output_dir, elapsed_seconds)
@@ -517,7 +517,7 @@ def _execute_search(
     output_dir: Path, arguments: list[str]
 ) -> tuple[Path, list[str], float]:
     """Save the reproduction command and execute the TOP-ICC CLI."""
-    from topcc.main import _parser
+    from topcc.core.application.main import _parser
 
     max_seconds = _parser().parse_args(arguments).max_seconds
     reproduction_path = output_dir / "reproduce.sh"
@@ -527,7 +527,7 @@ def _execute_search(
     command = [
         sys.executable,
         "-m",
-        "topcc.main",
+        "topcc.core.application.main",
         *arguments,
         "--output",
         _relative_to_root(result_path),

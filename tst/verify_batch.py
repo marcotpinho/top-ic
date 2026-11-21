@@ -9,21 +9,25 @@ from time import perf_counter
 
 import numpy as np
 from common import CheckLog, close, records
-from topcc.batch.communication import batch_sweep
-from topcc.batch.contacts import (
-    ContactBatch,
-    _polynomial_intervals,
-    _quartics,
-    _Segment,
-)
-from topcc.batch.evaluator import BatchEvaluator, _equivalent
-from topcc.batch.tensors import TrajectoryBatch, routes_to_tensor
-from topcc.config import Config, velocity_menu
-from topcc.environment import problem_from_dict, smoke_problem
-from topcc.evaluation_core.communication import ContactRecord, sweep
-from topcc.evaluation_core.contacts import ContactUncertain, range_intervals
-from topcc.evaluation_core.evaluator import Evaluator
-from topcc.solution import Solution, Visit, direct_solution
+from topcc.core.evaluation.batch.communication import batch_sweep
+from topcc.core.evaluation.batch.contacts import _polynomial_intervals, _quartics
+from topcc.core.evaluation.batch.tensors import routes_to_tensor
+from topcc.core.evaluation.communication import sweep
+from topcc.core.evaluation.contacts import range_intervals
+from topcc.core.evaluation.equivalence import equivalent
+from topcc.core.problem.config import velocity_menu
+from topcc.core.problem.environment import problem_from_dict, smoke_problem
+from topcc.core.routing.solution import direct_solution
+from topcc.entities.evaluation.BatchEvaluator import BatchEvaluator
+from topcc.entities.evaluation.ContactBatch import ContactBatch
+from topcc.entities.evaluation.ContactRecord import ContactRecord
+from topcc.entities.evaluation.ContactUncertain import ContactUncertain
+from topcc.entities.evaluation.Evaluator import Evaluator
+from topcc.entities.evaluation.TrajectoryBatch import TrajectoryBatch
+from topcc.entities.evaluation.batch._Segment import _Segment
+from topcc.entities.problem.Config import Config
+from topcc.entities.routing.Solution import Solution
+from topcc.entities.routing.Visit import Visit
 from verify_propagation import CASES
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -199,7 +203,7 @@ def padding_and_size(log):
     log.check(
         "F3 padding independence",
         all(
-            _equivalent(left, right.evaluation)
+            equivalent(left, right.evaluation)
             for left, right in zip(separate, together)
         ),
     )
@@ -213,7 +217,7 @@ def padding_and_size(log):
     thousand = BatchEvaluator(problem, config).evaluate_batch([short] * 1000)
     log.check(
         "F4 batch 1 vs 1000",
-        all(_equivalent(single, item.evaluation) for item in thousand),
+        all(equivalent(single, item.evaluation) for item in thousand),
         len(thousand),
     )
 

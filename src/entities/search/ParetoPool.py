@@ -1,8 +1,8 @@
 from hashlib import sha256
 
-from ...solution import Solution
-from ..profiling import profiling
-from ..selection import crowding_distances, pool_vector, vector_dominates
+from ...core.search.profiling import profiling
+from ...core.search.selection import crowding_distances, pool_vector, vector_dominates
+from ..routing.Solution import Solution
 from .PoolMember import PoolMember
 from .SearchProfile import SearchProfile
 

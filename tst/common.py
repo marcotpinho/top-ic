@@ -2,8 +2,10 @@
 
 from math import isclose
 
-from topcc.evaluation_core.communication import ContactRecord
-from topcc.evaluation_core.trajectory import AgentTrajectory, MotionPiece, State
+from topcc.entities.evaluation.ContactRecord import ContactRecord
+from topcc.entities.motion.AgentTrajectory import AgentTrajectory
+from topcc.entities.motion.MotionPiece import MotionPiece
+from topcc.entities.motion.State import State
 
 
 def piece(position, velocity, acceleration, duration, start_time=0.0):

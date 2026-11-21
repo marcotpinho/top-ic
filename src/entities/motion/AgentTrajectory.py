@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
+from ...core.motion.constants import TOL
 from .MotionPiece import MotionPiece
 from .State import State
-
-TOL = 1e-8
 
 
 @dataclass(frozen=True)

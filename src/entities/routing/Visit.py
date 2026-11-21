@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ..problem.Config import Vector, vector
+from ...core.problem.config import Vector, vector
 
 
 @dataclass(frozen=True)

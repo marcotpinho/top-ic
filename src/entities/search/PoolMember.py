@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from ...solution import Solution
+from ..routing.Solution import Solution
 
 
 @dataclass

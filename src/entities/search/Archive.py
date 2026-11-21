@@ -3,9 +3,9 @@
 from random import Random
 
 from ..problem.Config import Config
-from ...solution import Solution
-from ..profiling import profiling
-from ..selection import select_base
+from ...core.search.profiling import profiling
+from ...core.search.selection import select_base
+from ..routing.Solution import Solution
 from .ParetoPool import ParetoPool
 from .SearchProfile import SearchProfile
 from .epsilon.Archive import Archive as EpsilonArchive

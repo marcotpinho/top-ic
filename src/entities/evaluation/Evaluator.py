@@ -7,10 +7,11 @@ from math import inf
 
 from ..problem.Config import Config
 from ..problem.Problem import Problem
-from ...evaluation_core.communication import evaluate_communication
-from ...evaluation_core.scheduling import schedule
-from ...evaluation_core.trajectory import AgentTrajectory, MotionError, State, connect
-from ...solution import Solution, Visit
+from ...core.evaluation.communication import evaluate_communication
+from ...core.evaluation.scheduling import schedule
+from ...core.motion.trajectory import AgentTrajectory, MotionError, State, connect
+from ..routing.Solution import Solution
+from ..routing.Visit import Visit
 from .Evaluation import Evaluation
 
 
@@ -50,7 +51,7 @@ class Evaluator:
             and len(parent.routes) == len(solution.routes)
         )
         if reusable:
-            from ..profiling import profiling
+            from ...core.search.profiling import profiling
 
             self.incremental_metrics["incremental_evaluations"] += 1
             with profiling(self.incremental_metrics, "incremental_seconds"):
